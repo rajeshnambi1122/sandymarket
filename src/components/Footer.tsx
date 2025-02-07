@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Twitter } from "lucide-react";
 
@@ -10,7 +9,8 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">About Us</h3>
             <p className="text-gray-400">
-              Your one-stop destination for quality fuel, convenience items, and delicious pizza.
+              Your one-stop destination for quality fuel, convenience items, and
+              delicious pizza.
             </p>
           </div>
           <div>
@@ -64,7 +64,10 @@ const Footer = () => {
           </div>
         </div>
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Gas N' Grab Pizza Stop. All rights reserved.</p>
+          <p>
+            &copy; {new Date().getFullYear()} Sandy's Market. All rights
+            reserved.
+          </p>
         </div>
       </div>
     </footer>
