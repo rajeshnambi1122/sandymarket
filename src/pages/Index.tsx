@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { GasPump, Pizza, Store, Clock, MapPin, Phone } from "lucide-react";
+import { Fuel, Pizza, Store, Clock, MapPin, Phone } from "lucide-react";
 
 const Index = () => {
   return (
@@ -46,7 +46,7 @@ const Index = () => {
             <Card className="p-6 hover:shadow-lg transition-shadow animate-fade-up">
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <GasPump className="w-8 h-8 text-primary" />
+                  <Fuel className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">Quality Fuel</h3>
                 <p className="text-gray-600">
