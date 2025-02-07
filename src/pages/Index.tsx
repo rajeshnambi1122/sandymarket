@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Fuel, Pizza, Store, Clock, MapPin, Phone } from "lucide-react";
@@ -39,7 +38,7 @@ const Index = () => {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-white text-white hover:bg-white/10"
+                  className="bg-white/10 border-primary text-primary hover:bg-primary hover:text-white transition-colors"
                 >
                   View Gas Prices
                 </Button>
