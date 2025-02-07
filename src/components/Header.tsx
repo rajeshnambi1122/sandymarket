@@ -27,7 +27,7 @@ const Header = () => {
           </nav>
           <Button className="flex items-center gap-2">
             <Phone className="w-4 h-4" />
-            <span className="hidden md:inline">(555) 123-4567</span>
+            <span className="hidden md:inline">+1 989-435-9688</span>
           </Button>
         </div>
       </div>

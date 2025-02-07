@@ -39,14 +39,18 @@ const Footer = () => {
             </ul>
           </div>
           <div>
+            <h3 className="text-lg font-semibold mb-4">Contact Info</h3>
+            <p className="text-gray-400">1057 Estey Road</p>
+            <p className="text-gray-400">Beaverton, MI</p>
+            <p className="text-gray-400">United States</p>
+            <p className="text-gray-400 mt-2">Phone: +1 989-435-9688</p>
+            <p className="text-gray-400">Email: sandysmarket19@gmail.com</p>
+          </div>
+          <div>
             <h3 className="text-lg font-semibold mb-4">Hours</h3>
             <p className="text-gray-400">Open 24/7</p>
             <p className="text-gray-400">365 days a year</p>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Contact & Follow</h3>
-            <p className="text-gray-400 mb-4">(555) 123-4567</p>
-            <div className="flex space-x-4">
+            <div className="flex space-x-4 mt-4">
               <a href="#" className="text-gray-400 hover:text-primary">
                 <Facebook className="w-6 h-6" />
               </a>
