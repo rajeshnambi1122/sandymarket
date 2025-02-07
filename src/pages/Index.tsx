@@ -26,7 +26,7 @@ const Index = () => {
                 Welcome to
               </span>
               <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white">
-                Gas N' Grab Pizza Stop
+                Sandy's Market
               </h1>
               <p className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
                 Your one-stop destination for fuel, convenience, and delicious pizza
@@ -58,6 +58,11 @@ const Index = () => {
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Quality Fuel</h3>
                   <p className="text-gray-600">Premium quality fuel at competitive prices</p>
+                  <img
+                    src="/lovable-uploads/cab21a61-1ae6-4a16-b9a3-9d8d7b4a065d.png"
+                    alt="Pizza display"
+                    className="mt-4 rounded-lg w-full h-48 object-cover"
+                  />
                 </div>
               </Card>
               <Card className="p-6 hover:shadow-lg transition-shadow animate-fade-up [animation-delay:200ms]">
