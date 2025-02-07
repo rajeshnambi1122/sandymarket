@@ -5,6 +5,22 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const Index = () => {
+  const pizzaMenu = [
+    { name: "Cheese Pizza", price: "$12.99", description: "Classic cheese blend" },
+    { name: "Pepperoni Pizza", price: "$14.99", description: "Traditional pepperoni with cheese" },
+    { name: "Supreme Pizza", price: "$16.99", description: "Loaded with veggies and meats" },
+    { name: "BBQ Chicken", price: "$15.99", description: "Grilled chicken with BBQ sauce" },
+    { name: "Veggie Delight", price: "$14.99", description: "Fresh garden vegetables" },
+    { name: "Meat Lovers", price: "$17.99", description: "Packed with various meats" }
+  ];
+
+  const gasPrices = [
+    { type: "Regular", price: "$3.29" },
+    { type: "Mid-Grade", price: "$3.49" },
+    { type: "Premium", price: "$3.69" },
+    { type: "Diesel", price: "$3.89" }
+  ];
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -94,6 +110,46 @@ const Index = () => {
                 </div>
               </Card>
             </div>
+          </div>
+        </section>
+
+        {/* Pizza Menu Section */}
+        <section className="py-16 bg-white" id="pizza-menu">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-8">Our Pizza Menu</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pizzaMenu.map((item, index) => (
+                <Card key={index} className="p-6 hover:shadow-lg transition-shadow animate-fade-up">
+                  <div className="flex flex-col">
+                    <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
+                    <p className="text-gray-600 mb-4">{item.description}</p>
+                    <p className="text-primary font-bold text-lg mt-auto">{item.price}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+            <div className="text-center mt-8">
+              <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
+                Order Now
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Gas Prices Section */}
+        <section className="py-16 bg-secondary/30" id="gas-prices">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-8">Today's Gas Prices</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+              {gasPrices.map((item, index) => (
+                <Card key={index} className="p-6 text-center hover:shadow-lg transition-shadow animate-fade-up">
+                  <Fuel className="w-8 h-8 text-primary mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">{item.type}</h3>
+                  <p className="text-primary text-2xl font-bold">{item.price}</p>
+                </Card>
+              ))}
+            </div>
+            <p className="text-center mt-6 text-gray-600">Prices updated daily</p>
           </div>
         </section>
 
