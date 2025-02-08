@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "@/config/api";
 import { Card } from "@/components/ui/card";
+import ordersApi from "@/api/orders";
+import { Order } from "@/types/order";
+import { useToast } from "@/components/ui/use-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { API_URL } from "@/config/api";
-import type { PizzaOrder } from "@/types/order";
 
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
-  const [orders, setOrders] = useState<PizzaOrder[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,7 +22,7 @@ export default function Profile() {
     }
 
     fetchUserData(token);
-    fetchUserOrders(token);
+    fetchUserOrders();
   }, [navigate]);
 
   const fetchUserData = async (token: string) => {
@@ -38,19 +41,19 @@ export default function Profile() {
     }
   };
 
-  const fetchUserOrders = async (token: string) => {
+  const fetchUserOrders = async () => {
     try {
-      const response = await fetch(`${API_URL}/orders/my-orders`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(data);
-      }
+      const userOrders = await ordersApi.getUserOrders();
+      console.log("Fetched user orders:", userOrders); // Debug log
+      setOrders(userOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch orders",
+        variant: "destructive",
+      });
+      setOrders([]);
     }
   };
 
@@ -81,33 +84,38 @@ export default function Profile() {
         </Card>
 
         <h2 className="text-xl font-bold mb-4">Order History</h2>
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <Card key={order.id} className="p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-gray-600">
-                    Order Date: {new Date(order.createdAt).toLocaleDateString()}
-                  </p>
-                  <div className="mt-2">
-                    {order.items.map((item, index) => (
-                      <p key={index} className="text-sm">
-                        {item.quantity}x {item.name} - $
-                        {item.price * item.quantity}
-                      </p>
-                    ))}
+        {orders.length > 0 ? (
+          <div className="space-y-4">
+            {orders.map((order) => (
+              <Card key={order.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-semibold">Order #{order.id}</p>
+                    <p className="text-sm text-gray-600">
+                      Status: {order.status}
+                    </p>
+                    <div className="mt-2">
+                      {order.items.map((item, index) => (
+                        <p key={index} className="text-sm">
+                          {item.quantity}x {item.name} - $
+                          {item.price.toFixed(2)}
+                        </p>
+                      ))}
+                    </div>
+                    <p className="font-bold mt-2">
+                      Total: ${order.totalAmount.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Ordered: {new Date(order.createdAt).toLocaleString()}
+                    </p>
                   </div>
-                  <p className="font-bold mt-2">Total: ${order.totalAmount}</p>
                 </div>
-                <div>
-                  <span className="px-2 py-1 text-sm rounded bg-primary/10 text-primary">
-                    {order.status}
-                  </span>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">No orders found</p>
+        )}
       </main>
       <Footer />
     </div>

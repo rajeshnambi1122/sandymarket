@@ -16,6 +16,9 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
+import ordersApi from "@/api/orders";
 
 const orderSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
@@ -244,6 +247,86 @@ export default function PizzaOrder() {
     }
   }, [navigate]);
 
+  const handleCheckout = async () => {
+    try {
+      const formData = form.getValues();
+      const items = formData.items || [];
+
+      if (!formData.customerName || !formData.phone || !formData.address) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (items.length === 0) {
+        toast({
+          title: "Empty Cart",
+          description: "Please add items to your order",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const totalAmount = items.reduce(
+        (sum: number, item: any) => sum + item.price * item.quantity,
+        0
+      );
+
+      const orderData = {
+        customerName: formData.customerName,
+        phone: formData.phone,
+        address: formData.address,
+        items: items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: Number(item.price),
+        })),
+        totalAmount: Number(totalAmount),
+      };
+
+      try {
+        const response = await ordersApi.createOrder(orderData);
+
+        if (response) {
+          toast({
+            title: "Order Placed Successfully!",
+            description: "Your order has been received and is being processed.",
+          });
+
+          // Clear the form
+          form.reset({
+            customerName: "",
+            phone: "",
+            address: "",
+            items: [],
+          });
+
+          // Navigate to order tracking
+          navigate(`/orders/${response.id}`);
+        }
+      } catch (apiError: any) {
+        console.error("API Error:", apiError);
+        toast({
+          title: "Order Failed",
+          description:
+            apiError.response?.data?.message ||
+            "Failed to place order. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Checkout Error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!isAuthenticated) return null;
 
   return (
@@ -369,12 +452,7 @@ export default function PizzaOrder() {
                     )
                     .toFixed(2)}
                 </div>
-                <Button
-                  className="mt-2 w-full"
-                  onClick={() => {
-                    // Handle checkout
-                  }}
-                >
+                <Button className="mt-2 w-full" onClick={handleCheckout}>
                   Checkout
                 </Button>
               </>

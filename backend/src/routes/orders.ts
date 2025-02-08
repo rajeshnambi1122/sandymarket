@@ -8,29 +8,77 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
-    res.json(orders);
+    res.json({ success: true, data: orders });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching orders" });
+    res.status(500).json({ success: false, message: "Error fetching orders" });
   }
 });
 
-// Create new order (now requires auth)
-router.post("/", auth, async (req: AuthRequest, res: Response) => {
+// Get current user's orders
+router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
-    console.log("Received order request:", req.body);
+    console.log("Fetching orders for user:", req.userId);
+    const orders = await Order.find({}).sort({ createdAt: -1 }).lean().exec();
+    console.log("Found orders:", orders);
+    res.json({ success: true, data: orders });
+  } catch (error: any) {
+    console.error("Error in /my-orders:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders",
+      error: error.message,
+    });
+  }
+});
+
+// Get all orders (for admin)
+router.get("/admin", auth, async (req: AuthRequest, res: Response) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: orders });
+  } catch (error: any) {
+    console.error("Error fetching admin orders:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching orders",
+      error: error.message,
+    });
+  }
+});
+
+// Get order by ID (for customers to check status)
+router.get("/:id", async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+    res.json({ success: true, data: order });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching order",
+    });
+  }
+});
+
+// Create new order (for customers)
+router.post("/", async (req, res) => {
+  try {
     const { customerName, phone, address, items } = req.body;
 
     if (!items || items.length === 0) {
-      console.log("No items in order");
-      return res
-        .status(400)
-        .json({ message: "Order must contain at least one item" });
+      return res.status(400).json({
+        success: false,
+        message: "Order must contain at least one item",
+      });
     }
 
-    // Calculate total amount
     const totalAmount = items.reduce(
-      (sum: number, item: { quantity: number; price: number }) =>
-        sum + item.quantity * item.price,
+      (sum: number, item: any) => sum + item.price * item.quantity,
       0
     );
 
@@ -41,50 +89,51 @@ router.post("/", auth, async (req: AuthRequest, res: Response) => {
       items,
       totalAmount,
       status: "pending",
-      user: req.userId, // assign the logged in user
+      user: null, // Make user optional for now
     });
 
-    console.log("Creating order:", order);
     const savedOrder = await order.save();
-    console.log("Order saved:", savedOrder);
-
-    res.status(201).json(savedOrder);
+    res.status(201).json({ success: true, data: savedOrder });
   } catch (error: any) {
     console.error("Error creating order:", error);
     res.status(400).json({
-      message: "Error creating order",
-      error: error?.message || "Unknown error",
+      success: false,
+      message: error.message || "Error creating order",
     });
   }
 });
 
-// Update order status
-router.patch("/:id", async (req, res) => {
+// Update order status (for admin)
+router.patch("/:id", auth, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    const order = await Order.findByIdAndUpdate(id, { status }, { new: true });
+    console.log("Updating order:", { id, status }); // Debug log
+
+    const order = await Order.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true, runValidators: true }
+    );
 
     if (!order) {
-      return res.status(404).json({ message: "Order not found" });
+      console.log("Order not found"); // Debug log
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
     }
 
-    res.json(order);
-  } catch (error) {
-    res.status(400).json({ message: "Error updating order" });
-  }
-});
-
-// Get current user's orders
-router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
-  try {
-    const orders = await Order.find({ user: req.userId }).sort({
-      createdAt: -1,
-    });
-    res.json(orders);
+    console.log("Order updated:", order); // Debug log
+    res.json({ success: true, data: order });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    console.error("Error updating order:", error); // Debug log
+    res.status(400).json({
+      success: false,
+      message: "Error updating order",
+      error: error.message,
+    });
   }
 });
 
