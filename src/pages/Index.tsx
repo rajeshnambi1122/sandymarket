@@ -3,6 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Fuel, Pizza, Store, Clock, MapPin, Phone } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { OrderForm } from "@/components/OrderForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const pizzaMenu = [
@@ -45,13 +54,15 @@ const Index = () => {
     { type: "Diesel", price: "$3.89" },
   ];
 
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative h-[90vh] flex items-center justify-center overflow-hidden mt-16">
+        <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0">
             <img
               src="/lovable-uploads/02cd446d-f09f-4647-88e4-e7b5508c6209.png"
@@ -175,6 +186,7 @@ const Index = () => {
               <Button
                 size="lg"
                 className="bg-primary hover:bg-primary/90 text-white"
+                onClick={() => navigate("/order-pizza")}
               >
                 Order Now
               </Button>
