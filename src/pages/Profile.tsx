@@ -7,12 +7,15 @@ import { Order } from "@/types/order";
 import { useToast } from "@/components/ui/use-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -63,7 +66,16 @@ export default function Profile() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">My Profile</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">My Profile</h1>
+          <Button
+            variant="destructive"
+            onClick={logout}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Log Out
+          </Button>
+        </div>
 
         <Card className="p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Personal Information</h2>

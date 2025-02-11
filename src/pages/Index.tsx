@@ -1,16 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Fuel, Pizza, Store, Clock, MapPin, Phone } from "lucide-react";
+import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { OrderForm } from "@/components/OrderForm";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -85,10 +78,11 @@ const Index = () => {
               </p>
               <div className="flex flex-wrap gap-4 justify-center">
                 <Button
+                  asChild
                   size="lg"
                   className="bg-primary hover:bg-primary/90 text-white"
                 >
-                  Order Pizza Online
+                  <Link to="/order-pizza">Order Pizza Online</Link>
                 </Button>
                 <Button
                   size="lg"

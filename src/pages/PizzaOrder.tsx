@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { OrderForm } from "@/components/OrderForm";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
@@ -16,7 +15,8 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/use-toast";
+import { Label } from "@/components/ui/label";
+import { MinusCircle, PlusCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ordersApi from "@/api/orders";
 
@@ -27,9 +27,17 @@ const orderSchema = z.object({
   items: z.array(z.any()),
 });
 
+interface CartItem {
+  name: string;
+  quantity: number;
+  price: number;
+  size?: string;
+}
+
 export default function PizzaOrder() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { toast } = useToast();
 
   const menu = {
     pizzas: {
@@ -247,6 +255,179 @@ export default function PizzaOrder() {
     }
   }, [navigate]);
 
+  const handleQuantityChange = (item: any, delta: number, size?: string) => {
+    const itemName = size ? `${item.name} (${size})` : item.name;
+    const price = size
+      ? Number(item.prices[size.toLowerCase()])
+      : Number(item.price);
+    const currentItems = form.getValues("items") || [];
+
+    const existingItemIndex = currentItems.findIndex(
+      (i: any) => i.name === itemName
+    );
+
+    if (existingItemIndex >= 0) {
+      const newQuantity = Math.max(
+        0,
+        currentItems[existingItemIndex].quantity + delta
+      );
+      if (newQuantity === 0) {
+        currentItems.splice(existingItemIndex, 1);
+      } else {
+        currentItems[existingItemIndex].quantity = newQuantity;
+      }
+    } else if (delta > 0) {
+      currentItems.push({ name: itemName, quantity: 1, price });
+    }
+
+    form.setValue("items", currentItems);
+
+    if (delta > 0) {
+      toast({
+        title: "Added to cart",
+        description: `${itemName} added to your order`,
+      });
+    }
+  };
+
+  const getItemQuantity = (itemName: string) => {
+    const items = form.getValues("items") || [];
+    const item = items.find((i: any) => i.name === itemName);
+    return item?.quantity || 0;
+  };
+
+  const renderQuantityControls = (item: any, size?: string) => (
+    <div className="flex items-center gap-2 mt-2">
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handleQuantityChange(item, -1, size)}
+        aria-label="Decrease quantity"
+      >
+        <MinusCircle className="h-4 w-4" />
+      </Button>
+      <span className="w-8 text-center">
+        {getItemQuantity(size ? `${item.name} (${size})` : item.name)}
+      </span>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handleQuantityChange(item, 1, size)}
+        aria-label="Increase quantity"
+      >
+        <PlusCircle className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  const renderMenuSection = (category: string, title: string) => {
+    const items = menu[category as keyof typeof menu];
+
+    if (category === "pizzas") {
+      const pizzaItems = menu[category] as {
+        regular: Array<{
+          name: string;
+          prices: { medium: string; large: string };
+          description: string;
+        }>;
+        specialty: Array<{
+          name: string;
+          price: string;
+          description: string;
+        }>;
+      };
+
+      return (
+        <div className="space-y-8">
+          <div>
+            <h3 className="text-lg font-bold mb-4">Regular Pizzas</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              {pizzaItems.regular.map((item: any) => (
+                <Card key={item.name} className="p-4">
+                  <div className="flex justify-between">
+                    <div>
+                      <h4 className="font-bold">{item.name}</h4>
+                      <p className="text-sm text-gray-600">
+                        {item.description}
+                      </p>
+                      <div className="mt-2">
+                        <p>Medium (16"): ${item.prices.medium}</p>
+                        <p>Large (22"): ${item.prices.large}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Label>Medium</Label>
+                      {renderQuantityControls(item, "medium")}
+                      <Label>Large</Label>
+                      {renderQuantityControls(item, "large")}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-bold mb-4">Specialty Pizzas</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              {pizzaItems.specialty.map((item: any) => (
+                <Card key={item.name} className="p-4">
+                  <div className="flex justify-between">
+                    <div>
+                      <h4 className="font-bold">{item.name}</h4>
+                      <p className="text-sm text-gray-600">
+                        {item.description}
+                      </p>
+                      <p className="mt-2">${item.price}</p>
+                    </div>
+                    {renderQuantityControls(item)}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {toppings && (
+            <div>
+              <h3 className="text-lg font-bold mb-4">Available Toppings</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {toppings.map((topping) => (
+                  <div key={topping} className="text-gray-700">
+                    • {topping}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.isArray(items) &&
+          items.map((item: any) => (
+            <Card key={item.name} className="p-4">
+              <div className="flex justify-between">
+                <div>
+                  <h4 className="font-bold">{item.name}</h4>
+                  {item.description && (
+                    <p className="text-sm text-gray-600">{item.description}</p>
+                  )}
+                  <p className="mt-2">
+                    {item.price === "market"
+                      ? "Market Price"
+                      : `$${item.price}`}
+                  </p>
+                </div>
+                {item.price !== "market" && renderQuantityControls(item)}
+              </div>
+            </Card>
+          ))}
+      </div>
+    );
+  };
+
   const handleCheckout = async () => {
     try {
       const formData = form.getValues();
@@ -287,41 +468,30 @@ export default function PizzaOrder() {
         totalAmount: Number(totalAmount),
       };
 
-      try {
-        const response = await ordersApi.createOrder(orderData);
+      const response = await ordersApi.createOrder(orderData);
 
-        if (response) {
-          toast({
-            title: "Order Placed Successfully!",
-            description: "Your order has been received and is being processed.",
-          });
-
-          // Clear the form
-          form.reset({
-            customerName: "",
-            phone: "",
-            address: "",
-            items: [],
-          });
-
-          // Navigate to order tracking
-          navigate(`/orders/${response.id}`);
-        }
-      } catch (apiError: any) {
-        console.error("API Error:", apiError);
+      if (response) {
         toast({
-          title: "Order Failed",
-          description:
-            apiError.response?.data?.message ||
-            "Failed to place order. Please try again.",
-          variant: "destructive",
+          title: "Order Placed Successfully!",
+          description: "Your order has been received and is being processed.",
         });
+
+        form.reset({
+          customerName: "",
+          phone: "",
+          address: "",
+          items: [],
+        });
+
+        navigate(`/orders/${response.id}`);
       }
     } catch (error: any) {
       console.error("Checkout Error:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description:
+          error.response?.data?.message ||
+          "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     }
@@ -396,37 +566,32 @@ export default function PizzaOrder() {
         <div className="space-y-12">
           <section>
             <h2 className="text-2xl font-bold mb-6">Pizza Menu</h2>
-            <OrderForm
-              menu={menu}
-              category="pizzas"
-              toppings={toppings}
-              form={form}
-            />
+            {renderMenuSection("pizzas", "Pizza Menu")}
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mb-6">Daily Specials</h2>
-            <OrderForm menu={menu} category="specials" form={form} />
+            {renderMenuSection("specials", "Daily Specials")}
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mb-6">Subs - $9.99 each</h2>
-            <OrderForm menu={menu} category="subs" form={form} />
+            {renderMenuSection("subs", "Subs")}
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mb-6">Chicken</h2>
-            <OrderForm menu={menu} category="chicken" form={form} />
+            {renderMenuSection("chicken", "Chicken")}
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mb-6">Sides & Baskets</h2>
-            <OrderForm menu={menu} category="sides" form={form} />
+            {renderMenuSection("sides", "Sides & Baskets")}
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mb-6">Deli Salads</h2>
-            <OrderForm menu={menu} category="deliSalads" form={form} />
+            {renderMenuSection("deliSalads", "Deli Salads")}
           </section>
         </div>
 
