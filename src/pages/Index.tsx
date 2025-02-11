@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
+import gasPricesApi, { GasPrice } from "@/api/gasPrices";
+import { useState, useEffect } from "react";
 
 const Index = () => {
   const pizzaMenu = [
@@ -40,12 +42,20 @@ const Index = () => {
     },
   ];
 
-  const gasPrices = [
-    { type: "Regular", price: "$3.29" },
-    { type: "Mid-Grade", price: "$3.49" },
-    { type: "Premium", price: "$3.69" },
-    { type: "Diesel", price: "$3.89" },
-  ];
+  const [gasPrices, setGasPrices] = useState<GasPrice[]>([]);
+
+  useEffect(() => {
+    fetchGasPrices();
+  }, []);
+
+  const fetchGasPrices = async () => {
+    try {
+      const prices = await gasPricesApi.getGasPrices();
+      setGasPrices(prices);
+    } catch (error) {
+      console.error("Failed to fetch gas prices:", error);
+    }
+  };
 
   const navigate = useNavigate();
 

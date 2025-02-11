@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { orderRoutes } from "./routes/orders";
 import { authRoutes } from "./routes/auth";
-
+import { gasPriceRoutes } from "./routes/gasprice";
 dotenv.config();
 
 const app = express();
@@ -22,6 +22,7 @@ app.use(express.json());
 // Routes
 app.use("/api/orders", orderRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/gasprice", gasPriceRoutes);
 
 // MongoDB connection options
 const mongooseOptions = {
