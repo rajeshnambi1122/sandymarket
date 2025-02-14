@@ -5,7 +5,7 @@ import { auth, AuthRequest } from "../middleware/auth";
 const router = express.Router();
 
 // Get all orders
-router.get("/", async (req, res) => {
+router.get("/", auth, async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json({ success: true, data: orders });
@@ -14,19 +14,30 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get current user's orders
+// Get user's orders
 router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
-    console.log("Fetching orders for user:", req.userId);
-    const orders = await Order.find({}).sort({ createdAt: -1 }).lean().exec();
-    console.log("Found orders:", orders);
-    res.json({ success: true, data: orders });
-  } catch (error: any) {
-    console.error("Error in /my-orders:", error);
+    console.log("Fetching orders for user:", req.userId); // Debug log
+
+    // Find all orders since we made user optional
+    const orders = await Order.find({
+      $or: [
+        { user: req.userId },
+        { user: null, customerName: { $exists: true } },
+      ],
+    }).sort({ createdAt: -1 });
+
+    console.log("Found orders:", orders); // Debug log
+
+    res.json({
+      success: true,
+      data: orders,
+    });
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch orders",
-      error: error.message,
+      message: "Error fetching orders",
     });
   }
 });

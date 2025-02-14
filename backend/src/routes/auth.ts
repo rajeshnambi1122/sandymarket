@@ -33,7 +33,7 @@ router.post("/register", async (req, res) => {
 
     // Create token
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id, role: user.role },
       process.env.JWT_SECRET || "secret",
       { expiresIn: "7d" }
     );
@@ -72,10 +72,17 @@ router.post("/login", async (req, res) => {
 
     // Create token
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id, role: user.role },
       process.env.JWT_SECRET || "secret",
       { expiresIn: "7d" }
     );
+
+    console.log("User data:", {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    });
 
     res.json({
       token,
@@ -85,6 +92,7 @@ router.post("/login", async (req, res) => {
         name: user.name,
         phone: user.phone,
         address: user.address,
+        role: user.role,
       },
     });
   } catch (error: any) {
@@ -105,6 +113,7 @@ router.get("/me", auth, async (req: AuthRequest, res: Response) => {
       email: user.email,
       phone: user.phone,
       address: user.address,
+      role: user.role,
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
