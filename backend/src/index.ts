@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 8080;
 // Middleware
 app.use(
   cors({
-    origin: "*", // Allows all origins
+    origin: "https://sandymarket.up.railway.app", // Allows all origins
     credentials: true, // Include cookies, authentication headers
   })
 );
