@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { GasPrice } from "../models/gasprice";
+import { GasPrice } from "../models/Gasprice";
 
 const router = express.Router();
 
