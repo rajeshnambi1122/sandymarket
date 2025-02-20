@@ -10,15 +10,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-const allowedOrigins = [
-  "https://sandymarket.up.railway.app", // Production frontend
-  "http://localhost:8080", // Local development frontend (change the port if needed)
-];
-
 // Middleware
 app.use(
   cors({
-    origin: allowedOrigins, // Allows all origins
+    origin: "*", // Allows all origins
     credentials: true, // Include cookies, authentication headers
   })
 );
