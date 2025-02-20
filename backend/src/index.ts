@@ -8,15 +8,16 @@ import { gasPriceRoutes } from "./routes/gasprice";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(
   cors({
-    origin: "http://localhost:8080", // Your frontend URL
-    credentials: true,
+    origin: "*", // Allows all origins
+    credentials: true, // Include cookies, authentication headers
   })
 );
+
 app.use(express.json());
 
 // Routes
