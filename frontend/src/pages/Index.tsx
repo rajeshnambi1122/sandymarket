@@ -51,6 +51,7 @@ const Index = () => {
   const fetchGasPrices = async () => {
     try {
       const prices = await gasPricesApi.getGasPrices();
+      console.log("Fetched gas prices:", prices); // Log the response
       setGasPrices(prices);
     } catch (error) {
       console.error("Failed to fetch gas prices:", error);
