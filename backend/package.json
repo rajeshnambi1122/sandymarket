@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
-    "build": "tsc"
+    "build": "chmod +x node_modules/.bin/tsc && tsc"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -23,6 +23,6 @@
     "@types/node": "^20.11.16",
     "nodemon": "^3.0.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.7.3"
   }
 }
