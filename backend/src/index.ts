@@ -13,10 +13,14 @@ const PORT = process.env.PORT || 8080;
 // Middleware
 app.use(
   cors({
-    origin: ["https://sandymarket.up.railway.app", "http://localhost:3000"], // Allow Railway frontend & local dev
+    origin: [
+      'http://localhost:3000',
+      'https://sandymarket.up.railway.app',
+      'https://sandymarketbackend.up.railway.app'
+    ],
     credentials: true,
-    methods: "GET, POST, PUT, DELETE",
-    allowedHeaders: "Content-Type, Authorization",
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
 

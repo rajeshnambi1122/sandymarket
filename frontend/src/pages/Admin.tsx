@@ -57,26 +57,13 @@ export default function Admin() {
     }
   };
 
-  const updateOrderStatus = async (
-    orderId: string,
-    newStatus: Order["status"]
-  ) => {
+  const updateOrderStatus = async (orderId: string, newStatus: Order["status"]) => {
     try {
-      console.log("Updating order:", { orderId, newStatus }); // Debug log
-
-      if (!orderId) {
-        console.error("Missing order ID:", {
-          order: orders.find((o) => o.id === orderId),
-        });
-        throw new Error("Order ID is required");
-      }
-
-      const updatedOrder = await ordersApi.updateOrderStatus(
-        orderId,
-        newStatus
-      );
-      console.log("Updated order:", updatedOrder); // Debug log
-
+      // Trim any whitespace or newline characters from the orderId
+      const cleanOrderId = orderId.trim();
+      
+      const updatedOrder = await ordersApi.updateOrderStatus(cleanOrderId, newStatus);
+      
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === orderId ? { ...order, status: newStatus } : order

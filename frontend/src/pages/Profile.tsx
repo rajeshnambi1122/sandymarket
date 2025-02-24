@@ -35,10 +35,20 @@ export default function Profile() {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+      
       if (response.ok) {
         const data = await response.json();
         setUser(data);
       }
+      
+      return;
+      
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
@@ -51,6 +61,11 @@ export default function Profile() {
       setOrders(userOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
+      if (error.response && error.response.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
       toast({
         title: "Error",
         description: "Failed to fetch orders",
