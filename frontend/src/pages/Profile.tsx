@@ -117,7 +117,7 @@ export default function Profile() {
               <Card key={order.id} className="p-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-semibold">Order #{order.id}</p>
+                    <p className="font-semibold">Order #{order._id}</p>
                     <p className="text-sm text-gray-600">
                       Status: {order.status}
                     </p>

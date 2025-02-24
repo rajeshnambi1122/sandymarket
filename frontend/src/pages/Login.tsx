@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { API_URL } from "@/config/api";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { Link } from "react-router-dom";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -97,6 +98,12 @@ export default function Login() {
               Login
             </Button>
           </form>
+          <p className="text-center mt-4">
+            New User?{" "}
+            <Link to="/register" className="text-primary hover:underline">
+              Register Now
+            </Link>
+          </p>
         </Card>
       </main>
       <Footer />
