@@ -79,7 +79,7 @@ router.get("/:id", async (req, res) => {
 // Create new order (for customers)
 router.post("/", async (req, res) => {
   try {
-    const { customerName, phone, address, items } = req.body;
+    const { customerName, phone, items } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({
@@ -96,7 +96,6 @@ router.post("/", async (req, res) => {
     const order = new Order({
       customerName,
       phone,
-      address,
       items,
       totalAmount,
       status: "pending",

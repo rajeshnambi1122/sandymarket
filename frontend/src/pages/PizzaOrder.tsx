@@ -23,7 +23,6 @@ import ordersApi from "@/api/orders";
 const orderSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
   phone: z.string().min(10, "Valid phone number required"),
-  address: z.string().min(1, "Address is required"),
   items: z.array(z.any()),
 });
 
@@ -241,7 +240,6 @@ export default function PizzaOrder() {
     defaultValues: {
       customerName: "",
       phone: "",
-      address: "",
       items: [],
     },
   });
@@ -433,7 +431,7 @@ export default function PizzaOrder() {
       const formData = form.getValues();
       const items = formData.items || [];
 
-      if (!formData.customerName || !formData.phone || !formData.address) {
+      if (!formData.customerName || !formData.phone ) {
         toast({
           title: "Missing Information",
           description: "Please fill in all required fields",
@@ -459,7 +457,7 @@ export default function PizzaOrder() {
       const orderData = {
         customerName: formData.customerName,
         phone: formData.phone,
-        address: formData.address,
+        address: "Pickup",
         items: items.map((item) => ({
           name: item.name,
           quantity: item.quantity,
@@ -479,11 +477,10 @@ export default function PizzaOrder() {
         form.reset({
           customerName: "",
           phone: "",
-          address: "",
           items: [],
         });
 
-        navigate(`/orders/${response.id}`);
+        navigate(`/orders/${response._id || response.id}`);
       }
     } catch (error: any) {
       console.error("Checkout Error:", error);
@@ -546,18 +543,7 @@ export default function PizzaOrder() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Delivery Address</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+               
               </div>
             </Card>
           </form>
@@ -618,7 +604,7 @@ export default function PizzaOrder() {
                     .toFixed(2)}
                 </div>
                 <Button className="mt-2 w-full" onClick={handleCheckout}>
-                  Checkout
+                  Order
                 </Button>
               </>
             ) : (

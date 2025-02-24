@@ -93,7 +93,7 @@ const Index = () => {
                   size="lg"
                   className="bg-primary hover:bg-primary/90 text-white"
                 >
-                  <Link to="/order-pizza">Order Pizza Online</Link>
+                  <Link to="/order-pizza">Pickup Pizaa</Link>
                 </Button>
                 <Button
                   size="lg"
