@@ -15,7 +15,7 @@ app.use(
   cors({
     origin: [
       'http://localhost:3000',
-      'https://sandymarket.up.railway.app',
+      'https://sandysmarket.up.railway.app',
       'https://sandymarketbackend.up.railway.app'
     ],
     credentials: true,
