@@ -3,6 +3,7 @@ import { Order } from "../models/Order";
 import { auth, AuthRequest } from "../middleware/auth";
 import { sendOrderConfirmationEmail } from '../services/emailService';
 import { ObjectId } from 'mongoose';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
@@ -19,14 +20,20 @@ router.get("/", auth, async (req, res) => {
 // Get user's orders
 router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
-    console.log("Auth user data:", req.user); // Log full user data
-    console.log("Current user email:", req.user?.email);
+    // Get the decoded token data
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ success: false, message: "No token provided" });
+    }
 
-    const query = { email: req.user?.email };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    console.log("Decoded token:", decoded);
+
+    const query = { email: decoded.email };
     console.log("Query:", query);
 
     const orders = await Order.find(query).sort({ createdAt: -1 });
-    console.log("Found orders count:", orders.length);
+    console.log("Found orders:", orders);
 
     res.json({
       success: true,
