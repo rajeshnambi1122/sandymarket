@@ -20,7 +20,6 @@ router.get("/", auth, async (req, res) => {
 // Get user's orders
 router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
-    // Get the decoded token data
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
       return res.status(401).json({ success: false, message: "No token provided" });
@@ -29,15 +28,20 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
     console.log("Decoded token:", decoded);
 
-    const query = { email: decoded.email };
-    console.log("Query:", query);
+    // First, let's see all orders in the database
+    const allOrders = await Order.find({});
+    console.log("All orders in DB:", allOrders);
 
-    const orders = await Order.find(query).sort({ createdAt: -1 });
-    console.log("Found orders:", orders);
+    // Then try to find orders for this email
+    const query = { email: decoded.email };
+    console.log("Looking for orders with query:", query);
+
+    const userOrders = await Order.find(query).sort({ createdAt: -1 });
+    console.log("Found user orders:", userOrders);
 
     res.json({
       success: true,
-      data: orders,
+      data: userOrders,
     });
   } catch (error) {
     console.error("Error fetching user orders:", error);
