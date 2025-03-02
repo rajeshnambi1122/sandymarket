@@ -20,7 +20,7 @@ router.get("/", auth, async (req, res) => {
 // Get user's orders
 router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
-    console.log("==========================================");
+    
     console.log("MY-ORDERS ENDPOINT CALLED");
     
     const token = req.headers.authorization?.split(' ')[1];
