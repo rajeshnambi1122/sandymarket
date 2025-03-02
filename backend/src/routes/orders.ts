@@ -95,12 +95,15 @@ router.post("/", async (req, res) => {
       0
     );
 
+    // Round totalAmount to two decimal places
+    const roundedTotalAmount = Math.round(totalAmount * 100) / 100;
+
     const order = new Order({
       customerName,
       phone,
       email,
       items,
-      totalAmount,
+      totalAmount: roundedTotalAmount,
       status: "pending",
       user: null, // Make user optional for now
     });
@@ -111,7 +114,7 @@ router.post("/", async (req, res) => {
     await sendOrderConfirmationEmail({
       id: savedOrder._id.toString(),
       customerEmail: email,
-      totalAmount,
+      totalAmount: roundedTotalAmount,
       items,
     });
 
