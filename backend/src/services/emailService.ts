@@ -47,14 +47,14 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
             <style>
               body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
               .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background-color: #f04d42; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+              .header { background-color: #2E7D32; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
               .content { background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 0 0 5px 5px; }
               .order-details { background-color: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px; }
               .items-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
               .items-table th, .items-table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
               .total { font-size: 18px; font-weight: bold; text-align: right; margin-top: 15px; }
               .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
-              .button { background-color: #f04d42; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 15px 0; }
+              .button { background-color: #2E7D32; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 15px 0; }
             </style>
           </head>
           <body>
