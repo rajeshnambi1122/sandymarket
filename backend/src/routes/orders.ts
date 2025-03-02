@@ -22,7 +22,7 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
     const orders = await Order.find({
       $or: [
         { user: req.userId },
-        ...(req.user ? [{ email: req.user.email }] : [])
+        { email: req.user?.email }
       ]
     }).sort({ createdAt: -1 });
 
