@@ -79,7 +79,17 @@ const ordersApi = {
 
   getUserOrders: async (): Promise<Order[]> => {
     try {
-      console.log("Fetching user orders with token:", getAuthHeader());
+      const token = localStorage.getItem('token');
+      console.log("Token from storage:", token);
+      
+      // Decode token to see the payload
+      if (token) {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(window.atob(base64));
+        console.log("Decoded token payload:", payload);
+      }
+
       const response = await axios.get<OrdersResponse>(
         `${API_URL}/orders/my-orders`,
         {
