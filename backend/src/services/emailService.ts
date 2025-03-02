@@ -126,7 +126,7 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
 
          
 
-              <h2>🛍️ Order Items</h2>
+              <h2>🍕 Order Items</h2>
               <table style="width: 100%; border-collapse: collapse; margin: 15px 0; background-color: #ffffff !important;">
                 <thead style="background-color: #f5f5f5 !important;">
                   <tr>
