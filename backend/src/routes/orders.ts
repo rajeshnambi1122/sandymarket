@@ -119,6 +119,8 @@ router.post("/", async (req, res) => {
       await sendOrderConfirmationEmail({
         id: savedOrder._id.toString(),
         customerEmail: email,
+        customerName,
+        phone,
         totalAmount,
         items,
       });
