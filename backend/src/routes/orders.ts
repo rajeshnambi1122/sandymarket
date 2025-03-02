@@ -1,6 +1,8 @@
 import express, { Response } from "express";
 import { Order } from "../models/Order";
 import { auth, AuthRequest } from "../middleware/auth";
+import { sendOrderConfirmationEmail } from '../services/emailService';
+import { ObjectId } from 'mongoose';
 
 const router = express.Router();
 
@@ -79,7 +81,7 @@ router.get("/:id", async (req, res) => {
 // Create new order (for customers)
 router.post("/", async (req, res) => {
   try {
-    const { customerName, phone, items } = req.body;
+    const { customerName, phone, email, items } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({
@@ -96,6 +98,7 @@ router.post("/", async (req, res) => {
     const order = new Order({
       customerName,
       phone,
+      email,
       items,
       totalAmount,
       status: "pending",
@@ -103,6 +106,15 @@ router.post("/", async (req, res) => {
     });
 
     const savedOrder = await order.save();
+
+    // Send confirmation email
+    await sendOrderConfirmationEmail({
+      id: savedOrder._id.toString(),
+      customerEmail: email,
+      totalAmount,
+      items,
+    });
+
     res.status(201).json({ success: true, data: savedOrder });
   } catch (error: any) {
     console.error("Error creating order:", error);

@@ -37,9 +37,18 @@ const mongooseOptions = {
   w: "majority",
 };
 
+const mongoUri = process.env.MONGODB_URI;
+
+console.log("MONGODB_URI:", process.env.MONGODB_URI); // Add this line for debugging
+
+if (!mongoUri) {
+  console.error("MONGODB_URI is not defined in environment variables");
+  process.exit(1);
+}
+
 // MongoDB connection
 mongoose
-  .connect(process.env.MONGODB_URI!)
+  .connect(mongoUri)
   .then(() => {
     console.log("Connected to MongoDB Atlas");
     app.listen(PORT, () => {
