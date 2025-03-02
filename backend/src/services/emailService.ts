@@ -61,7 +61,7 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
               border-radius: 5px 5px 0 0; 
             }
             .action-banner {
-              background-color: #ff9800 !important;
+              border-color: #ff9800 !important;
               color: white !important;
               padding: 10px;
               text-align: center;
