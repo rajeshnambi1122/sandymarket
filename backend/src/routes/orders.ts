@@ -19,18 +19,14 @@ router.get("/", auth, async (req, res) => {
 // Get user's orders
 router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
-    console.log("Current user email:", req.user?.email); // Debug log
+    console.log("Auth user data:", req.user); // Log full user data
+    console.log("Current user email:", req.user?.email);
 
-    const orders = await Order.find({
-      email: req.user?.email
-    }).sort({ createdAt: -1 });
+    const query = { email: req.user?.email };
+    console.log("Query:", query);
 
-    console.log("Found orders:", orders); // Debug log
-
-    // If no orders found, return empty array
-    if (!orders || orders.length === 0) {
-      console.log("No orders found for email:", req.user?.email); // Debug log
-    }
+    const orders = await Order.find(query).sort({ createdAt: -1 });
+    console.log("Found orders count:", orders.length);
 
     res.json({
       success: true,
