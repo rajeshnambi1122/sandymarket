@@ -20,31 +20,34 @@ router.get("/", auth, async (req, res) => {
 // Get user's orders
 router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
+    console.log("==========================================");
+    console.log("MY-ORDERS ENDPOINT CALLED");
+    
     const token = req.headers.authorization?.split(' ')[1];
+    console.log("Token received:", token?.substring(0, 20) + "...");
+    
     if (!token) {
+      console.log("No token provided!");
       return res.status(401).json({ success: false, message: "No token provided" });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
-    console.log("Decoded token:", decoded);
+    console.log("Decoded user email:", decoded.email);
 
-    // First, let's see all orders in the database
     const allOrders = await Order.find({});
-    console.log("All orders in DB:", allOrders);
+    console.log("Total orders in database:", allOrders.length);
+    console.log("All orders emails:", allOrders.map(o => o.email));
 
-    // Then try to find orders for this email
-    const query = { email: decoded.email };
-    console.log("Looking for orders with query:", query);
-
-    const userOrders = await Order.find(query).sort({ createdAt: -1 });
-    console.log("Found user orders:", userOrders);
+    const userOrders = await Order.find({ email: decoded.email }).sort({ createdAt: -1 });
+    console.log("Orders found for user:", userOrders.length);
+    console.log("==========================================");
 
     res.json({
       success: true,
       data: userOrders,
     });
   } catch (error) {
-    console.error("Error fetching user orders:", error);
+    console.error("Error in my-orders endpoint:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching orders",

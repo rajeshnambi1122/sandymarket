@@ -79,14 +79,17 @@ const ordersApi = {
 
   getUserOrders: async (): Promise<Order[]> => {
     try {
+      console.log("Fetching user orders with token:", getAuthHeader());
       const response = await axios.get<OrdersResponse>(
         `${API_URL}/orders/my-orders`,
         {
           headers: getAuthHeader(),
         }
       );
+      console.log("Raw response from server:", response.data);
       return response.data.data;
     } catch (error) {
+      console.error("Error in getUserOrders:", error);
       throw handleApiError(error);
     }
   },
