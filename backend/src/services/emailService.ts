@@ -108,15 +108,11 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🛎️ New Order Alert!</h1>
+              <h1>New Order Alert!</h1>
             </div>
             <div class="content">
               <div class="action-banner">
                 ⚡ ACTION REQUIRED: New Order Needs Processing
-              </div>
-
-              <div class="urgent">
-                Please process this order within 15 minutes!
               </div>
 
               <div class="order-details">
@@ -128,25 +124,7 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
                 <p><strong>Status:</strong> <span style="color: #ff9800 !important; font-weight: bold;">PENDING</span></p>
               </div>
 
-              <div class="steps-container">
-                <h2>🎯 Required Actions:</h2>
-                <div class="step">
-                  <h3>1. Review Order (Immediate)</h3>
-                  <p>Verify all items and quantities listed below</p>
-                </div>
-                <div class="step">
-                  <h3>2. Prepare Items (Within 5 mins)</h3>
-                  <p>Start preparing the order as per specifications</p>
-                </div>
-                <div class="step">
-                  <h3>3. Update Status (After Starting)</h3>
-                  <p>Mark as "Preparing" in the admin dashboard</p>
-                </div>
-                <div class="step">
-                  <h3>4. Quality Check (Before Completion)</h3>
-                  <p>Ensure all items match the order specifications</p>
-                </div>
-              </div>
+         
 
               <h2>🛍️ Order Items</h2>
               <table style="width: 100%; border-collapse: collapse; margin: 15px 0; background-color: #ffffff !important;">
@@ -176,10 +154,30 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
                 </tfoot>
               </table>
 
+                   <div class="steps-container">
+                <h2>🎯 Required Actions:</h2>
+                <div class="step">
+                  <h3>1. Review Order (Immediate)</h3>
+                  <p>Verify all items and quantities listed below</p>
+                </div>
+                <div class="step">
+                  <h3>2. Prepare Items (Within 5 mins)</h3>
+                  <p>Start preparing the order as per specifications</p>
+                </div>
+                <div class="step">
+                  <h3>3. Update Status (After Starting)</h3>
+                  <p>Mark as "Preparing" in the admin dashboard</p>
+                </div>
+                <div class="step">
+                  <h3>4. Quality Check (Before Completion)</h3>
+                  <p>Ensure all items match the order specifications</p>
+                </div>
+              </div>
+
               <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: #f5f5f5 !important; border-radius: 5px;">
                 <p style="margin: 0;">
                   <strong>Need help? Contact IT Support</strong><br>
-                  📞 System Support: (123) 456-7890
+                  📞 System Support: rajeshnambi2016@gmail.com
                 </p>
               </div>
             </div>
