@@ -46,20 +46,26 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
             .items-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
             .items-table th, .items-table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
             .total { font-size: 18px; font-weight: bold; text-align: right; margin-top: 15px; }
+            .status-badge { background-color: #FFA726; color: white; padding: 5px 10px; border-radius: 15px; font-size: 14px; }
+            .action-needed { color: #D32F2F; font-weight: bold; margin: 15px 0; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
               <h1>New Order Alert!</h1>
+              <div class="status-badge">Action Required</div>
             </div>
             <div class="content">
+              <p class="action-needed">⚡ New order received - Please check and prepare the order!</p>
+              
               <div class="order-details">
                 <h2>Order Information</h2>
                 <p><strong>Order ID:</strong> ${orderDetails.id}</p>
                 <p><strong>Customer Name:</strong> ${orderDetails.customerName}</p>
                 <p><strong>Customer Phone:</strong> ${orderDetails.phone}</p>
                 <p><strong>Customer Email:</strong> ${orderDetails.customerEmail}</p>
+                <p><strong>Order Status:</strong> Pending</p>
               </div>
 
               <h3>Order Items</h3>
@@ -69,6 +75,7 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
                     <th>Item</th>
                     <th>Quantity</th>
                     <th>Price</th>
+                    <th>Subtotal</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -76,6 +83,7 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
                     <tr>
                       <td>${item.name}</td>
                       <td>${item.quantity}</td>
+                      <td>$${item.price.toFixed(2)}</td>
                       <td>$${(item.price * item.quantity).toFixed(2)}</td>
                     </tr>
                   `).join('')}
@@ -84,6 +92,17 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
 
               <div class="total">
                 Total Amount: $${orderDetails.totalAmount.toFixed(2)}
+              </div>
+
+              <div style="margin-top: 20px; padding: 15px; background-color: #E8F5E9; border-radius: 5px;">
+                <p style="margin: 0; color: #2E7D32;">
+                  <strong>Next Steps:</strong>
+                </p>
+                <ol style="margin: 10px 0;">
+                  <li>Review the order details</li>
+                  <li>Prepare the items</li>
+                  <li>Update order status in the admin dashboard</li>
+                </ol>
               </div>
             </div>
           </div>
