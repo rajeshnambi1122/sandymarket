@@ -5,6 +5,10 @@ import { User } from "../models/User";
 export interface AuthRequest extends Request {
   userId?: string;
   userRole?: string;
+  user?: {
+    email: string;
+    // ... other user properties
+  };
 }
 
 export const auth = async (

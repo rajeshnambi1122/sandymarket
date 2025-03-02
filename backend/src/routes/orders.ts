@@ -19,17 +19,12 @@ router.get("/", auth, async (req, res) => {
 // Get user's orders
 router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
-    console.log("Fetching orders for user:", req.userId); // Debug log
-
-    // Find all orders since we made user optional
     const orders = await Order.find({
       $or: [
         { user: req.userId },
-        { user: null, customerName: { $exists: true } },
-      ],
+        ...(req.user ? [{ email: req.user.email }] : [])
+      ]
     }).sort({ createdAt: -1 });
-
-    console.log("Found orders:", orders); // Debug log
 
     res.json({
       success: true,
