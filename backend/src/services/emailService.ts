@@ -37,14 +37,56 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
       <!DOCTYPE html>
       <html>
         <head>
+          <meta name="color-scheme" content="light">
+          <meta name="supported-color-schemes" content="light">
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #2E7D32; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-            .content { background-color: #fff; padding: 20px; border: 1px solid #ddd; }
-            .order-details { background-color: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px; }
-            .items-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-            .items-table th, .items-table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+            :root {
+              color-scheme: light;
+            }
+            body { 
+              font-family: Arial, sans-serif; 
+              line-height: 1.6; 
+              color: #333 !important; 
+              background-color: #ffffff !important;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 0 auto; 
+              padding: 20px;
+              background-color: #ffffff !important;
+            }
+            .header { 
+              background-color: #2E7D32 !important; 
+              color: white !important; 
+              padding: 20px; 
+              text-align: center; 
+              border-radius: 5px 5px 0 0; 
+            }
+            .content { 
+              background-color: #ffffff !important; 
+              padding: 20px; 
+              border: 1px solid #ddd;
+              color: #333 !important;
+            }
+            .order-details { 
+              background-color: #f9f9f9 !important; 
+              padding: 15px; 
+              margin: 15px 0; 
+              border-radius: 5px;
+              color: #333 !important;
+            }
+            .items-table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+              background-color: #ffffff !important;
+            }
+            .items-table th, .items-table td { 
+              padding: 10px; 
+              text-align: left; 
+              border-bottom: 1px solid #ddd;
+              color: #333 !important;
+            }
             .total { font-size: 18px; font-weight: bold; text-align: right; margin-top: 15px; }
             .status-badge { background-color: #FFA726; color: white; padding: 5px 10px; border-radius: 15px; font-size: 14px; }
             .action-needed { color: #D32F2F; font-weight: bold; margin: 15px 0; }
