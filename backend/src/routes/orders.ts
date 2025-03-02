@@ -90,33 +90,42 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // Validate email
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required for order confirmation",
+      });
+    }
+
     const totalAmount = items.reduce(
       (sum: number, item: any) => sum + item.price * item.quantity,
       0
     );
 
-    // Round totalAmount to two decimal places
-    const roundedTotalAmount = Math.round(totalAmount * 100) / 100;
-
     const order = new Order({
       customerName,
       phone,
-      email,
+      email, // Make sure email is saved
       items,
-      totalAmount: roundedTotalAmount,
+      totalAmount: Math.round(totalAmount * 100) / 100, // Round to 2 decimal places
       status: "pending",
-      user: null, // Make user optional for now
+      user: null,
     });
 
     const savedOrder = await order.save();
 
-    // Send confirmation email
-    await sendOrderConfirmationEmail({
-      id: savedOrder._id.toString(),
-      customerEmail: email,
-      totalAmount: roundedTotalAmount,
-      items,
-    });
+    try {
+      await sendOrderConfirmationEmail({
+        id: savedOrder._id.toString(),
+        customerEmail: email,
+        totalAmount,
+        items,
+      });
+    } catch (emailError) {
+      console.error('Failed to send confirmation email:', emailError);
+      // Continue with order creation even if email fails
+    }
 
     res.status(201).json({ success: true, data: savedOrder });
   } catch (error: any) {

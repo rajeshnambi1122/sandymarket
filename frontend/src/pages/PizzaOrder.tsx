@@ -23,6 +23,7 @@ import ordersApi from "@/api/orders";
 const orderSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
   phone: z.string().min(10, "Valid phone number required"),
+  email: z.string().email("Valid email required"),
   items: z.array(z.any()),
 });
 
@@ -240,6 +241,7 @@ export default function PizzaOrder() {
     defaultValues: {
       customerName: "",
       phone: "",
+      email: "",
       items: [],
     },
   });
@@ -431,7 +433,7 @@ export default function PizzaOrder() {
       const formData = form.getValues();
       const items = formData.items || [];
 
-      if (!formData.customerName || !formData.phone ) {
+      if (!formData.customerName || !formData.phone || !formData.email) {
         toast({
           title: "Missing Information",
           description: "Please fill in all required fields",
@@ -457,6 +459,7 @@ export default function PizzaOrder() {
       const orderData = {
         customerName: formData.customerName,
         phone: formData.phone,
+        email: formData.email,
         address: "Pickup",
         items: items.map((item) => ({
           name: item.name,
@@ -477,6 +480,7 @@ export default function PizzaOrder() {
         form.reset({
           customerName: "",
           phone: "",
+          email: "",
           items: [],
         });
 
@@ -543,7 +547,18 @@ export default function PizzaOrder() {
                     </FormItem>
                   )}
                 />
-               
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </div>
             </Card>
           </form>
