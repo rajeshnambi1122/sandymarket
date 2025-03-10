@@ -428,45 +428,37 @@ router.get("/by-email", auth, async (req: AuthRequest, res: Response) => {
       });
     }
     
-    try {
-      // Get orders with matching email - use a simple string match instead of regex
-      const orders = await Order.find({ email: email }).sort({ createdAt: -1 });
+    // Get orders with matching email - use a simple string match instead of regex
+    const orders = await Order.find({ email: email }).sort({ createdAt: -1 });
+    
+    console.log(`Found ${orders.length} orders for email: ${email}`);
+    
+    // If we found orders by email but they're not linked to the user, update them
+    if (orders.length > 0 && req.userId) {
+      console.log(`Linking ${orders.length} orders to user: ${req.userId}`);
       
-      console.log(`Found ${orders.length} orders for email: ${email}`);
-      
-      // If we found orders by email but they're not linked to the user, update them
-      if (orders.length > 0 && req.userId) {
-        console.log(`Linking ${orders.length} orders to user: ${req.userId}`);
-        
-        // Update the orders to link them to this user - one by one to avoid errors
-        try {
-          for (const order of orders) {
-            if (!order.user) {
-              order.user = new mongoose.Types.ObjectId(req.userId);
-              await order.save();
-              console.log(`Order ${order._id} linked to user ${req.userId}`);
-            }
+      // Update the orders to link them to this user - one by one to avoid errors
+      for (const order of orders) {
+        if (!order.user) {
+          try {
+            order.user = new mongoose.Types.ObjectId(req.userId);
+            await order.save();
+            console.log(`Order ${order._id} linked to user ${req.userId}`);
+          } catch (error: any) {
+            console.error(`Error linking order ${order._id}:`, error.message);
+            // Continue with next order
           }
-        } catch (updateError) {
-          console.error("Error linking individual orders to user:", updateError);
-          // Continue anyway to return the orders
         }
       }
-      
-      res.json({ 
-        success: true, 
-        data: orders 
-      });
-    } catch (dbError) {
-      console.error("Database error in by-email endpoint:", dbError);
-      res.status(500).json({
-        success: false,
-        message: "Error fetching orders from database",
-        error: dbError.message
-      });
     }
-  } catch (error) {
-    console.error("Error in orders-by-email endpoint:", error);
+    
+    res.json({ 
+      success: true, 
+      data: orders 
+    });
+    
+  } catch (error: any) {
+    console.error("Error in orders-by-email endpoint:", error.message);
     res.status(500).json({
       success: false,
       message: "Error fetching orders by email",
