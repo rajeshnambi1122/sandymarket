@@ -1,18 +1,51 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, ShoppingCart, User } from "lucide-react";
+import { Menu, ShoppingCart, User, Shield } from "lucide-react";
 import { useForm } from "react-hook-form";
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const navigate = useNavigate();
+  
   const form = useForm();
   const cartItems = form.watch("items") || [];
   const cartTotal = cartItems.reduce(
     (total: number, item: any) => total + item.price * item.quantity,
     0
   );
+
+  useEffect(() => {
+    // Check if user is logged in and get role
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserData(user);
+        setIsAdmin(user.role === "admin");
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
+
+  const handleProfileClick = () => {
+    if (isAdmin) {
+      navigate("/admin");
+    } else {
+      navigate("/profile");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-orange-200 bg-white shadow-sm">
@@ -48,11 +81,19 @@ export default function Header() {
           </div>
 
           {/* User Menu */}
-          <Link to="/profile">
-            <Button variant="ghost" size="icon" className="hover:bg-orange-50">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hover:bg-orange-50"
+            onClick={handleProfileClick}
+            title={isAdmin ? "Admin Dashboard" : "User Profile"}
+          >
+            {isAdmin ? (
+              <Shield className="h-5 w-5 text-orange-600" />
+            ) : (
               <User className="h-5 w-5 text-orange-600" />
-            </Button>
-          </Link>
+            )}
+          </Button>
 
           {/* Mobile Menu */}
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -84,6 +125,15 @@ export default function Header() {
                 >
                   Store
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="text-lg font-medium hover:text-orange-500 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
                 <div className="pt-4 border-t border-orange-200">
                   <div className="flex justify-between items-center mb-4">
                     <span className="font-medium text-orange-600">

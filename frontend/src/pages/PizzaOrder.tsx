@@ -19,6 +19,11 @@ import { Label } from "@/components/ui/label";
 import { MinusCircle, PlusCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ordersApi from "@/api/orders";
+import { 
+  Checkbox,
+  CheckboxIndicator,
+} from "@/components/ui/checkbox";
+import { X } from "lucide-react";
 
 const orderSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
@@ -32,12 +37,15 @@ interface CartItem {
   quantity: number;
   price: number;
   size?: string;
+  toppings?: string[];
 }
 
 export default function PizzaOrder() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
+  const [selectedToppings, setSelectedToppings] = useState<Record<string, string[]>>({});
+  const [showToppingSelector, setShowToppingSelector] = useState<string | null>(null);
 
   const menu = {
     pizzas: {
@@ -255,12 +263,82 @@ export default function PizzaOrder() {
     }
   }, [navigate]);
 
+  const handleToppingSelection = (pizzaName: string, size: string, topping: string) => {
+    const itemKey = `${pizzaName}-${size}`;
+    
+    setSelectedToppings(prev => {
+      const currentToppings = prev[itemKey] || [];
+      const isSelected = currentToppings.includes(topping);
+      
+      // If topping is already selected, remove it
+      if (isSelected) {
+        return {
+          ...prev,
+          [itemKey]: currentToppings.filter(t => t !== topping)
+        };
+      }
+      
+      // Check for max toppings based on pizza name
+      let maxToppings = 3; // Default max
+      if (pizzaName.includes("1 Item")) {
+        maxToppings = 1;
+      } else if (pizzaName.includes("2 Item")) {
+        maxToppings = 2;
+      } else if (pizzaName.includes("3 Item")) {
+        maxToppings = 3;
+      }
+      
+      // Check if we've reached the limit
+      if (currentToppings.length >= maxToppings) {
+        toast({
+          title: "Maximum Toppings Reached",
+          description: `You can only select ${maxToppings} toppings for this pizza.`,
+          variant: "destructive"
+        });
+        return prev;
+      }
+      
+      // Add the topping
+      return {
+        ...prev,
+        [itemKey]: [...currentToppings, topping]
+      };
+    });
+  };
+
   const handleQuantityChange = (item: any, delta: number, size?: string) => {
     const itemName = size ? `${item.name} (${size})` : item.name;
     const price = size
       ? Number(item.prices[size.toLowerCase()])
       : Number(item.price);
     const currentItems = form.getValues("items") || [];
+    
+    // Create a unique ID for this pizza (for tracking toppings)
+    const itemKey = `${item.name}-${size || "default"}`;
+    
+    // For regular pizzas, check if toppings are needed when adding to cart
+    if (delta > 0 && item.name.includes("Item Pizza")) {
+      // Determine how many toppings are required for this pizza
+      let requiredToppings = 0;
+      if (item.name.includes("1 Item")) {
+        requiredToppings = 1;
+      } else if (item.name.includes("2 Item")) {
+        requiredToppings = 2;
+      } else if (item.name.includes("3 Item")) {
+        requiredToppings = 3;
+      }
+      
+      // Check if enough toppings are selected
+      const currentToppings = selectedToppings[itemKey] || [];
+      if (currentToppings.length < requiredToppings) {
+        setShowToppingSelector(itemKey);
+        toast({
+          title: "Select Toppings",
+          description: `Please select ${requiredToppings} toppings for your pizza.`,
+        });
+        return;
+      }
+    }
 
     const existingItemIndex = currentItems.findIndex(
       (i: any) => i.name === itemName
@@ -275,17 +353,37 @@ export default function PizzaOrder() {
         currentItems.splice(existingItemIndex, 1);
       } else {
         currentItems[existingItemIndex].quantity = newQuantity;
+        
+        // Include selected toppings with the item
+        if (item.name.includes("Item Pizza") && selectedToppings[itemKey]) {
+          currentItems[existingItemIndex].toppings = selectedToppings[itemKey];
+        }
       }
     } else if (delta > 0) {
-      currentItems.push({ name: itemName, quantity: 1, price });
+      const newItem: CartItem = { 
+        name: itemName, 
+        quantity: 1, 
+        price 
+      };
+      
+      // Add selected toppings to the cart item
+      if (item.name.includes("Item Pizza") && selectedToppings[itemKey]) {
+        newItem.toppings = selectedToppings[itemKey];
+      }
+      
+      currentItems.push(newItem);
     }
 
     form.setValue("items", currentItems);
 
     if (delta > 0) {
+      const toppingsMessage = selectedToppings[itemKey]?.length 
+        ? ` with toppings: ${selectedToppings[itemKey].join(", ")}` 
+        : '';
+        
       toast({
         title: "Added to cart",
-        description: `${itemName} added to your order`,
+        description: `${itemName} added to your order${toppingsMessage}`,
       });
     }
   };
@@ -320,6 +418,91 @@ export default function PizzaOrder() {
     </div>
   );
 
+  const renderToppingsSelector = (item: any, size: string) => {
+    if (!item.name.includes("Item Pizza")) return null;
+    
+    const itemKey = `${item.name}-${size}`;
+    const currentToppings = selectedToppings[itemKey] || [];
+    const isVisible = showToppingSelector === itemKey;
+    
+    // Determine max toppings
+    let maxToppings = 3;
+    if (item.name.includes("1 Item")) {
+      maxToppings = 1;
+    } else if (item.name.includes("2 Item")) {
+      maxToppings = 2;
+    } else if (item.name.includes("3 Item")) {
+      maxToppings = 3;
+    }
+    
+    return (
+      <div className="mt-2">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setShowToppingSelector(isVisible ? null : itemKey)}
+          className="w-full text-sm"
+        >
+          {isVisible ? "Hide Toppings" : currentToppings.length > 0 
+            ? `Selected Toppings (${currentToppings.length}/${maxToppings})` 
+            : `Select Toppings (0/${maxToppings})`
+          }
+        </Button>
+        
+        {isVisible && (
+          <Card className="mt-2 p-3">
+            <div className="flex justify-between items-center mb-2">
+              <h5 className="font-semibold">Select Toppings</h5>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowToppingSelector(null)}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {currentToppings.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1">
+                {currentToppings.map(topping => (
+                  <div key={topping} className="bg-primary/10 text-xs rounded px-2 py-1 flex items-center gap-1">
+                    {topping}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleToppingSelection(item.name, size, topping)}
+                      className="h-4 w-4 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="grid grid-cols-2 gap-1">
+              {toppings.map(topping => (
+                <div key={topping} className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    id={`${itemKey}-${topping}`}
+                    checked={currentToppings.includes(topping)}
+                    onChange={() => handleToppingSelection(item.name, size, topping)}
+                    className="rounded text-primary"
+                  />
+                  <label htmlFor={`${itemKey}-${topping}`} className="text-sm">
+                    {topping}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+      </div>
+    );
+  };
+
   const renderMenuSection = (category: string, title: string) => {
     const items = menu[category as keyof typeof menu];
 
@@ -344,22 +527,26 @@ export default function PizzaOrder() {
             <div className="grid gap-4 md:grid-cols-2">
               {pizzaItems.regular.map((item: any) => (
                 <Card key={item.name} className="p-4">
-                  <div className="flex justify-between">
-                    <div>
-                      <h4 className="font-bold">{item.name}</h4>
-                      <p className="text-sm text-gray-600">
-                        {item.description}
-                      </p>
-                      <div className="mt-2">
-                        <p>Medium (16"): ${item.prices.medium}</p>
-                        <p>Large (22"): ${item.prices.large}</p>
+                  <div className="flex flex-col">
+                    <div className="flex justify-between">
+                      <div>
+                        <h4 className="font-bold">{item.name}</h4>
+                        <p className="text-sm text-gray-600">
+                          {item.description}
+                        </p>
+                        <div className="mt-2">
+                          <p>Medium (16"): ${item.prices.medium}</p>
+                          <p>Large (22"): ${item.prices.large}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label>Medium</Label>
-                      {renderQuantityControls(item, "medium")}
-                      <Label>Large</Label>
-                      {renderQuantityControls(item, "large")}
+                      <div className="flex flex-col gap-2">
+                        <Label>Medium</Label>
+                        {renderQuantityControls(item, "medium")}
+                        {renderToppingsSelector(item, "medium")}
+                        <Label className="mt-2">Large</Label>
+                        {renderQuantityControls(item, "large")}
+                        {renderToppingsSelector(item, "large")}
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -387,18 +574,16 @@ export default function PizzaOrder() {
             </div>
           </div>
 
-          {toppings && (
-            <div>
-              <h3 className="text-lg font-bold mb-4">Available Toppings</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {toppings.map((topping) => (
-                  <div key={topping} className="text-gray-700">
-                    • {topping}
-                  </div>
-                ))}
-              </div>
+          <div>
+            <h3 className="text-lg font-bold mb-4">Available Toppings</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {toppings.map((topping) => (
+                <div key={topping} className="text-gray-700">
+                  • {topping}
+                </div>
+              ))}
             </div>
-          )}
+          </div>
         </div>
       );
     }
