@@ -44,12 +44,13 @@ interface CartItem {
 
 export default function PizzaOrder() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
   const [selectedToppings, setSelectedToppings] = useState<Record<string, string[]>>({});
   const [showToppingSelector, setShowToppingSelector] = useState<string | null>(null);
+  const [cartItems, setCartItems] = useState<any[]>([]);
 
   const menu = {
     pizzas: {
@@ -290,60 +291,16 @@ export default function PizzaOrder() {
     },
   });
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-    } else {
-      setIsAuthenticated(true);
-      setIsLoading(false);
-    }
-  }, [navigate]);
+  // Memoize the menu data
+  const memoizedMenu = useMemo(() => menu, []);
 
-  const handleToppingSelection = (pizzaName: string, size: string, topping: string) => {
-    const itemKey = `${pizzaName}-${size}`;
-    
-    setSelectedToppings(prev => {
-      const currentToppings = prev[itemKey] || [];
-      const isSelected = currentToppings.includes(topping);
-      
-      // If topping is already selected, remove it
-      if (isSelected) {
-        return {
-          ...prev,
-          [itemKey]: currentToppings.filter(t => t !== topping)
-        };
-      }
-      
-      // Check for max toppings based on pizza name
-      let maxToppings = 3; // Default max
-      if (pizzaName.includes("1 Item")) {
-        maxToppings = 1;
-      } else if (pizzaName.includes("2 Item")) {
-        maxToppings = 2;
-      } else if (pizzaName.includes("3 Item")) {
-        maxToppings = 3;
-      }
-      
-      // Check if we've reached the limit
-      if (currentToppings.length >= maxToppings) {
-        toast({
-          title: "Maximum Toppings Reached",
-          description: `You can only select ${maxToppings} toppings for this pizza.`,
-          variant: "destructive"
-        });
-        return prev;
-      }
-      
-      // Add the topping
-      return {
-        ...prev,
-        [itemKey]: [...currentToppings, topping]
-      };
-    });
-  };
+  const getItemQuantity = useCallback((itemName: string) => {
+    const items = form.getValues("items") || [];
+    const item = items.find((i: any) => i.name === itemName);
+    return item?.quantity || 0;
+  }, [form]);
 
-  const handleQuantityChange = (item: any, delta: number, size?: string) => {
+  const handleQuantityChange = useCallback((item: any, delta: number, size?: string) => {
     const itemName = size ? `${item.name} (${size})` : item.name;
     const price = size
       ? Number(item.prices[size.toLowerCase()])
@@ -429,12 +386,150 @@ export default function PizzaOrder() {
         className: "md:left-4 md:right-auto",
       });
     }
-  };
+  }, [form, selectedToppings, toast]);
 
-  const getItemQuantity = (itemName: string) => {
-    const items = form.getValues("items") || [];
-    const item = items.find((i: any) => i.name === itemName);
-    return item?.quantity || 0;
+  // Memoize the render functions with proper dependencies
+  const memoizedRenderQuantityControls = useCallback((item: any, size?: string) => (
+    <div className="flex items-center gap-2 mt-2">
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handleQuantityChange(item, -1, size)}
+        aria-label="Decrease quantity"
+      >
+        <MinusCircle className="h-4 w-4" />
+      </Button>
+      <span className="w-8 text-center">
+        {getItemQuantity(size ? `${item.name} (${size})` : item.name)}
+      </span>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handleQuantityChange(item, 1, size)}
+        aria-label="Increase quantity"
+      >
+        <PlusCircle className="h-4 w-4" />
+      </Button>
+    </div>
+  ), [handleQuantityChange, getItemQuantity]);
+
+  // Update the MenuSection component to use memoized props with proper dependencies
+  const MenuSection = React.memo(({ category, title }: { category: string; title: string }) => {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: "100px" });
+
+    return (
+      <div ref={ref}>
+        {isInView ? renderMenuSection(category, title) : (
+          <div className="h-[200px] flex items-center justify-center">
+            <LoadingSpinner size={24} />
+          </div>
+        )}
+      </div>
+    );
+  }, (prevProps, nextProps) => prevProps.category === nextProps.category);
+
+  // Update the cart section to use memoized items with proper comparison function
+  const CartSummary = React.memo(() => {
+    return (
+      <Card className="p-4 shadow-lg">
+        <h3 className="font-bold mb-2">Cart</h3>
+        {cartItems.length > 0 ? (
+          <>
+            {cartItems.map((item: any, index: number) => (
+              <div key={index} className="text-sm">
+                {item.quantity}x {item.name} - $
+                {(item.price * item.quantity).toFixed(2)}
+              </div>
+            ))}
+            <div className="mt-2 font-bold">
+              Total: $
+              {cartItems
+                .reduce(
+                  (acc: number, item: any) =>
+                    acc + item.price * item.quantity,
+                  0
+                )
+                .toFixed(2)}
+            </div>
+            <Button 
+              className="mt-2 w-full" 
+              onClick={handleCheckout}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <LoadingSpinner size={20} className="mr-2" />
+              ) : null}
+              {isSubmitting ? "Processing..." : "Order"}
+            </Button>
+          </>
+        ) : (
+          <p className="text-gray-500">Cart is empty</p>
+        )}
+      </Card>
+    );
+  }, (prevProps, nextProps) => true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    } else {
+      setIsAuthenticated(true);
+      setIsLoading(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === "items") {
+        setCartItems(value.items || []);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+  const handleToppingSelection = (pizzaName: string, size: string, topping: string) => {
+    const itemKey = `${pizzaName}-${size}`;
+    
+    setSelectedToppings(prev => {
+      const currentToppings = prev[itemKey] || [];
+      const isSelected = currentToppings.includes(topping);
+      
+      // If topping is already selected, remove it
+      if (isSelected) {
+        return {
+          ...prev,
+          [itemKey]: currentToppings.filter(t => t !== topping)
+        };
+      }
+      
+      // Check for max toppings based on pizza name
+      let maxToppings = 3; // Default max
+      if (pizzaName.includes("1 Item")) {
+        maxToppings = 1;
+      } else if (pizzaName.includes("2 Item")) {
+        maxToppings = 2;
+      } else if (pizzaName.includes("3 Item")) {
+        maxToppings = 3;
+      }
+      
+      // Check if we've reached the limit
+      if (currentToppings.length >= maxToppings) {
+        toast({
+          title: "Maximum Toppings Reached",
+          description: `You can only select ${maxToppings} toppings for this pizza.`,
+          variant: "destructive"
+        });
+        return prev;
+      }
+      
+      // Add the topping
+      return {
+        ...prev,
+        [itemKey]: [...currentToppings, topping]
+      };
+    });
   };
 
   const renderQuantityControls = (item: any, size?: string) => (
@@ -775,97 +870,6 @@ export default function PizzaOrder() {
   }
 
   if (!isAuthenticated) return null;
-
-  // Memoize the menu data
-  const memoizedMenu = useMemo(() => menu, []);
-
-  // Memoize the cart items
-  const cartItems = useMemo(() => form.watch("items") || [], [form]);
-
-  // Memoize the render functions with proper dependencies
-  const memoizedRenderQuantityControls = useCallback((item: any, size?: string) => (
-    <div className="flex items-center gap-2 mt-2">
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => handleQuantityChange(item, -1, size)}
-        aria-label="Decrease quantity"
-      >
-        <MinusCircle className="h-4 w-4" />
-      </Button>
-      <span className="w-8 text-center">
-        {getItemQuantity(size ? `${item.name} (${size})` : item.name)}
-      </span>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => handleQuantityChange(item, 1, size)}
-        aria-label="Increase quantity"
-      >
-        <PlusCircle className="h-4 w-4" />
-      </Button>
-    </div>
-  ), [handleQuantityChange, getItemQuantity]);
-
-  // Update the MenuSection component to use memoized props with proper dependencies
-  const MenuSection = React.memo(({ category, title }: { category: string; title: string }) => {
-    const ref = useRef(null);
-    const isInView = useInView(ref, { once: true, margin: "100px" });
-
-    return (
-      <div ref={ref}>
-        {isInView ? renderMenuSection(category, title) : (
-          <div className="h-[200px] flex items-center justify-center">
-            <LoadingSpinner size={24} />
-          </div>
-        )}
-      </div>
-    );
-  }, (prevProps, nextProps) => prevProps.category === nextProps.category);
-
-  // Update the cart section to use memoized items with proper comparison function
-  const CartSummary = React.memo(() => {
-    return (
-      <Card className="p-4 shadow-lg">
-        <h3 className="font-bold mb-2">Cart</h3>
-        {cartItems.length > 0 ? (
-          <>
-            {cartItems.map((item: any, index: number) => (
-              <div key={index} className="text-sm">
-                {item.quantity}x {item.name} - $
-                {(item.price * item.quantity).toFixed(2)}
-              </div>
-            ))}
-            <div className="mt-2 font-bold">
-              Total: $
-              {cartItems
-                .reduce(
-                  (acc: number, item: any) =>
-                    acc + item.price * item.quantity,
-                  0
-                )
-                .toFixed(2)}
-            </div>
-            <Button 
-              className="mt-2 w-full" 
-              onClick={handleCheckout}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <LoadingSpinner size={20} className="mr-2" />
-              ) : null}
-              {isSubmitting ? "Processing..." : "Order"}
-            </Button>
-          </>
-        ) : (
-          <p className="text-gray-500">Cart is empty</p>
-        )}
-      </Card>
-    );
-  }, (prevProps, nextProps) => {
-    // Since CartSummary doesn't receive any props, we can always return true
-    return true;
-  });
 
   return (
     <div className="min-h-screen flex flex-col">
