@@ -9,17 +9,20 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { logout } = useAuth();
 
   const fetchUserData = useCallback(async (token: string) => {
     try {
+      console.log("Fetching user data...");
       const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -27,6 +30,7 @@ export default function Profile() {
       });
 
       if (response.status === 401) {
+        console.log("Unauthorized - redirecting to login");
         localStorage.removeItem("token");
         navigate("/login");
         return;
@@ -34,10 +38,15 @@ export default function Profile() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log("User data fetched:", data);
         setUser(data);
+      } else {
+        console.error("Failed to fetch user data:", response.status);
+        setError("Failed to load user data");
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
+      setError("Error loading user data");
     }
   }, [navigate]);
 
@@ -46,6 +55,7 @@ export default function Profile() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
+        console.log("No token found - redirecting to login");
         navigate("/login");
         return;
       }
@@ -54,6 +64,7 @@ export default function Profile() {
       const userStr = localStorage.getItem("user");
       if (!userStr) {
         console.error("No user data found in localStorage");
+        setError("No user data found");
         setLoading(false);
         return;
       }
@@ -62,12 +73,8 @@ export default function Profile() {
       console.log("User data from localStorage:", userData);
       
       if (!userData.id) {
-        console.error("User data missing ID - try logging out and back in");
-        toast({
-          title: "Account Issue Detected",
-          description: "Please log out and log back in to fix your account.",
-          variant: "destructive",
-        });
+        console.error("User data missing ID");
+        setError("Invalid user data");
         setLoading(false);
         return;
       }
@@ -101,21 +108,18 @@ export default function Profile() {
           navigate("/login");
           return;
         }
-        toast({
-          title: "Error",
-          description: "Failed to fetch orders",
-          variant: "destructive",
-        });
-        setOrders([]);
+        setError("Failed to fetch orders");
       }
     } finally {
       setLoading(false);
     }
-  }, [navigate, toast]);
+  }, [navigate]);
 
   useEffect(() => {
+    console.log("Profile page mounted");
     const token = localStorage.getItem("token");
     if (!token) {
+      console.log("No token found on mount - redirecting to login");
       navigate("/login");
       return;
     }
@@ -123,7 +127,7 @@ export default function Profile() {
     // Initial data fetch
     fetchUserData(token);
     fetchUserOrders();
-  }, [fetchUserData, fetchUserOrders]);
+  }, [fetchUserData, fetchUserOrders, navigate]);
 
   const createTestOrder = async () => {
     if (!user) {
@@ -196,7 +200,49 @@ export default function Profile() {
     }
   };
 
-  if (!user) return null;
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="text-center py-8">
+            <h2 className="text-xl font-bold text-red-600 mb-4">Error</h2>
+            <p className="text-gray-600">{error}</p>
+            <Button 
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                const token = localStorage.getItem("token");
+                if (token) {
+                  fetchUserData(token);
+                  fetchUserOrders();
+                }
+              }}
+              className="mt-4"
+            >
+              Retry
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="flex flex-col items-center justify-center py-8">
+            <LoadingSpinner size={32} className="mb-4" />
+            <p className="text-gray-500">Loading profile...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -246,8 +292,9 @@ export default function Profile() {
         </div>
         
         {loading ? (
-          <div className="text-center py-8">
-            <p>Loading order history...</p>
+          <div className="flex flex-col items-center justify-center py-8">
+            <LoadingSpinner size={32} className="mb-4" />
+            <p className="text-gray-500">Loading order history...</p>
           </div>
         ) : orders.length > 0 ? (
           <div className="space-y-4">

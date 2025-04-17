@@ -114,7 +114,7 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>New Order Alert!</h1>
+              <h1>New Food Order Alert!</h1>
             </div>
             <div class="content">
               <div class="action-banner">
@@ -272,7 +272,7 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
 
                 <div class="footer">
                   <p>If you have any questions about your order, please contact us.</p>
-                  <p>© ${new Date().getFullYear()} Sandy's Market. All rights reserved.</p>
+                  <p>❤️ With Love from Sandy's Market</p>
                 </div>
               </div>
             </div>

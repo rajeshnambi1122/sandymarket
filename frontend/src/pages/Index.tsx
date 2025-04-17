@@ -73,7 +73,7 @@ const Index = () => {
               alt="Gas station"
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/50" />
+            <div className="absolute inset-0 bg-black/30" />
           </div>
           <div className="container mx-auto px-4 relative z-20">
             <div className="text-center animate-fade-up">

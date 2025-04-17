@@ -16,13 +16,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MinusCircle, PlusCircle } from "lucide-react";
+import { MinusCircle, PlusCircle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ordersApi from "@/api/orders";
 import { 
   Checkbox,
 } from "@/components/ui/checkbox";
 import { X } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const orderSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
@@ -42,6 +43,8 @@ interface CartItem {
 export default function PizzaOrder() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [selectedToppings, setSelectedToppings] = useState<Record<string, string[]>>({});
   const [showToppingSelector, setShowToppingSelector] = useState<string | null>(null);
@@ -212,27 +215,27 @@ export default function PizzaOrder() {
       {
         name: "Macaroni Salad",
         price: "market",
-        image: "/images/delisalads.jpg"
+        image: "/images/deli2.jpg"
       },
       {
         name: "Cole Slaw",
         price: "market",
-        image: "/images/delisalads.jpg"
+        image: "/images/deli3.jpg"
       },
       {
         name: "Chicken Salad",
         price: "market",
-        image: "/images/delisalads.jpg"
+        image: "/images/deli4.jpg"
       },
       {
         name: "Tropical Fruit Salad",
         price: "market",
-        image: "/images/delisalads.jpg"
+        image: "/images/deli6.jpg"
       },
       {
         name: "Potato Salad",
         price: "market",
-        image: "/images/delisalads.jpg"
+        image: "/images/deli5.jpg"
       },
     ],
     burgers: [
@@ -291,6 +294,7 @@ export default function PizzaOrder() {
       navigate("/login");
     } else {
       setIsAuthenticated(true);
+      setIsLoading(false);
     }
   }, [navigate]);
 
@@ -415,6 +419,12 @@ export default function PizzaOrder() {
       toast({
         title: "Added to cart",
         description: `${itemName} added to your order${toppingsMessage}`,
+        action: (
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500 animate-in zoom-in" />
+          </div>
+        ),
+        className: "md:left-4 md:right-auto",
       });
     }
   };
@@ -512,17 +522,17 @@ export default function PizzaOrder() {
               </div>
             )}
             
-            <div className="grid grid-cols-2 gap-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {toppings.map(topping => (
-                <div key={topping} className="flex items-center gap-1">
+                <div key={topping} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded">
                   <input
                     type="checkbox"
                     id={`${itemKey}-${topping}`}
                     checked={currentToppings.includes(topping)}
                     onChange={() => handleToppingSelection(item.name, size, topping)}
-                    className="rounded text-primary"
+                    className="rounded text-primary h-4 w-4"
                   />
-                  <label htmlFor={`${itemKey}-${topping}`} className="text-sm">
+                  <label htmlFor={`${itemKey}-${topping}`} className="text-sm flex-1">
                     {topping}
                   </label>
                 </div>
@@ -687,6 +697,7 @@ export default function PizzaOrder() {
 
   const handleCheckout = async () => {
     try {
+      setIsSubmitting(true);
       const formData = form.getValues();
       const items = formData.items || [];
 
@@ -752,8 +763,18 @@ export default function PizzaOrder() {
           "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size={48} />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) return null;
 
@@ -772,7 +793,7 @@ export default function PizzaOrder() {
 
         <Card className="p-4 mb-8 bg-primary/5">
           <h2 className="text-xl font-bold mb-2">Hours</h2>
-          <p>Sun—Thurs: 10am-9pm</p>
+          <p>Sun to Thurs: 10am-9pm</p>
           <p>Fri & Sat: 10am–10pm</p>
         </Card>
 
@@ -875,8 +896,15 @@ export default function PizzaOrder() {
                     )
                     .toFixed(2)}
                 </div>
-                <Button className="mt-2 w-full" onClick={handleCheckout}>
-                  Order
+                <Button 
+                  className="mt-2 w-full" 
+                  onClick={handleCheckout}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <LoadingSpinner size={20} className="mr-2" />
+                  ) : null}
+                  {isSubmitting ? "Processing..." : "Order"}
                 </Button>
               </>
             ) : (

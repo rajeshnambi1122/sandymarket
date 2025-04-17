@@ -62,12 +62,6 @@ export default function Header() {
             >
               Order Pizza
             </Link>
-            <Link
-              to="/store"
-              className="text-sm font-medium hover:text-orange-500 transition-colors"
-            >
-              Store
-            </Link>
           </nav>
         </div>
 
@@ -117,13 +111,6 @@ export default function Header() {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Order Pizza
-                </Link>
-                <Link
-                  to="/store"
-                  className="text-lg font-medium hover:text-orange-500 transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Store
                 </Link>
                 {isAdmin && (
                   <Link
