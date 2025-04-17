@@ -60,6 +60,13 @@ const Index = () => {
 
   const navigate = useNavigate();
 
+  const scrollToGasPrices = () => {
+    const gasPricesSection = document.getElementById('gas-prices');
+    if (gasPricesSection) {
+      gasPricesSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -99,6 +106,7 @@ const Index = () => {
                   size="lg"
                   variant="outline"
                   className="bg-white/10 border-primary text-primary hover:bg-primary hover:text-white transition-colors"
+                  onClick={scrollToGasPrices}
                 >
                   View Gas Prices
                 </Button>
@@ -200,7 +208,7 @@ const Index = () => {
         </section>
 
         {/* Gas Prices Section */}
-        <section className="py-16 bg-secondary/30" id="gas-prices">
+        <section id="gas-prices" className="py-16">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center mb-8">
               Today's Gas Prices
