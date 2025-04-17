@@ -21,7 +21,6 @@ import { useToast } from "@/components/ui/use-toast";
 import ordersApi from "@/api/orders";
 import { 
   Checkbox,
-  CheckboxIndicator,
 } from "@/components/ui/checkbox";
 import { X } from "lucide-react";
 
@@ -54,21 +53,25 @@ export default function PizzaOrder() {
           name: "1 Item Pizza",
           prices: { medium: "13.99", large: "16.99" },
           description: "Choose one topping from our selection",
+          image: "/images/pizza1.jpg"
         },
         {
           name: "2 Item Pizza",
           prices: { medium: "14.99", large: "17.99" },
           description: "Choose two toppings from our selection",
+          image: "/images/pizza2.jpg"
         },
         {
           name: "3 Item Pizza",
           prices: { medium: "15.99", large: "18.99" },
           description: "Choose three toppings from our selection",
+          image: "/images/pizza3.jpg"
         },
         {
           name: "Supreme Pizza",
           prices: { medium: "20.99", large: "22.99" },
           description: "Pepperoni, sausage, onions, peppers, olives",
+          image: "/images/pizza4.jpg"
         },
       ],
       specialty: [
@@ -76,31 +79,37 @@ export default function PizzaOrder() {
           name: "Chicken Bacon Ranch",
           price: "22.99",
           description: "Grilled chicken, bacon, and ranch",
+          image: "/images/pizza1.jpg"
         },
         {
           name: "BLT Pizza",
           price: "22.99",
           description: "Bacon, lettuce & tomato",
+          image: "/images/pizza2.jpg"
         },
         {
           name: "The Big Pig",
           price: "22.99",
           description: "All meat pizza",
+          image: "/images/pizza3.jpg"
         },
         {
           name: "Breakfast Pizza",
           price: "22.99",
           description: "Bacon, ham, sausage & eggs",
+          image: "/images/pizza4.jpg"
         },
         {
           name: "BBQ Chicken",
           price: "22.99",
           description: "Chicken with BBQ sauce",
+          image: "/images/pizza1.jpg"
         },
         {
           name: "Hawaiian",
           price: "22.99",
           description: "Bacon, ham, pineapple",
+          image: "/images/pizza2.jpg"
         },
       ],
     },
@@ -109,99 +118,121 @@ export default function PizzaOrder() {
         name: "Cheesy Bread",
         prices: { medium: "11.99", large: "13.99" },
         description: '14" or 16"',
+        image: "/images/pizza1.jpg"
       },
       {
         name: "French Fries",
         price: "3.49",
+        image: "/images/frenchfries.jpg"
       },
       {
         name: "Onion Rings",
         price: "4.99",
+        image: "/images/onionrings.jpg"
       },
       {
         name: "Mushrooms (12)",
         price: "6.99",
+        image: "/images/mushroom.jpg"
       },
       {
         name: "Jalapeno Poppers (6)",
         price: "5.99",
+        image: "/images/pizza1.jpg"
       },
       {
         name: "Mozzarella Sticks (5)",
         price: "7.99",
+        image: "/images/mozarellasticks.jpg"
       },
       {
         name: "Mini Tacos (12)",
         price: "6.99",
+        image: "/images/minitacos.jpg"
       },
       {
         name: "MacNCheese Bites",
         price: "6.99",
+        image: "/images/pizza1.jpg"
       },
     ],
     chicken: [
       {
         name: "Chicken Strips (4) w/ff",
         price: "9.49",
+        image: "/images/chickenstrips.jpg"
       },
       {
         name: "Original Chicken Drummies (6)",
         price: "7.99",
+        image: "/images/pizza1.jpg"
       },
       {
         name: "Original Chicken Drummies (12)",
         price: "11.99",
+        image: "/images/pizza2.jpg"
       },
       {
         name: "Flavored Chicken Drummies",
         price: "+1.50",
         description: "Hot, BBQ, Garlic Parmesan, or Teriyaki",
+        image: "/images/pizza3.jpg"
       },
     ],
     subs: [
       {
         name: "Ham & Cheese Sub",
         price: "9.99",
+        image: "/images/subs.jpg"
       },
       {
         name: "Italian Sub",
         price: "9.99",
         description: "Ham, Salami, Pepperoni & cheese",
+        image: "/images/subs2.jpg"
       },
       {
         name: "Turkey & Cheese Sub",
         price: "9.99",
+        image: "/images/subs3.jpg"
       },
       {
         name: "Pizza Sub",
         price: "9.99",
         description: "Pepperoni, Ham & Cheese",
+        image: "/images/subs4.jpg"
       },
     ],
     deliSalads: [
       {
         name: "Pickle Bologna/Salami & Cheese",
         price: "market",
+        image: "/images/delisalads.jpg"
       },
       {
         name: "Macaroni Salad",
         price: "market",
+        image: "/images/delisalads.jpg"
       },
       {
         name: "Cole Slaw",
         price: "market",
+        image: "/images/delisalads.jpg"
       },
       {
         name: "Chicken Salad",
         price: "market",
+        image: "/images/delisalads.jpg"
       },
       {
         name: "Tropical Fruit Salad",
         price: "market",
+        image: "/images/delisalads.jpg"
       },
       {
         name: "Potato Salad",
         price: "market",
+        image: "/images/delisalads.jpg"
       },
     ],
     burgers: [
@@ -512,11 +543,13 @@ export default function PizzaOrder() {
           name: string;
           prices: { medium: string; large: string };
           description: string;
+          image: string;
         }>;
         specialty: Array<{
           name: string;
           price: string;
           description: string;
+          image: string;
         }>;
       };
 
@@ -528,7 +561,18 @@ export default function PizzaOrder() {
               {pizzaItems.regular.map((item: any) => (
                 <Card key={item.name} className="p-4">
                   <div className="flex flex-col">
-                    <div className="flex justify-between">
+                    <div className="w-full h-48 relative">
+                      <img 
+                        src={item.image} 
+                        alt={item.name}
+                        className="w-full h-full object-cover rounded-lg"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/images/placeholder.svg";
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-4">
                       <div>
                         <h4 className="font-bold">{item.name}</h4>
                         <p className="text-sm text-gray-600">
@@ -559,15 +603,28 @@ export default function PizzaOrder() {
             <div className="grid gap-4 md:grid-cols-2">
               {pizzaItems.specialty.map((item: any) => (
                 <Card key={item.name} className="p-4">
-                  <div className="flex justify-between">
-                    <div>
-                      <h4 className="font-bold">{item.name}</h4>
-                      <p className="text-sm text-gray-600">
-                        {item.description}
-                      </p>
-                      <p className="mt-2">${item.price}</p>
+                  <div className="flex flex-col">
+                    <div className="w-full h-48 relative">
+                      <img 
+                        src={item.image} 
+                        alt={item.name}
+                        className="w-full h-full object-cover rounded-lg"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/images/placeholder.svg";
+                        }}
+                      />
                     </div>
-                    {renderQuantityControls(item)}
+                    <div className="flex justify-between mt-4">
+                      <div>
+                        <h4 className="font-bold">{item.name}</h4>
+                        <p className="text-sm text-gray-600">
+                          {item.description}
+                        </p>
+                        <p className="mt-2">${item.price}</p>
+                      </div>
+                      {renderQuantityControls(item)}
+                    </div>
                   </div>
                 </Card>
               ))}
@@ -593,19 +650,34 @@ export default function PizzaOrder() {
         {Array.isArray(items) &&
           items.map((item: any) => (
             <Card key={item.name} className="p-4">
-              <div className="flex justify-between">
-                <div>
-                  <h4 className="font-bold">{item.name}</h4>
-                  {item.description && (
-                    <p className="text-sm text-gray-600">{item.description}</p>
-                  )}
-                  <p className="mt-2">
-                    {item.price === "market"
-                      ? "Market Price"
-                      : `$${item.price}`}
-                  </p>
+              <div className="flex flex-col">
+                {item.image && (
+                  <div className="w-full h-48 relative mb-4">
+                    <img 
+                      src={item.image} 
+                      alt={item.name}
+                      className="w-full h-full object-cover rounded-lg"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/images/placeholder.svg";
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <div>
+                    <h4 className="font-bold">{item.name}</h4>
+                    {item.description && (
+                      <p className="text-sm text-gray-600">{item.description}</p>
+                    )}
+                    <p className="mt-2">
+                      {item.price === "market"
+                        ? "Market Price"
+                        : `$${item.price}`}
+                    </p>
+                  </div>
+                  {item.price !== "market" && renderQuantityControls(item)}
                 </div>
-                {item.price !== "market" && renderQuantityControls(item)}
               </div>
             </Card>
           ))}

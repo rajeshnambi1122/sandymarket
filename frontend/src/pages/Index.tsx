@@ -69,7 +69,7 @@ const Index = () => {
         <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0">
             <img
-              src="/lovable-uploads/02cd446d-f09f-4647-88e4-e7b5508c6209.png"
+              src="/images/02cd446d-f09f-4647-88e4-e7b5508c6209.png"
               alt="Gas station"
               className="w-full h-full object-cover"
             />
@@ -121,7 +121,7 @@ const Index = () => {
                     Premium quality fuel at competitive prices
                   </p>
                   <img
-                    src="/lovable-uploads/02cd446d-f09f-4647-88e4-e7b5508c6209.png"
+                    src="/images/02cd446d-f09f-4647-88e4-e7b5508c6209.png"
                     alt="Pizza display"
                     className="mt-4 rounded-lg w-full h-48 object-cover"
                   />
@@ -139,7 +139,7 @@ const Index = () => {
                     All your daily essentials in one place
                   </p>
                   <img
-                    src="/lovable-uploads/ce094248-3f2d-4835-9b7c-6f2dc995f3ae.png"
+                    src="/images/ce094248-3f2d-4835-9b7c-6f2dc995f3ae.png"
                     alt="Store interior"
                     className="mt-4 rounded-lg w-full h-48 object-cover"
                   />
@@ -155,7 +155,7 @@ const Index = () => {
                     Hot and delicious pizzas made to order
                   </p>
                   <img
-                    src="/lovable-uploads/cab21a61-1ae6-4a16-b9a3-9d8d7b4a065d.png"
+                    src="/images/cab21a61-1ae6-4a16-b9a3-9d8d7b4a065d.png"
                     alt="Pizza display"
                     className="mt-4 rounded-lg w-full h-48 object-cover"
                   />
