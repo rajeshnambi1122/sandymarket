@@ -13,12 +13,7 @@ const PORT = process.env.PORT || 8080;
 // Middleware
 app.use(
   cors({
-    origin: [
-      'http://localhost:3000',
-      'https://sandysmarket.up.railway.app',
-      'https://sandymarketbackend.up.railway.app',
-      'https://www.sandysmarket.net/'
-    ],
+    origin: '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
