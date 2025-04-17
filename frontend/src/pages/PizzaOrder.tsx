@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/checkbox";
 import { X } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import React from "react";
+import { useInView } from "framer-motion";
 
 const orderSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
@@ -576,6 +578,8 @@ export default function PizzaOrder() {
                         src={item.image} 
                         alt={item.name}
                         className="w-full h-full object-cover rounded-lg"
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = "/images/placeholder.svg";
@@ -619,6 +623,8 @@ export default function PizzaOrder() {
                         src={item.image} 
                         alt={item.name}
                         className="w-full h-full object-cover rounded-lg"
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = "/images/placeholder.svg";
@@ -667,6 +673,8 @@ export default function PizzaOrder() {
                       src={item.image} 
                       alt={item.name}
                       className="w-full h-full object-cover rounded-lg"
+                      loading="lazy"
+                      decoding="async"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.src = "/images/placeholder.svg";
@@ -778,6 +786,21 @@ export default function PizzaOrder() {
 
   if (!isAuthenticated) return null;
 
+  const MenuSection = React.memo(({ category, title }: { category: string; title: string }) => {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: "100px" });
+
+    return (
+      <div ref={ref}>
+        {isInView ? renderMenuSection(category, title) : (
+          <div className="h-[400px] flex items-center justify-center">
+            <LoadingSpinner size={24} />
+          </div>
+        )}
+      </div>
+    );
+  });
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -845,32 +868,32 @@ export default function PizzaOrder() {
         <div className="space-y-12">
           <section>
             <h2 className="text-2xl font-bold mb-6">Pizza Menu</h2>
-            {renderMenuSection("pizzas", "Pizza Menu")}
+            <MenuSection category="pizzas" title="Pizza Menu" />
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mb-6">Daily Specials</h2>
-            {renderMenuSection("specials", "Daily Specials")}
+            <MenuSection category="specials" title="Daily Specials" />
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mb-6">Subs - $9.99 each</h2>
-            {renderMenuSection("subs", "Subs")}
+            <MenuSection category="subs" title="Subs" />
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mb-6">Chicken</h2>
-            {renderMenuSection("chicken", "Chicken")}
+            <MenuSection category="chicken" title="Chicken" />
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mb-6">Sides & Baskets</h2>
-            {renderMenuSection("sides", "Sides & Baskets")}
+            <MenuSection category="sides" title="Sides & Baskets" />
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mb-6">Deli Salads</h2>
-            {renderMenuSection("deliSalads", "Deli Salads")}
+            <MenuSection category="deliSalads" title="Deli Salads" />
           </section>
         </div>
 
