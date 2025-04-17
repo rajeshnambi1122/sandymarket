@@ -780,9 +780,9 @@ export default function PizzaOrder() {
   const memoizedMenu = useMemo(() => menu, []);
 
   // Memoize the cart items
-  const cartItems = useMemo(() => form.watch("items") || [], [form.watch("items")]);
+  const cartItems = useMemo(() => form.watch("items") || [], [form]);
 
-  // Memoize the render functions
+  // Memoize the render functions with proper dependencies
   const memoizedRenderQuantityControls = useCallback((item: any, size?: string) => (
     <div className="flex items-center gap-2 mt-2">
       <Button
@@ -807,7 +807,7 @@ export default function PizzaOrder() {
     </div>
   ), [handleQuantityChange, getItemQuantity]);
 
-  // Update the MenuSection component to use memoized props
+  // Update the MenuSection component to use memoized props with proper dependencies
   const MenuSection = React.memo(({ category, title }: { category: string; title: string }) => {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "100px" });
@@ -823,44 +823,49 @@ export default function PizzaOrder() {
     );
   }, (prevProps, nextProps) => prevProps.category === nextProps.category);
 
-  // Update the cart section to use memoized items
-  const CartSummary = React.memo(() => (
-    <Card className="p-4 shadow-lg">
-      <h3 className="font-bold mb-2">Cart</h3>
-      {cartItems.length > 0 ? (
-        <>
-          {cartItems.map((item: any, index: number) => (
-            <div key={index} className="text-sm">
-              {item.quantity}x {item.name} - $
-              {(item.price * item.quantity).toFixed(2)}
+  // Update the cart section to use memoized items with proper comparison function
+  const CartSummary = React.memo(() => {
+    return (
+      <Card className="p-4 shadow-lg">
+        <h3 className="font-bold mb-2">Cart</h3>
+        {cartItems.length > 0 ? (
+          <>
+            {cartItems.map((item: any, index: number) => (
+              <div key={index} className="text-sm">
+                {item.quantity}x {item.name} - $
+                {(item.price * item.quantity).toFixed(2)}
+              </div>
+            ))}
+            <div className="mt-2 font-bold">
+              Total: $
+              {cartItems
+                .reduce(
+                  (acc: number, item: any) =>
+                    acc + item.price * item.quantity,
+                  0
+                )
+                .toFixed(2)}
             </div>
-          ))}
-          <div className="mt-2 font-bold">
-            Total: $
-            {cartItems
-              .reduce(
-                (acc: number, item: any) =>
-                  acc + item.price * item.quantity,
-                0
-              )
-              .toFixed(2)}
-          </div>
-          <Button 
-            className="mt-2 w-full" 
-            onClick={handleCheckout}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <LoadingSpinner size={20} className="mr-2" />
-            ) : null}
-            {isSubmitting ? "Processing..." : "Order"}
-          </Button>
-        </>
-      ) : (
-        <p className="text-gray-500">Cart is empty</p>
-      )}
-    </Card>
-  ));
+            <Button 
+              className="mt-2 w-full" 
+              onClick={handleCheckout}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <LoadingSpinner size={20} className="mr-2" />
+              ) : null}
+              {isSubmitting ? "Processing..." : "Order"}
+            </Button>
+          </>
+        ) : (
+          <p className="text-gray-500">Cart is empty</p>
+        )}
+      </Card>
+    );
+  }, (prevProps, nextProps) => {
+    // Since CartSummary doesn't receive any props, we can always return true
+    return true;
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
