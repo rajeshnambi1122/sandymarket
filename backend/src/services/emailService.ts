@@ -29,10 +29,16 @@ transporter.verify(function (error, success) {
 });
 
 const sendStoreNotification = async (orderDetails: OrderDetails) => {
+  // Split the STORE_EMAILS environment variable by comma and trim whitespace
+  const storeEmails = (process.env.STORE_EMAILS || process.env.EMAIL_USER || '')
+    .split(',')
+    .map(email => email.trim())
+    .filter(email => email); // Remove any empty strings
+
   const mailOptions = {
     from: `"Sandy's Market System" <${process.env.EMAIL_USER}>`,
-    to: process.env.STORE_EMAIL || process.env.EMAIL_USER,
-    subject: "🔔 New Order Received - Action Required",
+    to: storeEmails.join(', '), // Join multiple emails with comma
+    subject: "New Food Order Received - Sandy's Market",
     html: `
       <!DOCTYPE html>
       <html>
