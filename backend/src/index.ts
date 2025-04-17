@@ -16,7 +16,8 @@ app.use(
     origin: [
       'http://localhost:3000',
       'https://sandysmarket.up.railway.app',
-      'https://sandymarketbackend.up.railway.app'
+      'https://sandymarketbackend.up.railway.app',
+      'https://www.sandysmarket.net/'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
