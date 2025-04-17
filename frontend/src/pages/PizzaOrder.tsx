@@ -691,6 +691,8 @@ export default function PizzaOrder() {
                     <p className="mt-2">
                       {item.price === "market"
                         ? "Market Price"
+                        : item.prices
+                        ? `Medium: $${item.prices.medium}, Large: $${item.prices.large}`
                         : `$${item.price}`}
                     </p>
                   </div>
