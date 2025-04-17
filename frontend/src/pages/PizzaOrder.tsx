@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -776,6 +776,38 @@ export default function PizzaOrder() {
 
   if (!isAuthenticated) return null;
 
+  // Memoize the menu data
+  const memoizedMenu = useMemo(() => menu, []);
+
+  // Memoize the cart items
+  const cartItems = useMemo(() => form.watch("items") || [], [form.watch("items")]);
+
+  // Memoize the render functions
+  const memoizedRenderQuantityControls = useCallback((item: any, size?: string) => (
+    <div className="flex items-center gap-2 mt-2">
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handleQuantityChange(item, -1, size)}
+        aria-label="Decrease quantity"
+      >
+        <MinusCircle className="h-4 w-4" />
+      </Button>
+      <span className="w-8 text-center">
+        {getItemQuantity(size ? `${item.name} (${size})` : item.name)}
+      </span>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handleQuantityChange(item, 1, size)}
+        aria-label="Increase quantity"
+      >
+        <PlusCircle className="h-4 w-4" />
+      </Button>
+    </div>
+  ), [handleQuantityChange, getItemQuantity]);
+
+  // Update the MenuSection component to use memoized props
   const MenuSection = React.memo(({ category, title }: { category: string; title: string }) => {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "100px" });
@@ -783,13 +815,52 @@ export default function PizzaOrder() {
     return (
       <div ref={ref}>
         {isInView ? renderMenuSection(category, title) : (
-          <div className="h-[400px] flex items-center justify-center">
+          <div className="h-[200px] flex items-center justify-center">
             <LoadingSpinner size={24} />
           </div>
         )}
       </div>
     );
-  });
+  }, (prevProps, nextProps) => prevProps.category === nextProps.category);
+
+  // Update the cart section to use memoized items
+  const CartSummary = React.memo(() => (
+    <Card className="p-4 shadow-lg">
+      <h3 className="font-bold mb-2">Cart</h3>
+      {cartItems.length > 0 ? (
+        <>
+          {cartItems.map((item: any, index: number) => (
+            <div key={index} className="text-sm">
+              {item.quantity}x {item.name} - $
+              {(item.price * item.quantity).toFixed(2)}
+            </div>
+          ))}
+          <div className="mt-2 font-bold">
+            Total: $
+            {cartItems
+              .reduce(
+                (acc: number, item: any) =>
+                  acc + item.price * item.quantity,
+                0
+              )
+              .toFixed(2)}
+          </div>
+          <Button 
+            className="mt-2 w-full" 
+            onClick={handleCheckout}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <LoadingSpinner size={20} className="mr-2" />
+            ) : null}
+            {isSubmitting ? "Processing..." : "Order"}
+          </Button>
+        </>
+      ) : (
+        <p className="text-gray-500">Cart is empty</p>
+      )}
+    </Card>
+  ));
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -888,42 +959,7 @@ export default function PizzaOrder() {
         </div>
 
         <div className="fixed bottom-4 right-4 flex gap-2">
-          <Card className="p-4 shadow-lg">
-            <h3 className="font-bold mb-2">Cart</h3>
-            {form.watch("items")?.length > 0 ? (
-              <>
-                {form.watch("items").map((item: any, index: number) => (
-                  <div key={index} className="text-sm">
-                    {item.quantity}x {item.name} - $
-                    {(item.price * item.quantity).toFixed(2)}
-                  </div>
-                ))}
-                <div className="mt-2 font-bold">
-                  Total: $
-                  {form
-                    .watch("items")
-                    .reduce(
-                      (acc: number, item: any) =>
-                        acc + item.price * item.quantity,
-                      0
-                    )
-                    .toFixed(2)}
-                </div>
-                <Button 
-                  className="mt-2 w-full" 
-                  onClick={handleCheckout}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <LoadingSpinner size={20} className="mr-2" />
-                  ) : null}
-                  {isSubmitting ? "Processing..." : "Order"}
-                </Button>
-              </>
-            ) : (
-              <p className="text-gray-500">Cart is empty</p>
-            )}
-          </Card>
+          <CartSummary />
         </div>
       </main>
       <Footer />
