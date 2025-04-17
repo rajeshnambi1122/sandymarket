@@ -95,18 +95,6 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
       b.createdAt.getTime() - a.createdAt.getTime()
     );
     
-    // If no orders found, create a test order
-    if (allOrders.length === 0) {
-      console.log("📝 No orders found - creating test order");
-      try {
-        const testOrder = await createTestOrder(req.userId);
-        console.log("✅ Test order created:", testOrder._id);
-        allOrders.push(testOrder);
-      } catch (error) {
-        console.error("❌ Error creating test order:", error);
-      }
-    }
-    
     // Log final order count and data
     console.log(`📊 Returning ${allOrders.length} total orders`);
     console.log("First order sample:", allOrders[0] ? {
@@ -145,46 +133,6 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
     });
   }
 });
-
-// Helper function to create a test order
-async function createTestOrder(userId: string) {
-  try {
-    console.log("📝 Creating test order for user:", userId);
-    
-    // Get user info first
-    const user = await mongoose.model('User').findById(userId);
-    if (!user) {
-      console.log("❌ User not found when creating test order");
-      throw new Error("User not found");
-    }
-    
-    const testOrder = new Order({
-      customerName: user.name || "Test User",
-      phone: user.phone || "1234567890",
-      email: user.email.toLowerCase(),
-      address: user.address || "Pickup",
-      items: [
-        {
-          name: "Test Pizza (Auto-generated)",
-          quantity: 1,
-          price: 12.99
-        }
-      ],
-      totalAmount: 12.99,
-      status: "pending",
-      user: new mongoose.Types.ObjectId(userId),
-      createdAt: new Date()
-    });
-    
-    const savedOrder = await testOrder.save();
-    console.log("✅ Test order created with ID:", savedOrder._id);
-    
-    return savedOrder;
-  } catch (error) {
-    console.error("❌ Error creating test order:", error);
-    throw error;
-  }
-}
 
 // Get all orders (for admin)
 router.get("/admin", auth, async (req: AuthRequest, res: Response) => {

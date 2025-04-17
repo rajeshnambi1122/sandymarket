@@ -235,15 +235,6 @@ export default function Profile() {
           <h2 className="text-xl font-bold">Order History</h2>
           <div className="flex space-x-2">
             <Button 
-              onClick={createTestOrder} 
-              variant="outline"
-              size="sm"
-              className="bg-purple-100 hover:bg-purple-200 text-purple-800"
-              disabled={loading}
-            >
-              Create Test Order
-            </Button>
-            <Button 
               onClick={fetchUserOrders} 
               variant="outline"
               size="sm"
