@@ -572,8 +572,8 @@ export default function PizzaOrder() {
             <div className="grid gap-4 md:grid-cols-2">
               {pizzaItems.regular.map((item: any) => (
                 <Card key={item.name} className="p-4">
-                  <div className="flex flex-col">
-                    <div className="w-full h-48 relative">
+                  <div className="flex gap-4">
+                    <div className="w-24 h-24 flex-shrink-0">
                       <img 
                         src={item.image} 
                         alt={item.name}
@@ -586,18 +586,14 @@ export default function PizzaOrder() {
                         }}
                       />
                     </div>
-                    <div className="flex justify-between mt-4">
-                      <div>
-                        <h4 className="font-bold">{item.name}</h4>
-                        <p className="text-sm text-gray-600">
-                          {item.description}
-                        </p>
-                        <div className="mt-2">
-                          <p>Medium (16"): ${item.prices.medium}</p>
-                          <p>Large (22"): ${item.prices.large}</p>
-                        </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold">{item.name}</h4>
+                      <p className="text-sm text-gray-600">{item.description}</p>
+                      <div className="mt-2">
+                        <p>Medium (16"): ${item.prices.medium}</p>
+                        <p>Large (22"): ${item.prices.large}</p>
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 mt-2">
                         <Label>Medium</Label>
                         {renderQuantityControls(item, "medium")}
                         {renderToppingsSelector(item, "medium")}
@@ -617,8 +613,8 @@ export default function PizzaOrder() {
             <div className="grid gap-4 md:grid-cols-2">
               {pizzaItems.specialty.map((item: any) => (
                 <Card key={item.name} className="p-4">
-                  <div className="flex flex-col">
-                    <div className="w-full h-48 relative">
+                  <div className="flex gap-4">
+                    <div className="w-24 h-24 flex-shrink-0">
                       <img 
                         src={item.image} 
                         alt={item.name}
@@ -631,14 +627,10 @@ export default function PizzaOrder() {
                         }}
                       />
                     </div>
-                    <div className="flex justify-between mt-4">
-                      <div>
-                        <h4 className="font-bold">{item.name}</h4>
-                        <p className="text-sm text-gray-600">
-                          {item.description}
-                        </p>
-                        <p className="mt-2">${item.price}</p>
-                      </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold">{item.name}</h4>
+                      <p className="text-sm text-gray-600">{item.description}</p>
+                      <p className="mt-2">${item.price}</p>
                       {renderQuantityControls(item)}
                     </div>
                   </div>
@@ -666,36 +658,32 @@ export default function PizzaOrder() {
         {Array.isArray(items) &&
           items.map((item: any) => (
             <Card key={item.name} className="p-4">
-              <div className="flex flex-col">
-                {item.image && (
-                  <div className="w-full h-48 relative mb-4">
-                    <img 
-                      src={item.image} 
-                      alt={item.name}
-                      className="w-full h-full object-cover rounded-lg"
-                      loading="lazy"
-                      decoding="async"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "/images/placeholder.svg";
-                      }}
-                    />
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <div>
-                    <h4 className="font-bold">{item.name}</h4>
-                    {item.description && (
-                      <p className="text-sm text-gray-600">{item.description}</p>
-                    )}
-                    <p className="mt-2">
-                      {item.price === "market"
-                        ? "Market Price"
-                        : item.prices
-                        ? `Medium: $${item.prices.medium}, Large: $${item.prices.large}`
-                        : `$${item.price}`}
-                    </p>
-                  </div>
+              <div className="flex gap-4">
+                <div className="w-24 h-24 flex-shrink-0">
+                  <img 
+                    src={item.image} 
+                    alt={item.name}
+                    className="w-full h-full object-cover rounded-lg"
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/images/placeholder.svg";
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold">{item.name}</h4>
+                  {item.description && (
+                    <p className="text-sm text-gray-600">{item.description}</p>
+                  )}
+                  <p className="mt-2">
+                    {item.price === "market"
+                      ? "Market Price"
+                      : item.prices
+                      ? `Medium: $${item.prices.medium}, Large: $${item.prices.large}`
+                      : `$${item.price}`}
+                  </p>
                   {item.price !== "market" && renderQuantityControls(item)}
                 </div>
               </div>
