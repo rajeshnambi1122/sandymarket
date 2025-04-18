@@ -390,7 +390,7 @@ router.post("/", async (req: AuthRequest, res) => {
       }));
       
       console.log("Sending order confirmation with toppings data:",
-        orderItemsForEmail.map(i => `${i.name} - toppings: ${i.toppings.length}`).join(', '));
+        orderItemsForEmail.map((item) => `${item.name} - toppings: ${(item.toppings || []).length}`).join(', '));
       
       await sendOrderConfirmationEmail({
         id: savedOrder._id.toString(),
@@ -399,7 +399,7 @@ router.post("/", async (req: AuthRequest, res) => {
         phone: savedOrder.phone,
         items: orderItemsForEmail,
         totalAmount: savedOrder.totalAmount,
-        cookingInstructions: savedOrder.cookingInstructions
+        cookingInstructions: typeof savedOrder.cookingInstructions === 'string' ? savedOrder.cookingInstructions : undefined
       });
     } catch (error) {
       console.error('Failed to send confirmation email:', error);
