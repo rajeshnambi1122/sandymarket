@@ -381,7 +381,7 @@ router.post("/", async (req: AuthRequest, res) => {
 
     try {
       // Make sure to explicitly include toppings and size in email data
-      const orderItemsForEmail = processedItems.map((item: any) => ({
+      const orderItemsForEmail = processedItems.map((item: OrderItem) => ({
         name: item.name,
         quantity: item.quantity,
         price: item.price,
@@ -390,7 +390,9 @@ router.post("/", async (req: AuthRequest, res) => {
       }));
       
       console.log("Sending order confirmation with toppings data:",
-        orderItemsForEmail.map((item) => `${item.name} - toppings: ${(item.toppings || []).length}`).join(', '));
+        orderItemsForEmail.map((item: { name: string; toppings?: string[] }) => {
+          return `${item.name} - toppings: ${(item.toppings || []).length}`;
+        }).join(', '));
       
       await sendOrderConfirmationEmail({
         id: savedOrder._id.toString(),
