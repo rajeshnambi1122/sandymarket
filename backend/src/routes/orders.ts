@@ -2,18 +2,10 @@ import express, { Response } from "express";
 import { Order } from "../models/Order";
 import { auth, AuthRequest } from "../middleware/auth";
 import { sendOrderConfirmationEmail } from '../services/emailService';
+import { OrderItem } from '../types/order';
 import { ObjectId } from 'mongoose';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-
-// Add an OrderItem interface to properly type the items
-interface OrderItem {
-  name: string;
-  quantity: number;
-  price: number;
-  toppings?: string[];
-  size?: string;
-}
 
 const router = express.Router();
 
@@ -181,7 +173,7 @@ router.get("/:id", async (req, res) => {
     // Check each item for toppings
     if (order.items && order.items.length > 0) {
       console.log("ORDER ITEMS WITH TOPPINGS:");
-      order.items.forEach((item: OrderItem, index: number) => {
+      order.items.forEach((item: any, index: number) => {
         console.log(`Item ${index}: ${item.name}`, {
           toppings: item.toppings || [],
           toppingsType: item.toppings ? typeof item.toppings : 'undefined',
@@ -214,7 +206,7 @@ router.post("/", async (req: AuthRequest, res) => {
     // Log detailed item information including toppings
     console.log("ORDER ITEMS DETAILS WITH TOPPINGS:");
     if (req.body.items && Array.isArray(req.body.items)) {
-      req.body.items.forEach((item: OrderItem, index: number) => {
+      req.body.items.forEach((item: any, index: number) => {
         // First check if toppings exist and are an array
         const hasToppingsArray = item.toppings && Array.isArray(item.toppings);
         const toppingsCount = hasToppingsArray ? item.toppings.length : 0;
@@ -325,7 +317,7 @@ router.post("/", async (req: AuthRequest, res) => {
     });
 
     // Create order with the determined user ID and safeguard toppings
-    const processedItems = items.map((item: OrderItem) => {
+    const processedItems = items.map((item: any) => {
       // Ensure toppings is always an array if present
       let safeToppings: string[] = [];
       if (item.toppings && Array.isArray(item.toppings)) {
@@ -366,7 +358,7 @@ router.post("/", async (req: AuthRequest, res) => {
 
     // Log the items with toppings for debugging
     console.log("Order items with toppings:");
-    items.forEach((item: OrderItem, index: number) => {
+    items.forEach((item: any, index: number) => {
       console.log(`Item ${index}: ${item.name}`, {
         toppings: item.toppings || [],
         size: item.size || null,
@@ -388,7 +380,7 @@ router.post("/", async (req: AuthRequest, res) => {
 
     try {
       // Make sure to explicitly include toppings and size in email data
-      const orderItemsForEmail = processedItems.map((item: OrderItem) => ({
+      const orderItemsForEmail = processedItems.map((item: any) => ({
         name: item.name,
         quantity: item.quantity,
         price: item.price,
@@ -397,7 +389,7 @@ router.post("/", async (req: AuthRequest, res) => {
       }));
 
       console.log("Sending order confirmation with toppings data:", 
-        orderItemsForEmail.map((item: OrderItem) => ({
+        orderItemsForEmail.map((item: any) => ({
           name: item.name,
           hasToppings: !!item.toppings,
           toppingsCount: item.toppings ? item.toppings.length : 0,

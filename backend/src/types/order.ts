@@ -1,3 +1,4 @@
+// Define the OrderItem interface for consistent use throughout the application
 export interface OrderItem {
   name: string;
   quantity: number;
@@ -6,10 +7,11 @@ export interface OrderItem {
   size?: string;
 }
 
+// Define the OrderDetails interface used by the email service
 export interface OrderDetails {
   id: string;
-  customerEmail: string;
   customerName: string;
+  customerEmail: string;
   phone: string;
   totalAmount: number;
   items: OrderItem[];

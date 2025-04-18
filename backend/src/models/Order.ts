@@ -21,7 +21,10 @@ const orderSchema = new mongoose.Schema({
       quantity: Number,
       price: Number,
       size: String,
-      toppings: [String]
+      toppings: {
+        type: [String],
+        default: []
+      }
     },
   ],
   totalAmount: {
@@ -53,6 +56,16 @@ orderSchema.pre('save', function(next) {
   if (this.email) {
     this.email = this.email.toLowerCase();
   }
+  
+  // Ensure toppings is always an array
+  if (this.items && this.items.length > 0) {
+    this.items.forEach(item => {
+      if (!item.toppings) {
+        item.toppings = [];
+      }
+    });
+  }
+  
   next();
 });
 

@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-import { OrderDetails } from '../types/order'; // Adjust the import path as necessary
+import { OrderDetails, OrderItem } from '../types/order'; // Adjust the import path as necessary
 
 dotenv.config();
 
@@ -221,7 +221,7 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
 
     // Log order items with toppings for debugging
     console.log("EMAIL SERVICE - Preparing order items for email:");
-    orderDetails.items.forEach((item, index) => {
+    orderDetails.items.forEach((item: OrderItem, index: number) => {
       console.log(`Email Item ${index}: ${item.name}`, {
         hasTopping: !!item.toppings,
         toppingsArray: item.toppings || [],
