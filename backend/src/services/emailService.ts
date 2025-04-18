@@ -145,7 +145,23 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
                 <tbody>
                   ${orderDetails.items.map(item => `
                     <tr>
-                      <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.name}</td>
+                      <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+                        ${item.name}
+                        ${(item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) ? 
+                          `<div style="margin-top: 5px; padding: 8px; background-color: #e8f5e9; border-left: 3px solid #4caf50; border-radius: 3px;">
+                            <strong style="color: #2e7d32; font-size: 14px;">TOPPINGS:</strong> ${item.toppings.join(', ')}
+                           </div>` 
+                          : (item.name.toLowerCase().includes('topping') ? 
+                             `<div style="margin-top: 5px; padding: 8px; background-color: #ffebee; border-left: 3px solid #c62828; border-radius: 3px;">
+                                <strong style="color: #c62828; font-size: 14px;">WARNING:</strong> No toppings selected!
+                              </div>`
+                             : '')}
+                        ${item.size ? 
+                          `<div style="margin-top: 3px; font-size: 12px; color: #666;">
+                            <strong>Size:</strong> ${item.size}
+                           </div>` 
+                          : ''}
+                      </td>
                       <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd;">${item.quantity}</td>
                       <td style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">$${item.price.toFixed(2)}</td>
                       <td style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">$${(item.price * item.quantity).toFixed(2)}</td>
@@ -203,12 +219,37 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
       return;
     }
 
+    // Log order items with toppings for debugging
+    console.log("EMAIL SERVICE - Preparing order items for email:");
+    orderDetails.items.forEach((item, index) => {
+      console.log(`Email Item ${index}: ${item.name}`, {
+        hasTopping: !!item.toppings,
+        toppingsArray: item.toppings || [],
+        toppingsCount: item.toppings ? item.toppings.length : 0,
+        toppingsString: item.toppings ? item.toppings.join(', ') : 'NONE',
+        size: item.size || null,
+        quantity: item.quantity,
+        price: item.price
+      });
+    });
+
     // Send email to customer
     const customerMailOptions = {
       from: `"Sandy's Market" <${process.env.EMAIL_USER}>`,
       to: orderDetails.customerEmail,
       subject: "Your Order Confirmation - Sandy's Market",
-      text: `Thank you for your order!\n\nOrder ID: ${orderDetails.id}\nTotal Amount: $${orderDetails.totalAmount.toFixed(2)}\n\nItems:\n${orderDetails.items.map(item => `${item.quantity}x ${item.name}`).join('\n')}\n\nWe'll notify you when your order is ready for pickup.`,
+      text: `Thank you for your order!\n\nOrder ID: ${orderDetails.id}\nTotal Amount: $${orderDetails.totalAmount.toFixed(2)}\n\nItems:\n${orderDetails.items.map(item => {
+        let itemText = `${item.quantity}x ${item.name}`;
+        if (item.size) {
+          itemText += ` (${item.size})`;
+        }
+        if (item.toppings && item.toppings.length > 0) {
+          itemText += `\n   TOPPINGS: ${item.toppings.join(', ')}`;
+        } else if (item.name.includes('Topping')) {
+          itemText += `\n   WARNING: This is a topping pizza with no toppings selected!`;
+        }
+        return itemText;
+      }).join('\n\n')}\n\nWe'll notify you when your order is ready for pickup.`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -252,7 +293,23 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
                   <tbody>
                     ${orderDetails.items.map(item => `
                       <tr>
-                        <td>${item.name}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+                          ${item.name}
+                          ${(item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) ? 
+                            `<div style="margin-top: 5px; padding: 8px; background-color: #e8f5e9; border-left: 3px solid #4caf50; border-radius: 3px;">
+                              <strong style="color: #2e7d32; font-size: 14px;">TOPPINGS:</strong> ${item.toppings.join(', ')}
+                             </div>` 
+                            : (item.name.toLowerCase().includes('topping') ? 
+                               `<div style="margin-top: 5px; padding: 8px; background-color: #ffebee; border-left: 3px solid #c62828; border-radius: 3px;">
+                                  <strong style="color: #c62828; font-size: 14px;">WARNING:</strong> No toppings selected!
+                                </div>`
+                               : '')}
+                          ${item.size ? 
+                            `<div style="margin-top: 3px; font-size: 12px; color: #666;">
+                              <strong>Size:</strong> ${item.size}
+                             </div>` 
+                            : ''}
+                        </td>
                         <td>${item.quantity}</td>
                         <td>$${(item.price * item.quantity).toFixed(2)}</td>
                       </tr>

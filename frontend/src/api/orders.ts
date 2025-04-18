@@ -61,6 +61,25 @@ const ordersApi = {
 
   createOrder: async (orderData: CreateOrderDTO): Promise<Order> => {
     try {
+      console.log("API: Sending order data to backend");
+      
+      // Deep inspect the items array to ensure toppings are included
+      if (orderData.items && Array.isArray(orderData.items)) {
+        console.log(`API: Order contains ${orderData.items.length} items`);
+        orderData.items.forEach((item, idx) => {
+          const hasToppings = item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0;
+          console.log(`API: Item ${idx} - ${item.name}:`, {
+            toppings: hasToppings ? item.toppings : 'No toppings',
+            toppingsCount: hasToppings ? item.toppings.length : 0,
+            size: item.size || 'No size',
+            quantity: item.quantity,
+            price: item.price
+          });
+        });
+      } else {
+        console.warn("API: No items array found in order data or it's not an array");
+      }
+      
       // Add user ID to the order data if available
       let enhancedOrderData = { ...orderData };
       
@@ -79,7 +98,7 @@ const ordersApi = {
         // Continue with original order data if there's an error
       }
       
-      console.log("Sending order with data:", enhancedOrderData);
+      console.log("Sending order with data:", JSON.stringify(enhancedOrderData, null, 2));
       
       const response = await axios.post<OrderResponse>(
         `${API_URL}/orders`,
@@ -87,15 +106,21 @@ const ordersApi = {
         {
           headers: {
             "Content-Type": "application/json",
-            ...getAuthHeader(),
-          },
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
         }
       );
       
-      console.log("Order creation response:", response.data);
-      return response.data.data;
+      console.log("API: Order creation successful, response:", response.data);
+      if (response.data && response.data.data) {
+        return response.data.data;
+      } else {
+        console.error("API: Unexpected response format:", response.data);
+        throw new Error("Unexpected response format from server");
+      }
     } catch (error) {
-      throw handleApiError(error);
+      console.error("API: Error creating order:", error);
+      throw error;
     }
   },
 
@@ -187,14 +212,34 @@ const ordersApi = {
 
   getOrderById: async (orderId: string): Promise<Order> => {
     try {
+      console.log("API: Getting order by ID:", orderId);
       const response = await axios.get<OrderResponse>(
         `${API_URL}/orders/${orderId}`,
         {
           headers: getAuthHeader(),
         }
       );
+      
+      console.log("API: Raw order response:", response.data);
+      console.log("API: Order items received:", response.data.data.items);
+      
+      // Check for toppings in each item
+      if (response.data.data && response.data.data.items) {
+        response.data.data.items.forEach((item: any, index: number) => {
+          console.log(`API: Item ${index} - ${item.name}:`, {
+            hasToppings: !!item.toppings,
+            toppingsRaw: item.toppings,
+            toppingsType: item.toppings ? typeof item.toppings : 'undefined',
+            isArray: item.toppings && Array.isArray(item.toppings),
+            toppingsLength: item.toppings && Array.isArray(item.toppings) ? item.toppings.length : 0,
+            size: item.size
+          });
+        });
+      }
+      
       return response.data.data;
     } catch (error) {
+      console.error("API: Error getting order by ID:", error);
       throw handleApiError(error);
     }
   },

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -16,16 +16,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MinusCircle, PlusCircle, CheckCircle2 } from "lucide-react";
+import { MinusCircle, PlusCircle, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ordersApi from "@/api/orders";
-import { 
-  Checkbox,
-} from "@/components/ui/checkbox";
-import { X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import React from "react";
 import { useInView } from "framer-motion";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { motion, AnimatePresence } from "framer-motion";
 
 const orderSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
@@ -42,33 +40,1031 @@ interface CartItem {
   toppings?: string[];
 }
 
+// Fix the MenuItem component to handle toppings directly
+const MenuItem = React.memo(({ 
+  item, 
+  onQuantityChange,
+  toppings,
+  selectedToppings,
+  onToppingChange 
+}: { 
+  item: any; 
+  onQuantityChange: (item: any, delta: number, size?: string, directToppings?: string[]) => void;
+  toppings?: string[];
+  selectedToppings?: Record<string, string[]>;
+  onToppingChange?: (pizzaName: string, size: string, topping: string) => void;
+}) => {
+  const [quantity, setQuantity] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const [showToppings, setShowToppings] = useState(false);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [toppingsSelected, setToppingsSelected] = useState(false);
+  const { toast } = useToast();
+  
+  // Check if this pizza has multiple sizes
+  const hasSizes = item.prices && (item.prices.medium || item.prices.large);
+  
+  // Check if this pizza can have toppings
+  const canHaveToppings = item.name.includes("Toppings Pizza") && selectedSize && toppings && onToppingChange;
+  
+  // Get the currently selected toppings for this pizza
+  const itemKey = canHaveToppings ? `${item.name}-${selectedSize}` : '';
+  const currentToppings = (selectedToppings && itemKey) ? (selectedToppings[itemKey] || []) : [];
+
+  // Determine required toppings based on pizza name
+  let requiredToppings = 0;
+  if (item.name.includes("1 Toppings")) {
+    requiredToppings = 1;
+  } else if (item.name.includes("2 Toppings")) {
+    requiredToppings = 2;
+  } else if (item.name.includes("3 Toppings")) {
+    requiredToppings = 3;
+  }
+
+  // Track if we have enough toppings
+  const hasEnoughToppings = currentToppings.length >= requiredToppings;
+
+  // Update toppingsSelected when currentToppings changes
+  useEffect(() => {
+    if (hasEnoughToppings) {
+      setToppingsSelected(true);
+    }
+  }, [currentToppings.length, hasEnoughToppings]);
+
+  // Calculate price based on selected size
+  const price = selectedSize && item.prices ? 
+    Number(item.prices[selectedSize.toLowerCase()]) : 
+    Number(item.price || 0);
+
+  const handleSizeChange = (size: string) => {
+    setSelectedSize(size);
+    // Automatically show toppings selector when size is selected and it needs toppings
+    if (item.name.includes("Toppings Pizza") && toppings && onToppingChange) {
+      const itemKey = `${item.name}-${size}`;
+      const current = selectedToppings?.[itemKey] || [];
+      if (current.length < requiredToppings && !toppingsSelected) {
+        setShowToppings(true);
+      }
+    }
+  };
+
+  // Direct method to add item to cart with toppings
+  const addItemToCartWithToppings = (selectedToppings: string[], quantity: number) => {
+    if (!selectedSize) return;
+    
+    console.log("Adding item directly to cart with toppings:", selectedToppings);
+    
+    // Call the parent's quantity change function with toppings
+    onQuantityChange(item, quantity, selectedSize, selectedToppings);
+    
+    // Update local quantity
+    setQuantity(prev => prev + quantity);
+  };
+
+  const handleQuantityChange = (delta: number) => {
+    // If adding to cart and no size is selected but pizza has sizes
+    if (delta > 0 && hasSizes && !selectedSize) {
+      toast({
+        title: "Select Size",
+        description: "Please select a size first.",
+        variant: "default",
+      });
+      return;
+    }
+    
+    // For pizza items that need toppings
+    if (delta > 0 && canHaveToppings && requiredToppings > 0) {
+      // If we already have enough toppings, add directly to cart
+      if (currentToppings.length >= requiredToppings) {
+        // Update local quantity
+        const newQuantity = Math.max(0, quantity + delta);
+        setQuantity(newQuantity);
+        
+        // Call parent's onQuantityChange to update the cart
+        onQuantityChange(item, delta, selectedSize, currentToppings);
+        return;
+      }
+      
+      // Otherwise show the toppings selector
+      setShowToppings(true);
+      return;
+    }
+    
+    // For regular items without toppings, update quantity directly
+    const newQuantity = Math.max(0, quantity + delta);
+    setQuantity(newQuantity);
+    
+    // Call parent's onQuantityChange to update the cart
+    onQuantityChange(item, delta, selectedSize);
+  };
+
+  // Replace the ToppingSelector component with a wrapper that tracks completion
+  const handleToppingSelectorClose = () => {
+    setShowToppings(false);
+    // If we have enough toppings, mark as selected to prevent reopening
+    if (hasEnoughToppings) {
+      setToppingsSelected(true);
+    }
+  };
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        onHoverStart={() => setIsHovered(true)}
+        onHoverEnd={() => setIsHovered(false)}
+      >
+        <Card className="p-3 sm:p-4 hover:shadow-lg transition-shadow duration-200 shadow-md border border-gray-100">
+          <div className="flex gap-3 sm:gap-4">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 relative">
+              <img 
+                src={item.image} 
+                alt={item.name}
+                width="96"
+                height="96"
+                className="w-full h-full object-cover rounded-lg"
+                loading="lazy"
+                decoding="async"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/images/placeholder.svg";
+                }}
+              />
+              {isHovered && !hasSizes && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg"
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white"
+                    onClick={() => handleQuantityChange(1)}
+                  >
+                    <PlusCircle className="h-6 w-6" />
+                  </Button>
+                </motion.div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-bold text-sm sm:text-base line-clamp-1">{item.name}</h4>
+              {item.description && (
+                <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{item.description}</p>
+              )}
+              
+              {/* Price display */}
+              {item.price === "market" ? (
+                <p className="mt-1 sm:mt-2 text-sm sm:text-base">Market Price</p>
+              ) : hasSizes ? (
+                <div className="mt-1 sm:mt-2">
+                  <div className="flex flex-col xs:flex-row gap-2 mb-2">
+                    <Button
+                      variant={selectedSize === "medium" ? "default" : "outline"}
+                      size="sm"
+                      className="text-xs px-2 py-0 h-7 w-full xs:w-auto"
+                      onClick={() => handleSizeChange("medium")}
+                    >
+                      Medium - ${item.prices.medium}
+                    </Button>
+                    <Button
+                      variant={selectedSize === "large" ? "default" : "outline"}
+                      size="sm"
+                      className="text-xs px-2 py-0 h-7 w-full xs:w-auto"
+                      onClick={() => handleSizeChange("large")}
+                    >
+                      Large - ${item.prices.large}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-1 sm:mt-2 text-sm sm:text-base">${item.price}</p>
+              )}
+              
+              {/* Toppings status indicator */}
+              {canHaveToppings && (
+                <div className="mt-1 flex items-center">
+                  <div className="text-xs text-primary-700 font-medium mr-1">
+                    {currentToppings.length === 0 ? (
+                      <span className="text-amber-600">
+                        * Select {requiredToppings} topping{requiredToppings > 1 ? 's' : ''}
+                      </span>
+                    ) : currentToppings.length < requiredToppings ? (
+                      <span className="text-amber-600">
+                        * Need {requiredToppings - currentToppings.length} more
+                      </span>
+                    ) : (
+                      <span className="text-green-600">✓ Toppings selected</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Selected toppings display */}
+              {canHaveToppings && currentToppings.length > 0 && (
+                <p className="text-xs text-gray-600 mt-1 line-clamp-1">
+                  Toppings: {currentToppings.join(', ')}
+                </p>
+              )}
+              
+              {/* Quantity controls */}
+              {item.price !== "market" && (
+                <div className="flex flex-col gap-2 mt-1 sm:mt-2">
+                  <div className="flex justify-between items-center">
+                    {selectedSize && (
+                      <div className="text-xs sm:text-sm font-medium">
+                        {selectedSize === "medium" ? "Medium" : "Large"}
+                      </div>
+                    )}
+                    
+                    {canHaveToppings && (
+                      <Button 
+                        variant={currentToppings.length < requiredToppings ? "default" : "outline"}
+                        size="sm" 
+                        className="text-xs h-7 px-2 whitespace-nowrap touch-manipulation"
+                        onClick={() => {
+                          setShowToppings(true);
+                          setToppingsSelected(false); // Reset the selection flag when manually editing
+                        }}
+                      >
+                        {currentToppings.length === 0 ? "Add Toppings" : "Edit Toppings"}
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleQuantityChange(-1)}
+                      aria-label="Decrease quantity"
+                      className="hover:bg-red-100 h-8 w-8 sm:h-9 sm:w-9 touch-manipulation"
+                      disabled={quantity <= 0}
+                    >
+                      <MinusCircle className="h-4 w-4" />
+                    </Button>
+                    <span className="w-8 text-center">{quantity}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleQuantityChange(1)}
+                      aria-label="Increase quantity"
+                      className={`h-8 w-8 sm:h-9 sm:w-9 touch-manipulation ${
+                        ((hasSizes && !selectedSize) || (canHaveToppings && currentToppings.length < requiredToppings && !toppingsSelected))
+                          ? "hover:bg-amber-100 border-amber-300"
+                          : "hover:bg-green-100"
+                      }`}
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+      
+      {/* Toppings selector */}
+      {item.name.includes("Toppings Pizza") && selectedSize && toppings && onToppingChange && (
+        <ToppingSelector
+          pizzaName={item.name}
+          size={selectedSize}
+          toppings={toppings}
+          selectedToppings={currentToppings}
+          onToppingChange={onToppingChange}
+          onClose={handleToppingSelectorClose}
+          isOpen={showToppings}
+          requiredToppings={requiredToppings}
+          item={item}
+          addToCartDirectly={(item, qty, size, toppings) => {
+            // Simply call the parent's onQuantityChange directly with toppings
+            if (selectedSize) {
+              console.log("Direct add to cart from selector with toppings:", toppings);
+              onQuantityChange(item, qty, selectedSize, toppings);
+              setQuantity(prev => prev + qty);
+            }
+          }}
+        />
+      )}
+    </>
+  );
+}, (prevProps, nextProps) => {
+  // Only re-render if these props change
+  return prevProps.item.name === nextProps.item.name;
+});
+
+// Completely revamp the ToppingSelector component to fix selection issues
+const ToppingSelector = React.memo(({ 
+  pizzaName, 
+  size, 
+  toppings,
+  selectedToppings,
+  onToppingChange,
+  onClose,
+  isOpen,
+  requiredToppings,
+  item,
+  addToCartDirectly
+}: { 
+  pizzaName: string;
+  size: string;
+  toppings: string[];
+  selectedToppings: string[];
+  onToppingChange: (pizzaName: string, size: string, topping: string) => void;
+  onClose: () => void;
+  isOpen: boolean;
+  requiredToppings: number;
+  item?: any;
+  addToCartDirectly?: (item: any, quantity: number, size: string, toppings: string[]) => void;
+}) => {
+  const [localToppings, setLocalToppings] = useState<string[]>([]);
+  const [quantity, setQuantity] = useState(1);
+  const { toast } = useToast();
+  
+  // Initialize local state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setLocalToppings([...selectedToppings]);
+      console.log("ToppingSelector opened with toppings:", selectedToppings);
+    }
+  }, [isOpen, selectedToppings]);
+  
+  if (!isOpen) return null;
+
+  // Handle topping toggle with local state
+  const handleToggleTopping = (topping: string) => {
+    setLocalToppings(prev => {
+      const isSelected = prev.includes(topping);
+      
+      if (isSelected) {
+        // Remove topping
+        const newToppings = prev.filter(t => t !== topping);
+        console.log(`Removed topping: ${topping}, new toppings:`, newToppings);
+        return newToppings;
+      } else {
+        // Add topping - only if we haven't reached the limit
+        if (prev.length >= requiredToppings) {
+          // If we're at the limit, replace the first topping with the new one
+          const newToppings = [...prev.slice(1), topping];
+          console.log(`Replaced topping (at limit): ${prev[0]} with ${topping}, new toppings:`, newToppings);
+          toast({
+            title: `Maximum ${requiredToppings} topping${requiredToppings > 1 ? 's' : ''} allowed`,
+            description: `Replaced ${prev[0]} with ${topping}`,
+            variant: "default",
+          });
+          return newToppings;
+        }
+        
+        // Add the new topping if under the limit
+        const newToppings = [...prev, topping];
+        console.log(`Added topping: ${topping}, new toppings:`, newToppings);
+        return newToppings;
+      }
+    });
+  };
+  
+  // Handle quantity change
+  const handleQuantityChange = (delta: number) => {
+    setQuantity(Math.max(1, quantity + delta));
+  };
+  
+  // Apply changes when done
+  const handleDone = () => {
+    console.log("ToppingSelector - handleDone");
+    console.log("Initial toppings:", selectedToppings);
+    console.log("Final toppings:", localToppings);
+    
+    // Process changes for the toppings state
+    for (const topping of toppingsToRemove) {
+      console.log(`Removing topping: ${topping}`);
+      onToppingChange(pizzaName, size, topping);
+    }
+    
+    for (const topping of toppingsToAdd) {
+      console.log(`Adding topping: ${topping}`);
+      onToppingChange(pizzaName, size, topping);
+    }
+    
+    // Add to cart if we have the necessary properties
+    if (item && addToCartDirectly && localToppings.length >= requiredToppings) {
+      console.log("Directly adding to cart with toppings:", localToppings);
+      
+      try {
+        // Create a direct copy of the toppings array to pass
+        const toppingsCopy = [...localToppings];
+        console.log("Made copy of toppings:", toppingsCopy);
+        
+        // Add directly to cart with proper parameters
+        addToCartDirectly(item, quantity, size, toppingsCopy);
+        
+        console.log("Successfully called addToCartDirectly");
+      } catch (error) {
+        console.error("Error adding to cart:", error);
+      }
+    } else {
+      console.log("Not enough toppings or missing addToCartDirectly function");
+      console.log("Required toppings:", requiredToppings);
+      console.log("Current toppings count:", localToppings.length);
+      console.log("Has addToCartDirectly:", Boolean(addToCartDirectly));
+      console.log("Has item:", Boolean(item));
+    }
+    
+    onClose();
+  };
+
+  // Calculate which toppings need to change
+  const toppingsToRemove = selectedToppings.filter(t => !localToppings.includes(t));
+  const toppingsToAdd = localToppings.filter(t => !selectedToppings.includes(t));
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-lg shadow-lg p-3 sm:p-4 max-h-[90vh] overflow-auto w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-3 sticky top-0 bg-white z-10 pb-2 border-b">
+          <h3 className="font-bold text-base sm:text-lg line-clamp-1">
+            {pizzaName} ({size}) - Select Toppings
+          </h3>
+          <button 
+            className="p-1 rounded-full hover:bg-gray-100"
+            onClick={onClose}
+            type="button"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <p className="text-xs sm:text-sm text-gray-600 mb-3">
+          {localToppings.length < requiredToppings ? (
+            <span className="text-orange-600 font-medium">
+              Please select exactly {requiredToppings} topping{requiredToppings !== 1 ? 's' : ''} 
+              ({localToppings.length}/{requiredToppings} selected)
+            </span>
+          ) : (
+            <span className="text-green-600 font-medium">
+              ✓ All {requiredToppings} required toppings selected!
+              {requiredToppings === localToppings.length && 
+                ` (Maximum ${requiredToppings} allowed)`}
+            </span>
+          )}
+        </p>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {toppings.map((topping) => {
+            const isSelected = localToppings.includes(topping);
+            return (
+              <button 
+                key={topping} 
+                type="button"
+                className={`
+                  p-3 border rounded-md flex items-center gap-2 cursor-pointer touch-manipulation
+                  text-left transition-colors duration-150
+                  ${isSelected ? 'bg-green-50 border-green-600' : 'hover:bg-gray-100'}
+                `}
+                onClick={() => handleToggleTopping(topping)}
+              >
+                <div className="relative flex-shrink-0">
+                  <div className={`h-5 w-5 border rounded-full ${isSelected ? 'border-green-600' : 'border-gray-300'}`}>
+                    {isSelected && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm sm:text-base">{topping}</span>
+              </button>
+            );
+          })}
+        </div>
+        
+        {localToppings.length >= requiredToppings && (
+          <div className="mt-4 pt-2 border-t">
+            <p className="text-sm font-medium mb-2">Quantity:</p>
+            <div className="flex items-center gap-2 mb-3">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleQuantityChange(-1)}
+                className="h-8 w-8"
+                disabled={quantity <= 1}
+              >
+                <MinusCircle className="h-4 w-4" />
+              </Button>
+              <span className="w-8 text-center">{quantity}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleQuantityChange(1)}
+                className="h-8 w-8"
+              >
+                <PlusCircle className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+        
+        <div className="mt-4 flex justify-between sticky bottom-0 pt-2 border-t bg-white">
+          <span className="text-xs text-gray-500 self-center">
+            {localToppings.length} selected
+          </span>
+          <div className="flex gap-2">
+            <button 
+              type="button"
+              className="px-3 py-1 border rounded text-sm hover:bg-gray-100"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button 
+              type="button"
+              className={`px-3 py-1 rounded text-sm text-white 
+                ${localToppings.length >= requiredToppings 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : 'bg-gray-400 cursor-not-allowed'
+                }`}
+              onClick={handleDone}
+              disabled={localToppings.length !== requiredToppings}
+            >
+              {localToppings.length === requiredToppings 
+                ? "Add to Cart" 
+                : `Select Exactly ${requiredToppings - localToppings.length} More`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Update MenuSection component to pass the correct function signature
+const MenuSection = React.memo(({ 
+  category, 
+  title, 
+  items,
+  onQuantityChange,
+  toppings,
+  selectedToppings,
+  onToppingChange,
+  color
+}: { 
+  category: string;
+  title: string;
+  items: any;
+  onQuantityChange: (item: any, delta: number, size?: string, directToppings?: string[]) => void;
+  toppings: string[];
+  selectedToppings: Record<string, string[]>;
+  onToppingChange: (pizzaName: string, size: string, topping: string) => void;
+  color?: string;
+}) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "100px" });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="py-8"
+    >
+      <h2 className={`text-2xl font-bold mb-6 ${color || 'text-green-600'} border-b-2 pb-2 inline-block`}>{title}</h2>
+      {isInView ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {Array.isArray(items) ? (
+            items.map((item: any) => (
+              <MenuItem 
+                key={item.name} 
+                item={item} 
+                onQuantityChange={onQuantityChange}
+                toppings={toppings}
+                selectedToppings={selectedToppings}
+                onToppingChange={onToppingChange}
+              />
+            ))
+          ) : (
+            <>
+              <div>
+                <h3 className="text-lg font-bold mb-4 text-green-600">Regular Pizzas</h3>
+                <div className="grid gap-4">
+                  {items.regular.map((item: any) => (
+                    <MenuItem 
+                      key={item.name}
+                      item={item}
+                      onQuantityChange={onQuantityChange}
+                      toppings={toppings}
+                      selectedToppings={selectedToppings}
+                      onToppingChange={onToppingChange}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold mb-4 text-orange-600">Specialty Pizzas</h3>
+                <div className="grid gap-4">
+                  {items.specialty.map((item: any) => (
+                    <MenuItem 
+                      key={item.name} 
+                      item={item}
+                      onQuantityChange={onQuantityChange}
+                      toppings={toppings}
+                      selectedToppings={selectedToppings}
+                      onToppingChange={onToppingChange}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="h-[200px] flex items-center justify-center">
+          <LoadingSpinner size={24} />
+        </div>
+      )}
+    </motion.div>
+  );
+});
+
+// Make toppings visible in cart with debug information
+const CartSummary = React.memo(({ 
+  cart, 
+  cartTotal, 
+  isSubmitting, 
+  onCheckout,
+  onRemoveItem,
+  isPlacingOrder,
+  setIsPlacingOrder
+}: { 
+  cart: CartItem[];
+  cartTotal: number;
+  isSubmitting: boolean;
+  onCheckout: (customerData: { customerName: string; phone: string; email: string }) => void;
+  onRemoveItem: (index: number) => void;
+  isPlacingOrder: boolean;
+  setIsPlacingOrder: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+  const isAnyItemInCart = cart.length > 0;
+  const { toast } = useToast();
+  const form = useForm<z.infer<typeof orderSchema>>({
+    resolver: zodResolver(orderSchema),
+    defaultValues: {
+      customerName: "",
+      phone: "",
+      email: "",
+      items: [],
+    },
+  });
+
+  // Debug output
+  useEffect(() => {
+    console.log("Cart contents:", cart);
+    cart.forEach((item, index) => {
+      console.log(`Item ${index}: ${item.name}`, {
+        toppings: item.toppings || "No toppings",
+        size: item.size || "No size",
+        price: item.price,
+        quantity: item.quantity
+      });
+    });
+  }, [cart]);
+
+  const handlePlaceOrderClick = () => {
+    if (cart.length === 0) {
+      toast({
+        title: "Empty Cart",
+        description: "Please add items to your order",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowCheckoutForm(true);
+  };
+
+  const handleSubmitForm = (data: z.infer<typeof orderSchema>) => {
+    // Set form data in cart items
+    form.setValue('items', cart);
+    
+    // Instead of calling onCheckout directly, pass the form data
+    setIsPlacingOrder(true);
+    onCheckout({
+      customerName: data.customerName,
+      phone: data.phone,
+      email: data.email
+    });
+    
+    setShowCheckoutForm(false);
+  };
+
+  // Keep the original handleCheckout for compatibility
+  const handleCheckout = async () => {
+    // This is now a legacy function, use handleSubmitForm instead
+    const formValues = form.getValues();
+    await handleSubmitForm({
+      customerName: formValues.customerName || "",
+      phone: formValues.phone || "",
+      email: formValues.email || ""
+    });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="fixed bottom-0 left-0 right-0 md:bottom-4 md:right-4 md:left-auto md:w-96 z-40"
+    >
+      <Card className="rounded-t-lg md:rounded-lg shadow-xl border border-orange-200">
+        <div 
+          className="p-3 sm:p-4 cursor-pointer md:cursor-default flex justify-between items-center bg-orange-600 text-white rounded-t-lg"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold">Cart {isAnyItemInCart ? `(${cart.length})` : ''}</h3>
+            {isAnyItemInCart && (
+              <span className="text-sm font-semibold bg-white text-orange-600 px-2 py-0.5 rounded-full">${cartTotal.toFixed(2)}</span>
+            )}
+          </div>
+          <div className="md:hidden">
+            {isExpanded ? <X className="h-5 w-5" /> : <PlusCircle className="h-5 w-5" />}
+          </div>
+        </div>
+        <motion.div
+          initial={false}
+          animate={{ 
+            height: isExpanded || !isAnyItemInCart ? "auto" : (window.innerWidth >= 768 ? "auto" : 0) 
+          }}
+          transition={{ duration: 0.3 }}
+          className="overflow-hidden bg-gray-50"
+        >
+          <div className="p-3 sm:p-4 border-t">
+            <div className="max-h-[60vh] overflow-y-auto">
+              {isAnyItemInCart ? (
+                <>
+                  {!showCheckoutForm ? (
+                    <>
+                      {cart.map((item, index) => {
+                        // Debug output for each item
+                        console.log(`Rendering cart item ${index}:`, item);
+                        console.log(`Item has toppings:`, item.toppings ? `Yes, ${item.toppings.length}` : "No");
+                        
+                        return (
+                          <div key={index} className="text-sm mb-3 bg-white p-3 rounded-md shadow-md border-l-4 border-orange-600">
+                            <div className="flex justify-between items-center border-b pb-2 mb-2">
+                              <span className="font-bold">{item.quantity}x {item.name}</span>
+                              <div className="flex items-center">
+                                <span className="mr-2 font-semibold">${(item.price * item.quantity).toFixed(2)}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 text-gray-500 hover:text-red-500"
+                                  onClick={() => onRemoveItem(index)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            {/* Item details with debugging info */}
+                            <div className="space-y-2 text-xs">
+                              {item.size && (
+                                <div>
+                                  <span className="text-gray-500">Size:</span> <span className="font-medium">{item.size}</span>
+                                </div>
+                              )}
+                              
+                              {/* Always show toppings section for debugging */}
+                              <div className="border-t border-dashed pt-2 mt-1">
+                                <div className="font-medium text-green-600 mb-1 flex justify-between">
+                                  <span>Toppings:</span> 
+                                  <span className="bg-gray-100 px-1 rounded text-xs">
+                                    {item.toppings ? `${item.toppings.length} selected` : "none"}
+                                  </span>
+                                </div>
+                                
+                                {item.toppings && item.toppings.length > 0 ? (
+                                  <div className="pl-2 grid grid-cols-2 gap-x-1 border-l-2 border-green-600 bg-green-50 p-2 rounded">
+                                    {item.toppings.map((topping, i) => (
+                                      <div key={i} className="flex items-center">
+                                        <span className="text-xs">• {topping}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-red-500 italic bg-red-50 p-2 rounded">
+                                    No toppings found for this item. Please check console logs.
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div className="mt-3 font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200">
+                        <span>Total:</span>
+                        <span className="text-orange-600 text-lg">${cartTotal.toFixed(2)}</span>
+                      </div>
+                      <Button 
+                        className="mt-3 w-full h-12 text-base font-bold shadow-md bg-orange-600 hover:bg-orange-700" 
+                        onClick={handlePlaceOrderClick}
+                        disabled={isPlacingOrder}
+                      >
+                        {isPlacingOrder ? (
+                          <>
+                            <LoadingSpinner size={20} className="mr-2" />
+                            Processing...
+                          </>
+                        ) : "Place Order"}
+                      </Button>
+                    </>
+                  ) : (
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-4 pt-2">
+                        <div className="text-lg font-bold text-orange-600 mb-2">Customer Information</div>
+                        
+                        <FormField
+                          control={form.control}
+                          name="customerName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Your name" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Phone number" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Email address" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <div className="mt-3 font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200">
+                          <span>Total:</span>
+                          <span className="text-orange-600 text-lg">${cartTotal.toFixed(2)}</span>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            className="flex-1" 
+                            onClick={() => setShowCheckoutForm(false)}
+                          >
+                            Back
+                          </Button>
+                          <Button 
+                            type="submit"
+                            className="flex-1 bg-orange-600 hover:bg-orange-700" 
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <LoadingSpinner size={20} className="mr-2" />
+                                Processing...
+                              </>
+                            ) : (
+                              "Confirm Order"
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-500 text-center py-2">Your cart is empty</p>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </Card>
+    </motion.div>
+  );
+});
+
 export default function PizzaOrder() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [selectedToppings, setSelectedToppings] = useState<Record<string, string[]>>({});
   const [showToppingSelector, setShowToppingSelector] = useState<string | null>(null);
-  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [activeSection, setActiveSection] = useState<string>("pizzas");
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  // Optimize cart state
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const cartTotal = useMemo(() => 
+    cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  , [cart]);
+
+  // Add direct function to add items to cart with toppings
+  const addToCartWithToppings = useCallback((
+    item: any, 
+    quantity: number, 
+    size: string, 
+    toppings: string[]
+  ) => {
+    console.log("DIRECT addToCartWithToppings called");
+    console.log("Item:", item.name);
+    console.log("Size:", size);
+    console.log("Quantity:", quantity);
+    
+    // Ensure toppings is always a valid array
+    const safeToppings = Array.isArray(toppings) ? [...toppings] : [];
+    console.log("Toppings (validated):", safeToppings);
+    
+    // Generate the item name with size
+    const itemName = size ? `${item.name} (${size})` : item.name;
+    
+    // Calculate the price
+    const price = size 
+      ? Number(item.prices[size.toLowerCase()]) 
+      : Number(item.price || 0);
+    
+    // Create a new cart item with toppings
+    const newCartItem: CartItem = {
+      name: itemName,
+      quantity: quantity,
+      price: price,
+      size: size,
+      toppings: safeToppings // Use validated toppings array
+    };
+    
+    console.log("Adding to cart:", newCartItem);
+    
+    // Update the cart state
+    setCart(prev => {
+      // Check if item already exists in cart
+      const existingIndex = prev.findIndex(i => i.name === itemName);
+      
+      if (existingIndex >= 0) {
+        // Update existing item
+        const updatedCart = [...prev];
+        updatedCart[existingIndex] = {
+          ...updatedCart[existingIndex],
+          quantity: updatedCart[existingIndex].quantity + quantity,
+          toppings: safeToppings // Ensure toppings are updated with validated array
+        };
+        return updatedCart;
+      } else {
+        // Add new item
+        return [...prev, newCartItem];
+      }
+    });
+  }, []);
 
   const menu = {
     pizzas: {
       regular: [
         {
-          name: "1 Item Pizza",
+          name: "1 Toppings Pizza",
           prices: { medium: "13.99", large: "16.99" },
           description: "Choose one topping from our selection",
           image: "/images/pizza1.jpg"
         },
         {
-          name: "2 Item Pizza",
+          name: "2 Toppings Pizza",
           prices: { medium: "14.99", large: "17.99" },
           description: "Choose two toppings from our selection",
           image: "/images/pizza2.jpg"
         },
         {
-          name: "3 Item Pizza",
+          name: "3 Toppings Pizza",
           prices: { medium: "15.99", large: "18.99" },
           description: "Choose three toppings from our selection",
           image: "/images/pizza3.jpg"
@@ -281,6 +1277,38 @@ export default function PizzaOrder() {
     "Jalapeño Peppers",
   ];
 
+  // Virtual scrolling setup
+  const rowVirtualizer = useVirtualizer({
+    count: Object.keys(menu).length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 500,
+    overscan: 2,
+  });
+
+  // Optimize menu data with reordered sections
+  const menuSections = useMemo(() => {
+    const orderedCategories = ['pizzas', 'burgers', 'sides', 'chicken', 'subs', 'deliSalads', 'specials'];
+    return orderedCategories
+      .filter(category => menu[category])
+      .map(category => {
+        let color = 'text-green-600';
+        if (category === 'burgers') color = 'text-orange-600';
+        else if (category === 'sides') color = 'text-green-600';
+        else if (category === 'chicken') color = 'text-orange-600';
+        else if (category === 'subs') color = 'text-green-600';
+        else if (category === 'deliSalads') color = 'text-orange-600';
+        else if (category === 'specials') color = 'text-green-600';
+        
+        return {
+          category,
+          title: category.charAt(0).toUpperCase() + category.slice(1),
+          items: menu[category],
+          color
+        };
+      });
+  }, []);
+
+  // Optimize form handling
   const form = useForm<z.infer<typeof orderSchema>>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
@@ -291,545 +1319,215 @@ export default function PizzaOrder() {
     },
   });
 
-  // Memoize the menu data
-  const memoizedMenu = useMemo(() => menu, []);
-
-  const getItemQuantity = useCallback((itemName: string) => {
-    const items = form.getValues("items") || [];
-    const item = items.find((i: any) => i.name === itemName);
-    return item?.quantity || 0;
-  }, [form]);
-
-  const handleQuantityChange = useCallback((item: any, delta: number, size?: string) => {
-    const itemName = size ? `${item.name} (${size})` : item.name;
-    const price = size
-      ? Number(item.prices[size.toLowerCase()])
-      : Number(item.price);
-    const currentItems = form.getValues("items") || [];
+  // Handle topping selection with improved reliability
+  const handleToppingSelection = useCallback((pizzaName: string, size: string, topping: string) => {
+    if (!pizzaName || !size || !topping) {
+      console.error("Missing required parameters for topping selection", { pizzaName, size, topping });
+      return;
+    }
     
-    // Create a unique ID for this pizza (for tracking toppings)
-    const itemKey = `${item.name}-${size || "default"}`;
-    
-    // For regular pizzas, check if toppings are needed when adding to cart
-    if (delta > 0 && item.name.includes("Item Pizza")) {
-      // Determine how many toppings are required for this pizza
-      let requiredToppings = 0;
-      if (item.name.includes("1 Item")) {
-        requiredToppings = 1;
-      } else if (item.name.includes("2 Item")) {
-        requiredToppings = 2;
-      } else if (item.name.includes("3 Item")) {
-        requiredToppings = 3;
-      }
-      
-      // Check if enough toppings are selected
-      const currentToppings = selectedToppings[itemKey] || [];
-      if (currentToppings.length < requiredToppings) {
-        setShowToppingSelector(itemKey);
-        toast({
-          title: "Select Toppings",
-          description: `Please select ${requiredToppings} toppings for your pizza.`,
-        });
-        return;
-      }
-    }
-
-    const existingItemIndex = currentItems.findIndex(
-      (i: any) => i.name === itemName
-    );
-
-    if (existingItemIndex >= 0) {
-      const newQuantity = Math.max(
-        0,
-        currentItems[existingItemIndex].quantity + delta
-      );
-      if (newQuantity === 0) {
-        currentItems.splice(existingItemIndex, 1);
-      } else {
-        currentItems[existingItemIndex].quantity = newQuantity;
-        
-        // Include selected toppings with the item
-        if (item.name.includes("Item Pizza") && selectedToppings[itemKey]) {
-          currentItems[existingItemIndex].toppings = selectedToppings[itemKey];
-        }
-      }
-    } else if (delta > 0) {
-      const newItem: CartItem = { 
-        name: itemName, 
-        quantity: 1, 
-        price 
-      };
-      
-      // Add selected toppings to the cart item
-      if (item.name.includes("Item Pizza") && selectedToppings[itemKey]) {
-        newItem.toppings = selectedToppings[itemKey];
-      }
-      
-      currentItems.push(newItem);
-    }
-
-    form.setValue("items", currentItems);
-
-    if (delta > 0) {
-      const toppingsMessage = selectedToppings[itemKey]?.length 
-        ? ` with toppings: ${selectedToppings[itemKey].join(", ")}` 
-        : '';
-        
-      toast({
-        title: "Added to cart",
-        description: `${itemName} added to your order${toppingsMessage}`,
-        action: (
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-500 animate-in zoom-in" />
-          </div>
-        ),
-        className: "md:left-4 md:right-auto",
-      });
-    }
-  }, [form, selectedToppings, toast]);
-
-  // Memoize the render functions with proper dependencies
-  const memoizedRenderQuantityControls = useCallback((item: any, size?: string) => (
-    <div className="flex items-center gap-2 mt-2">
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => handleQuantityChange(item, -1, size)}
-        aria-label="Decrease quantity"
-      >
-        <MinusCircle className="h-4 w-4" />
-      </Button>
-      <span className="w-8 text-center">
-        {getItemQuantity(size ? `${item.name} (${size})` : item.name)}
-      </span>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => handleQuantityChange(item, 1, size)}
-        aria-label="Increase quantity"
-      >
-        <PlusCircle className="h-4 w-4" />
-      </Button>
-    </div>
-  ), [handleQuantityChange, getItemQuantity]);
-
-  // Update the MenuSection component to use memoized props with proper dependencies
-  const MenuSection = React.memo(({ category, title }: { category: string; title: string }) => {
-    const ref = useRef(null);
-    const isInView = useInView(ref, { once: true, margin: "100px" });
-
-    return (
-      <div ref={ref}>
-        {isInView ? renderMenuSection(category, title) : (
-          <div className="h-[200px] flex items-center justify-center">
-            <LoadingSpinner size={24} />
-          </div>
-        )}
-      </div>
-    );
-  }, (prevProps, nextProps) => prevProps.category === nextProps.category);
-
-  // Update the cart section to use memoized items with proper comparison function
-  const CartSummary = React.memo(() => {
-    return (
-      <Card className="p-4 shadow-lg">
-        <h3 className="font-bold mb-2">Cart</h3>
-        {cartItems.length > 0 ? (
-          <>
-            {cartItems.map((item: any, index: number) => (
-              <div key={index} className="text-sm">
-                {item.quantity}x {item.name} - $
-                {(item.price * item.quantity).toFixed(2)}
-              </div>
-            ))}
-            <div className="mt-2 font-bold">
-              Total: $
-              {cartItems
-                .reduce(
-                  (acc: number, item: any) =>
-                    acc + item.price * item.quantity,
-                  0
-                )
-                .toFixed(2)}
-            </div>
-            <Button 
-              className="mt-2 w-full" 
-              onClick={handleCheckout}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <LoadingSpinner size={20} className="mr-2" />
-              ) : null}
-              {isSubmitting ? "Processing..." : "Order"}
-            </Button>
-          </>
-        ) : (
-          <p className="text-gray-500">Cart is empty</p>
-        )}
-      </Card>
-    );
-  }, (prevProps, nextProps) => true);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-    } else {
-      setIsAuthenticated(true);
-      setIsLoading(false);
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === "items") {
-        setCartItems(value.items || []);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
-
-  const handleToppingSelection = (pizzaName: string, size: string, topping: string) => {
     const itemKey = `${pizzaName}-${size}`;
     
     setSelectedToppings(prev => {
-      const currentToppings = prev[itemKey] || [];
-      const isSelected = currentToppings.includes(topping);
+      // Deep copy the previous state
+      const newState = { ...prev };
       
-      // If topping is already selected, remove it
-      if (isSelected) {
-        return {
-          ...prev,
-          [itemKey]: currentToppings.filter(t => t !== topping)
-        };
+      // Get current toppings or initialize empty array
+      const currentToppings = newState[itemKey] ? [...newState[itemKey]] : [];
+      
+      // Check if topping is already selected
+      const toppingIndex = currentToppings.indexOf(topping);
+      
+      if (toppingIndex >= 0) {
+        // Remove topping if already selected
+        currentToppings.splice(toppingIndex, 1);
+      } else {
+        // Add topping if not selected
+        currentToppings.push(topping);
       }
       
-      // Check for max toppings based on pizza name
-      let maxToppings = 3; // Default max
-      if (pizzaName.includes("1 Item")) {
-        maxToppings = 1;
-      } else if (pizzaName.includes("2 Item")) {
-        maxToppings = 2;
-      } else if (pizzaName.includes("3 Item")) {
-        maxToppings = 3;
-      }
+      // Update the state with new toppings array
+      newState[itemKey] = currentToppings;
       
-      // Check if we've reached the limit
-      if (currentToppings.length >= maxToppings) {
-        toast({
-          title: "Maximum Toppings Reached",
-          description: `You can only select ${maxToppings} toppings for this pizza.`,
-          variant: "destructive"
-        });
-        return prev;
-      }
-      
-      // Add the topping
-      return {
-        ...prev,
-        [itemKey]: [...currentToppings, topping]
-      };
+      console.log(`Updated toppings for ${itemKey}:`, newState[itemKey]);
+      return newState;
     });
-  };
+  }, []);
 
-  const renderQuantityControls = (item: any, size?: string) => (
-    <div className="flex items-center gap-2 mt-2">
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => handleQuantityChange(item, -1, size)}
-        aria-label="Decrease quantity"
-      >
-        <MinusCircle className="h-4 w-4" />
-      </Button>
-      <span className="w-8 text-center">
-        {getItemQuantity(size ? `${item.name} (${size})` : item.name)}
-      </span>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => handleQuantityChange(item, 1, size)}
-        aria-label="Increase quantity"
-      >
-        <PlusCircle className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-
-  const renderToppingsSelector = (item: any, size: string) => {
-    if (!item.name.includes("Item Pizza")) return null;
+  // Fix the handleQuantityChange function to properly store toppings
+  const handleQuantityChange = useCallback((item: any, delta: number, size?: string, directToppings?: string[]) => {
+    if (delta === 0) return; // No change to make
     
-    const itemKey = `${item.name}-${size}`;
-    const currentToppings = selectedToppings[itemKey] || [];
-    const isVisible = showToppingSelector === itemKey;
+    // Ensure directToppings is always a valid array if provided
+    const safeToppings = directToppings && Array.isArray(directToppings) 
+      ? [...directToppings] 
+      : [];
     
-    // Determine max toppings
-    let maxToppings = 3;
-    if (item.name.includes("1 Item")) {
-      maxToppings = 1;
-    } else if (item.name.includes("2 Item")) {
-      maxToppings = 2;
-    } else if (item.name.includes("3 Item")) {
-      maxToppings = 3;
-    }
+    console.log("directToppings received in handleQuantityChange:", 
+      directToppings ? safeToppings : "none provided");
     
-    return (
-      <div className="mt-2">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => setShowToppingSelector(isVisible ? null : itemKey)}
-          className="w-full text-sm"
-        >
-          {isVisible ? "Hide Toppings" : currentToppings.length > 0 
-            ? `Selected Toppings (${currentToppings.length}/${maxToppings})` 
-            : `Select Toppings (0/${maxToppings})`
-          }
-        </Button>
+    setCart(prevCart => {
+      const newCart = [...prevCart];
+      const itemKey = size ? `${item.name} (${size})` : item.name;
+      const existingItemIndex = newCart.findIndex(i => i.name === itemKey);
+      
+      // Log the input parameters
+      console.log("handleQuantityChange called with:", {
+        item: item.name,
+        delta,
+        size,
+        directToppings: safeToppings.length > 0 ? safeToppings : "none"
+      });
+      
+      if (existingItemIndex >= 0) {
+        // Item exists in cart, update quantity
+        const newQuantity = Math.max(0, newCart[existingItemIndex].quantity + delta);
         
-        {isVisible && (
-          <Card className="mt-2 p-3">
-            <div className="flex justify-between items-center mb-2">
-              <h5 className="font-semibold">Select Toppings</h5>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowToppingSelector(null)}
-                className="h-6 w-6 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {currentToppings.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-1">
-                {currentToppings.map(topping => (
-                  <div key={topping} className="bg-primary/10 text-xs rounded px-2 py-1 flex items-center gap-1">
-                    {topping}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleToppingSelection(item.name, size, topping)}
-                      className="h-4 w-4 p-0"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {toppings.map(topping => (
-                <div key={topping} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded">
-                  <input
-                    type="checkbox"
-                    id={`${itemKey}-${topping}`}
-                    checked={currentToppings.includes(topping)}
-                    onChange={() => handleToppingSelection(item.name, size, topping)}
-                    className="rounded text-primary h-4 w-4"
-                  />
-                  <label htmlFor={`${itemKey}-${topping}`} className="text-sm flex-1">
-                    {topping}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
-      </div>
-    );
-  };
+        if (newQuantity === 0) {
+          // Remove item if quantity becomes 0
+          newCart.splice(existingItemIndex, 1);
+        } else {
+          // Update quantity
+          newCart[existingItemIndex] = {
+            ...newCart[existingItemIndex],
+            quantity: newQuantity,
+            // If directToppings were provided during update, use them
+            ...(safeToppings.length > 0 ? { toppings: safeToppings } : {})
+          };
+        }
+      } else if (delta > 0) {
+        // Add new item to cart
+        let itemToppings: string[] = [];
+        
+        // IMPORTANT: If direct toppings were provided, use them as priority
+        if (safeToppings.length > 0) {
+          console.log("Using direct toppings:", safeToppings);
+          itemToppings = safeToppings; // Already a safe copy
+        } 
+        // Otherwise try to get them from the selected toppings state
+        else if (item.name.includes("Toppings Pizza") && size) {
+          const toppingKey = `${item.name}-${size}`;
+          const toppingsFromState = selectedToppings[toppingKey];
+          if (toppingsFromState && Array.isArray(toppingsFromState) && toppingsFromState.length > 0) {
+            itemToppings = [...toppingsFromState]; // Make a copy
+            console.log("Using toppings from state:", itemToppings);
+          } else {
+            console.warn(`No toppings found for ${item.name} with size ${size}`);
+          }
+        }
+        
+        // Create the new cart item with GUARANTEED toppings array
+        const newItem = {
+          name: itemKey,
+          quantity: delta,
+          price: size ? Number(item.prices[size.toLowerCase()]) : Number(item.price),
+          toppings: itemToppings, // This should now always be a valid array
+          size: size
+        };
+        
+        console.log("Added new item to cart with TOPPINGS:", newItem);
+        newCart.push(newItem);
+      }
+      
+      // Always return a new array to trigger re-render
+      return [...newCart];
+    });
+  }, [selectedToppings]);
 
-  const renderMenuSection = (category: string, title: string) => {
-    const items = menu[category as keyof typeof menu];
+  // Add function to remove items from cart
+  const handleRemoveFromCart = useCallback((index: number) => {
+    setCart(prevCart => {
+      const newCart = [...prevCart];
+      newCart.splice(index, 1);
+      return newCart;
+    });
+  }, []);
 
-    if (category === "pizzas") {
-      const pizzaItems = menu[category] as {
-        regular: Array<{
-          name: string;
-          prices: { medium: string; large: string };
-          description: string;
-          image: string;
-        }>;
-        specialty: Array<{
-          name: string;
-          price: string;
-          description: string;
-          image: string;
-        }>;
-      };
-
-      return (
-        <div className="space-y-8">
-          <div>
-            <h3 className="text-lg font-bold mb-4">Regular Pizzas</h3>
-            <div className="grid gap-4 md:grid-cols-2">
-              {pizzaItems.regular.map((item: any) => (
-                <Card key={item.name} className="p-4">
-                  <div className="flex gap-4">
-                    <div className="w-24 h-24 flex-shrink-0">
-                      <img 
-                        src={item.image} 
-                        alt={item.name}
-                        className="w-full h-full object-cover rounded-lg"
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "/images/placeholder.svg";
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold">{item.name}</h4>
-                      <p className="text-sm text-gray-600">{item.description}</p>
-                      <div className="mt-2">
-                        <p>Medium (16"): ${item.prices.medium}</p>
-                        <p>Large (22"): ${item.prices.large}</p>
-                      </div>
-                      <div className="flex flex-col gap-2 mt-2">
-                        <Label>Medium</Label>
-                        {renderQuantityControls(item, "medium")}
-                        {renderToppingsSelector(item, "medium")}
-                        <Label className="mt-2">Large</Label>
-                        {renderQuantityControls(item, "large")}
-                        {renderToppingsSelector(item, "large")}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold mb-4">Specialty Pizzas</h3>
-            <div className="grid gap-4 md:grid-cols-2">
-              {pizzaItems.specialty.map((item: any) => (
-                <Card key={item.name} className="p-4">
-                  <div className="flex gap-4">
-                    <div className="w-24 h-24 flex-shrink-0">
-                      <img 
-                        src={item.image} 
-                        alt={item.name}
-                        className="w-full h-full object-cover rounded-lg"
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "/images/placeholder.svg";
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold">{item.name}</h4>
-                      <p className="text-sm text-gray-600">{item.description}</p>
-                      <p className="mt-2">${item.price}</p>
-                      {renderQuantityControls(item)}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold mb-4">Available Toppings</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {toppings.map((topping) => (
-                <div key={topping} className="text-gray-700">
-                  • {topping}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="grid gap-4 md:grid-cols-2">
-        {Array.isArray(items) &&
-          items.map((item: any) => (
-            <Card key={item.name} className="p-4">
-              <div className="flex gap-4">
-                <div className="w-24 h-24 flex-shrink-0">
-                  <img 
-                    src={item.image} 
-                    alt={item.name}
-                    className="w-full h-full object-cover rounded-lg"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "/images/placeholder.svg";
-                    }}
-                  />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold">{item.name}</h4>
-                  {item.description && (
-                    <p className="text-sm text-gray-600">{item.description}</p>
-                  )}
-                  <p className="mt-2">
-                    {item.price === "market"
-                      ? "Market Price"
-                      : item.prices
-                      ? `Medium: $${item.prices.medium}, Large: $${item.prices.large}`
-                      : `$${item.price}`}
-                  </p>
-                  {item.price !== "market" && renderQuantityControls(item)}
-                </div>
-              </div>
-            </Card>
-          ))}
-      </div>
-    );
-  };
-
-  const handleCheckout = async () => {
+  // Add a new function to handle the customer data submission
+  const handleCustomerSubmit = async (customerData: { 
+    customerName: string; 
+    phone: string; 
+    email: string 
+  }) => {
     try {
       setIsSubmitting(true);
-      const formData = form.getValues();
-      const items = formData.items || [];
+      // Don't set isPlacingOrder here since it's now being set in the form submit handler
 
-      if (!formData.customerName || !formData.phone || !formData.email) {
-        toast({
-          title: "Missing Information",
-          description: "Please fill in all required fields",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (items.length === 0) {
+      if (cart.length === 0) {
         toast({
           title: "Empty Cart",
           description: "Please add items to your order",
           variant: "destructive",
         });
+        setIsSubmitting(false);
+        setIsPlacingOrder(false);
         return;
       }
 
-      const totalAmount = items.reduce(
-        (sum: number, item: any) => sum + item.price * item.quantity,
-        0
-      );
+      // Use the customerData passed from the CartSummary component
+      if (!customerData.customerName || !customerData.phone || !customerData.email) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        setIsPlacingOrder(false);
+        return;
+      }
 
-      const orderData = {
-        customerName: formData.customerName,
-        phone: formData.phone,
-        email: formData.email,
-        address: "Pickup",
-        items: items.map((item) => ({
+      // Create detailed order items with toppings and size information
+      const orderItems = cart.map((item) => {
+        // DEBUG TOPPINGS - Log each item's toppings explicitly
+        console.log(`TOPPINGS DEBUG for ${item.name}:`, {
+          hasToppings: Boolean(item.toppings),
+          toppingsArray: item.toppings,
+          toppingsCount: item.toppings ? item.toppings.length : 0,
+          toppingsData: item.toppings ? JSON.stringify(item.toppings) : 'null',
+          size: item.size || 'none'
+        });
+        
+        // Make sure toppings is always an array
+        const safeToppings = Array.isArray(item.toppings) ? [...item.toppings] : [];
+        
+        // Log warning if a toppings pizza doesn't have toppings
+        if (item.name.toLowerCase().includes('topping') && safeToppings.length === 0) {
+          console.warn(`Item ${item.name} has no toppings!`);
+        }
+        
+        return {
           name: item.name,
           quantity: item.quantity,
           price: Number(item.price),
-        })),
-        totalAmount: Number(totalAmount),
+          size: item.size || undefined,
+          toppings: safeToppings // Use our safe array
+        };
+      });
+      
+      // Log the final order data with toppings
+      console.log("FINAL ORDER DATA:", {
+        customerInfo: {
+          name: customerData.customerName,
+          email: customerData.email,
+          phone: customerData.phone
+        },
+        items: orderItems.map(item => ({
+          name: item.name,
+          toppings: item.toppings,
+          size: item.size
+        }))
+      });
+      
+      const orderData = {
+        customerName: customerData.customerName,
+        phone: customerData.phone,
+        email: customerData.email,
+        address: "Pickup",
+        items: orderItems,
+        totalAmount: cartTotal,
       };
 
+      console.log("Sending order with toppings data:", JSON.stringify(orderData, null, 2));
       const response = await ordersApi.createOrder(orderData);
 
       if (response) {
@@ -838,12 +1536,15 @@ export default function PizzaOrder() {
           description: "Your order has been received and is being processed.",
         });
 
+        // Reset form and cart
         form.reset({
           customerName: "",
           phone: "",
           email: "",
           items: [],
         });
+        setCart([]);
+        setSelectedToppings({});
 
         navigate(`/orders/${response._id || response.id}`);
       }
@@ -858,8 +1559,19 @@ export default function PizzaOrder() {
       });
     } finally {
       setIsSubmitting(false);
+      setIsPlacingOrder(false);
     }
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    } else {
+      setIsAuthenticated(true);
+      setIsLoading(false);
+    }
+  }, [navigate]);
 
   if (isLoading) {
     return (
@@ -873,103 +1585,44 @@ export default function PizzaOrder() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Sandy's Market Menu</h1>
-          <div className="text-right">
-            <p>1057 Estey Rd</p>
+      <div className="shadow-lg">
+        <Header />
+      </div>
+      <main className="flex-grow container mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-32 md:pb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Sandy's Market Menu</h1>
+          <div className="text-right p-3 bg-gray-50 rounded-lg shadow-sm border border-gray-200 md:ml-auto">
+            <p className="font-medium">1057 Estey Rd</p>
             <p>Beaverton, MI 48612</p>
-            <p>Phone: (989)435-9688</p>
+            <p className="font-semibold text-orange-600">(989)435-9688</p>
           </div>
         </div>
 
-        <Card className="p-4 mb-8 bg-primary/5">
-          <h2 className="text-xl font-bold mb-2">Hours</h2>
-          <p>Sun to Thurs: 10am-9pm</p>
-          <p>Fri & Sat: 10am–10pm</p>
-        </Card>
-
-        <Form {...form}>
-          <form className="mb-8 space-y-4">
-            <Card className="p-4">
-              <div className="grid gap-4 md:grid-cols-3">
-                <FormField
-                  control={form.control}
-                  name="customerName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="tel" />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </Card>
-          </form>
-        </Form>
-
-        <div className="space-y-12">
-          <section>
-            <h2 className="text-2xl font-bold mb-6">Pizza Menu</h2>
-            <MenuSection category="pizzas" title="Pizza Menu" />
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-6">Daily Specials</h2>
-            <MenuSection category="specials" title="Daily Specials" />
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-6">Subs - $9.99 each</h2>
-            <MenuSection category="subs" title="Subs" />
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-6">Chicken</h2>
-            <MenuSection category="chicken" title="Chicken" />
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-6">Sides & Baskets</h2>
-            <MenuSection category="sides" title="Sides & Baskets" />
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-6">Deli Salads</h2>
-            <MenuSection category="deliSalads" title="Deli Salads" />
-          </section>
+        <div className="space-y-6 sm:space-y-8">
+          {menuSections.map((section) => (
+            <MenuSection 
+              key={section.category}
+              category={section.category}
+              title={section.title}
+              items={section.items}
+              onQuantityChange={handleQuantityChange}
+              toppings={toppings}
+              selectedToppings={selectedToppings}
+              onToppingChange={handleToppingSelection}
+              color={section.color}
+            />
+          ))}
         </div>
 
-        <div className="fixed bottom-4 right-4 flex gap-2">
-          <CartSummary />
-        </div>
+        <CartSummary 
+          cart={cart}
+          cartTotal={cartTotal}
+          isSubmitting={isSubmitting}
+          onCheckout={handleCustomerSubmit}
+          onRemoveItem={handleRemoveFromCart}
+          isPlacingOrder={isPlacingOrder}
+          setIsPlacingOrder={setIsPlacingOrder}
+        />
       </main>
       <Footer />
     </div>

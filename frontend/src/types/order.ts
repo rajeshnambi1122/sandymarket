@@ -2,6 +2,8 @@ export interface OrderItem {
   name: string;
   quantity: number;
   price: number;
+  toppings?: string[];
+  size?: string;
 }
 
 export interface Order {

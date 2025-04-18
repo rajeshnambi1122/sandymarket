@@ -21,6 +21,20 @@ export default function OrderSuccess() {
   const fetchOrder = async (orderId: string) => {
     try {
       const orderData = await ordersApi.getOrderById(orderId);
+      console.log("DEBUG: Retrieved order data:", orderData);
+      
+      // Log toppings information for each item
+      if (orderData && orderData.items) {
+        orderData.items.forEach((item, index) => {
+          console.log(`Item ${index}: ${item.name}`, {
+            hasToppings: !!item.toppings,
+            toppingsArray: item.toppings,
+            toppingsLength: item.toppings ? item.toppings.length : 0,
+            toppingsData: item.toppings ? JSON.stringify(item.toppings) : 'null',
+          });
+        });
+      }
+      
       setOrder(orderData);
     } catch (error) {
       console.error("Failed to fetch order:", error);
@@ -50,9 +64,32 @@ export default function OrderSuccess() {
             <div>
               <h3 className="font-semibold mb-2">Items</h3>
               {order.items.map((item, index) => (
-                <div key={index} className="flex justify-between text-sm py-1">
-                  <span>{item.quantity}x {item.name}</span>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+                <div key={index} className="border-b border-gray-100 mb-2 pb-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">{item.quantity}x {item.name}</span>
+                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                  </div>
+                  
+                  {item.size && (
+                    <div className="text-xs text-gray-500 ml-4 mt-1">
+                      Size: {item.size}
+                    </div>
+                  )}
+                  
+                  {/* Show toppings if they exist and are in an array format */}
+                  {(item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) && (
+                    <div className="text-xs bg-green-50 p-2 rounded border-l-2 border-green-600 ml-2 mt-1">
+                      <span className="text-green-600 font-bold">TOPPINGS:</span> {item.toppings.join(', ')}
+                    </div>
+                  )}
+                  
+                  {/* Show warning only if it's a topping pizza with no toppings */}
+                  {(item.name.toLowerCase().includes('topping') && 
+                    (!item.toppings || !Array.isArray(item.toppings) || item.toppings.length === 0)) && (
+                    <div className="text-xs bg-red-50 p-2 rounded border-l-2 border-red-600 ml-2 mt-1">
+                      <span className="text-red-600 font-bold">WARNING:</span> Topping pizza with no toppings selected!
+                    </div>
+                  )}
                 </div>
               ))}
               <div className="border-t mt-2 pt-2 font-bold flex justify-between">

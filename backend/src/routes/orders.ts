@@ -152,15 +152,39 @@ router.get("/admin", auth, async (req: AuthRequest, res: Response) => {
 // Get order by ID (for customers to check status)
 router.get("/:id", async (req, res) => {
   try {
+    console.log("GET ORDER BY ID endpoint called for ID:", req.params.id);
+    
     const order = await Order.findById(req.params.id);
     if (!order) {
+      console.log("Order not found with ID:", req.params.id);
       return res.status(404).json({
         success: false,
         message: "Order not found",
       });
     }
+    
+    console.log("Order retrieved successfully:", {
+      id: order._id,
+      customerName: order.customerName,
+      itemsCount: order.items.length
+    });
+    
+    // Check each item for toppings
+    if (order.items && order.items.length > 0) {
+      console.log("ORDER ITEMS WITH TOPPINGS:");
+      order.items.forEach((item, index) => {
+        console.log(`Item ${index}: ${item.name}`, {
+          toppings: item.toppings || [],
+          toppingsType: item.toppings ? typeof item.toppings : 'undefined',
+          isArray: item.toppings && Array.isArray(item.toppings),
+          size: item.size || null
+        });
+      });
+    }
+    
     res.json({ success: true, data: order });
   } catch (error) {
+    console.error("Error retrieving order by ID:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching order",
@@ -177,6 +201,32 @@ router.post("/", async (req: AuthRequest, res) => {
       items: req.body.items?.length || 0,
       userId: req.body.userId || 'not provided'
     });
+    
+    // Log detailed item information including toppings
+    console.log("ORDER ITEMS DETAILS WITH TOPPINGS:");
+    if (req.body.items && Array.isArray(req.body.items)) {
+      req.body.items.forEach((item: any, index: number) => {
+        // First check if toppings exist and are an array
+        const hasToppingsArray = item.toppings && Array.isArray(item.toppings);
+        const toppingsCount = hasToppingsArray ? item.toppings.length : 0;
+        
+        console.log(`Item ${index}: ${item.name}`, {
+          hasToppingsArray,
+          toppingsCount,
+          toppingsData: hasToppingsArray ? JSON.stringify(item.toppings) : 'NOT AN ARRAY',
+          rawToppings: item.toppings, // Log the raw value
+          size: item.size || null,
+          quantity: item.quantity,
+          price: item.price
+        });
+        
+        // If it should have toppings but doesn't, log a warning
+        if (item.name.includes('Topping') && (!hasToppingsArray || toppingsCount === 0)) {
+          console.warn(`WARNING: Item ${item.name} should have toppings but has none or invalid format`);
+        }
+      });
+    }
+    
     console.log("Authentication header:", req.headers.authorization ? "Present" : "Missing");
     console.log("User ID from auth middleware:", req.userId);
     
@@ -265,13 +315,32 @@ router.post("/", async (req: AuthRequest, res) => {
       source: userIdSource
     });
 
-    // Create order with the determined user ID
+    // Create order with the determined user ID and safeguard toppings
+    const processedItems = items.map((item: any) => {
+      // Ensure toppings is always an array if present
+      let safeToppings: string[] = [];
+      if (item.toppings && Array.isArray(item.toppings)) {
+        safeToppings = [...item.toppings]; // Make a copy
+        console.log(`Order creation: Using toppings for ${item.name}:`, safeToppings);
+      } else if (item.name.includes('Topping')) {
+        console.warn(`Order creation: Item ${item.name} has invalid toppings format:`, item.toppings);
+      }
+      
+      return {
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        size: item.size || undefined,
+        toppings: safeToppings // Always use the safe array
+      };
+    });
+    
     const order = new Order({
       customerName,
       phone,
       email: email.toLowerCase(), // Normalize email
       address: address || "Pickup",
-      items,
+      items: processedItems, // Use the processed items with safe toppings
       totalAmount: Math.round(totalAmount * 100) / 100,
       status: "pending",
       user: orderUserId,
@@ -284,6 +353,16 @@ router.post("/", async (req: AuthRequest, res) => {
       email: savedOrder.email,
       userId: savedOrder.user,
       userIdSource: userIdSource
+    });
+
+    // Log the items with toppings for debugging
+    console.log("Order items with toppings:");
+    items.forEach((item: any, index: number) => {
+      console.log(`Item ${index}: ${item.name}`, {
+        toppings: item.toppings || [],
+        size: item.size || null,
+        quantity: item.quantity
+      });
     });
 
     // If order was saved without a user ID but we found one later, update it
@@ -299,13 +378,31 @@ router.post("/", async (req: AuthRequest, res) => {
     }
 
     try {
+      // Make sure to explicitly include toppings and size in email data
+      const orderItemsForEmail = processedItems.map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        toppings: item.toppings || [],
+        size: item.size || undefined
+      }));
+
+      console.log("Sending order confirmation with toppings data:", 
+        orderItemsForEmail.map(item => ({
+          name: item.name,
+          hasToppings: !!item.toppings,
+          toppingsCount: item.toppings.length,
+          toppings: item.toppings
+        }))
+      );
+      
       await sendOrderConfirmationEmail({
         id: savedOrder._id.toString(),
         customerEmail: email,
         customerName,
         phone,
         totalAmount,
-        items,
+        items: orderItemsForEmail,
       });
     } catch (error) {
       console.error('Failed to send confirmation email:', error);
