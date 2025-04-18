@@ -317,13 +317,13 @@ const MenuItem = React.memo(({
                       size="icon"
                       onClick={() => handleQuantityChange(1)}
                       aria-label="Increase quantity"
-                      className={`h-8 w-8 sm:h-9 sm:w-9 touch-manipulation ${
+                      className={`h-9 w-9 sm:h-10 sm:w-10 touch-manipulation ${
                         ((hasSizes && !selectedSize) || (canHaveToppings && currentToppings.length < requiredToppings && !toppingsSelected))
                           ? "hover:bg-amber-100 border-amber-300"
                           : "hover:bg-green-100"
                       }`}
                     >
-                      <PlusCircle className="h-4 w-4" />
+                      <PlusCircle className="h-5 w-5 sm:h-6 sm:w-6" />
                     </Button>
                   </div>
                 </div>
@@ -1228,6 +1228,7 @@ export default function PizzaOrder() {
       {
         name: "Cheeseburger",
         price: "5.99",
+        image: "/images/burger.jpg"
       },
     ],
     specials: [
