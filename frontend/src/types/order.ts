@@ -19,6 +19,7 @@ export interface Order {
   createdAt: string;
   user?: string; // Reference to User ID
   userId?: string; // For creating orders with explicit user ID
+  cookingInstructions?: string; // Optional cooking instructions
 }
 
 export type OrderStatus = Order["status"];
@@ -31,6 +32,7 @@ export interface CreateOrderDTO {
   items: OrderItem[];
   totalAmount: number;
   userId?: string; // Optional user ID for associating with a user
+  cookingInstructions?: string; // Optional cooking instructions
 }
 
 export interface OrderResponse {

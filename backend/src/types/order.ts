@@ -15,4 +15,5 @@ export interface OrderDetails {
   phone: string;
   totalAmount: number;
   items: OrderItem[];
+  cookingInstructions?: string; // Optional cooking instructions
 } 

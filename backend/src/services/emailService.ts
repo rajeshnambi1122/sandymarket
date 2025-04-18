@@ -130,7 +130,12 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
                 <p><strong>Status:</strong> <span style="color: #ff9800 !important; font-weight: bold;">PENDING</span></p>
               </div>
 
-         
+              ${orderDetails.cookingInstructions ? `
+              <div style="background-color: #fff3e0 !important; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #ff9800 !important;">
+                <h3 style="margin-top: 0; color: #e65100 !important;">🔥 Cooking Instructions</h3>
+                <p style="margin-bottom: 0;">${orderDetails.cookingInstructions}</p>
+              </div>
+              ` : ''}
 
               <h2>🍕 Order Items</h2>
               <table style="width: 100%; border-collapse: collapse; margin: 15px 0; background-color: #ffffff !important;">
@@ -147,7 +152,7 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
                     <tr>
                       <td style="padding: 10px; border-bottom: 1px solid #ddd;">
                         ${item.name}
-                        ${(item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) ? 
+                        ${(item.name.toLowerCase().includes('pizza') && item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) ? 
                           `<div style="margin-top: 5px; padding: 8px; background-color: #e8f5e9; border-left: 3px solid #4caf50; border-radius: 3px;">
                             <strong style="color: #2e7d32; font-size: 14px;">TOPPINGS:</strong> ${item.toppings.join(', ')}
                            </div>` 
@@ -238,14 +243,14 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
       from: `"Sandy's Market" <${process.env.EMAIL_USER}>`,
       to: orderDetails.customerEmail,
       subject: "Your Order Confirmation - Sandy's Market",
-      text: `Thank you for your order!\n\nOrder ID: ${orderDetails.id}\nTotal Amount: $${orderDetails.totalAmount.toFixed(2)}\n\nItems:\n${orderDetails.items.map(item => {
+      text: `Thank you for your order!\n\nOrder ID: ${orderDetails.id}\nTotal Amount: $${orderDetails.totalAmount.toFixed(2)}\n\n${orderDetails.cookingInstructions ? `Cooking Instructions: ${orderDetails.cookingInstructions}\n\n` : ''}Items:\n${orderDetails.items.map(item => {
         let itemText = `${item.quantity}x ${item.name}`;
         if (item.size) {
           itemText += ` (${item.size})`;
         }
-        if (item.toppings && item.toppings.length > 0) {
+        if (item.name.toLowerCase().includes('pizza') && item.toppings && item.toppings.length > 0) {
           itemText += `\n   TOPPINGS: ${item.toppings.join(', ')}`;
-        } else if (item.name.includes('Topping')) {
+        } else if (item.name.toLowerCase().includes('topping')) {
           itemText += `\n   WARNING: This is a topping pizza with no toppings selected!`;
         }
         return itemText;
@@ -281,6 +286,13 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
                   <p><strong>Order Status:</strong> Pending</p>
                 </div>
 
+                ${orderDetails.cookingInstructions ? `
+                <div style="background-color: #fff3e0; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #ff9800;">
+                  <h3 style="margin-top: 0; color: #e65100;">Your Cooking Instructions</h3>
+                  <p style="margin-bottom: 0;">${orderDetails.cookingInstructions}</p>
+                </div>
+                ` : ''}
+
                 <h3>Order Items</h3>
                 <table class="items-table">
                   <thead>
@@ -295,7 +307,7 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
                       <tr>
                         <td style="padding: 10px; border-bottom: 1px solid #ddd;">
                           ${item.name}
-                          ${(item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) ? 
+                          ${(item.name.toLowerCase().includes('pizza') && item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) ? 
                             `<div style="margin-top: 5px; padding: 8px; background-color: #e8f5e9; border-left: 3px solid #4caf50; border-radius: 3px;">
                               <strong style="color: #2e7d32; font-size: 14px;">TOPPINGS:</strong> ${item.toppings.join(', ')}
                              </div>` 

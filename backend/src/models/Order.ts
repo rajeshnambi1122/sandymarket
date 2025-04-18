@@ -43,6 +43,10 @@ const orderSchema = new mongoose.Schema({
     required: false,
     index: true
   },
+  cookingInstructions: {
+    type: String,
+    required: false
+  },
   createdAt: {
     type: Date,
     default: Date.now,

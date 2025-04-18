@@ -231,7 +231,7 @@ router.post("/", async (req: AuthRequest, res) => {
     console.log("Authentication header:", req.headers.authorization ? "Present" : "Missing");
     console.log("User ID from auth middleware:", req.userId);
     
-    const { customerName, phone, email, items, address, userId } = req.body;
+    const { customerName, phone, email, items, address, userId, cookingInstructions } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({
@@ -345,6 +345,7 @@ router.post("/", async (req: AuthRequest, res) => {
       totalAmount: Math.round(totalAmount * 100) / 100,
       status: "pending",
       user: orderUserId,
+      cookingInstructions: cookingInstructions || '',
       createdAt: new Date()
     });
 
@@ -387,23 +388,18 @@ router.post("/", async (req: AuthRequest, res) => {
         toppings: item.toppings || [],
         size: item.size || undefined
       }));
-
-      console.log("Sending order confirmation with toppings data:", 
-        orderItemsForEmail.map((item: any) => ({
-          name: item.name,
-          hasToppings: !!item.toppings,
-          toppingsCount: item.toppings ? item.toppings.length : 0,
-          toppings: item.toppings
-        }))
-      );
+      
+      console.log("Sending order confirmation with toppings data:",
+        orderItemsForEmail.map(i => `${i.name} - toppings: ${i.toppings.length}`).join(', '));
       
       await sendOrderConfirmationEmail({
         id: savedOrder._id.toString(),
-        customerEmail: email,
-        customerName,
-        phone,
-        totalAmount,
+        customerName: savedOrder.customerName,
+        customerEmail: savedOrder.email,
+        phone: savedOrder.phone,
         items: orderItemsForEmail,
+        totalAmount: savedOrder.totalAmount,
+        cookingInstructions: savedOrder.cookingInstructions
       });
     } catch (error) {
       console.error('Failed to send confirmation email:', error);

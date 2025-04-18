@@ -30,6 +30,7 @@ const orderSchema = z.object({
   phone: z.string().min(10, "Valid phone number required"),
   email: z.string().email("Valid email required"),
   items: z.array(z.any()),
+  cookingInstructions: z.string().optional(),
 });
 
 interface CartItem {
@@ -111,8 +112,6 @@ const MenuItem = React.memo(({
   // Direct method to add item to cart with toppings
   const addItemToCartWithToppings = (selectedToppings: string[], quantity: number) => {
     if (!selectedSize) return;
-    
-    console.log("Adding item directly to cart with toppings:", selectedToppings);
     
     // Call the parent's quantity change function with toppings
     onQuantityChange(item, quantity, selectedSize, selectedToppings);
@@ -269,6 +268,13 @@ const MenuItem = React.memo(({
                 </p>
               )}
               
+              {/* Predefined toppings display */}
+              {item.predefinedToppings && item.predefinedToppings.length > 0 && (
+                <p className="text-xs text-green-600 mt-1 line-clamp-1">
+                  Includes: {item.predefinedToppings.join(', ')}
+                </p>
+              )}
+              
               {/* Quantity controls */}
               {item.price !== "market" && (
                 <div className="flex flex-col gap-2 mt-1 sm:mt-2">
@@ -342,7 +348,6 @@ const MenuItem = React.memo(({
           addToCartDirectly={(item, qty, size, toppings) => {
             // Simply call the parent's onQuantityChange directly with toppings
             if (selectedSize) {
-              console.log("Direct add to cart from selector with toppings:", toppings);
               onQuantityChange(item, qty, selectedSize, toppings);
               setQuantity(prev => prev + qty);
             }
@@ -388,7 +393,6 @@ const ToppingSelector = React.memo(({
   useEffect(() => {
     if (isOpen) {
       setLocalToppings([...selectedToppings]);
-      console.log("ToppingSelector opened with toppings:", selectedToppings);
     }
   }, [isOpen, selectedToppings]);
   
@@ -402,14 +406,12 @@ const ToppingSelector = React.memo(({
       if (isSelected) {
         // Remove topping
         const newToppings = prev.filter(t => t !== topping);
-        console.log(`Removed topping: ${topping}, new toppings:`, newToppings);
         return newToppings;
       } else {
         // Add topping - only if we haven't reached the limit
         if (prev.length >= requiredToppings) {
           // If we're at the limit, replace the first topping with the new one
           const newToppings = [...prev.slice(1), topping];
-          console.log(`Replaced topping (at limit): ${prev[0]} with ${topping}, new toppings:`, newToppings);
           toast({
             title: `Maximum ${requiredToppings} topping${requiredToppings > 1 ? 's' : ''} allowed`,
             description: `Replaced ${prev[0]} with ${topping}`,
@@ -420,7 +422,6 @@ const ToppingSelector = React.memo(({
         
         // Add the new topping if under the limit
         const newToppings = [...prev, topping];
-        console.log(`Added topping: ${topping}, new toppings:`, newToppings);
         return newToppings;
       }
     });
@@ -433,43 +434,26 @@ const ToppingSelector = React.memo(({
   
   // Apply changes when done
   const handleDone = () => {
-    console.log("ToppingSelector - handleDone");
-    console.log("Initial toppings:", selectedToppings);
-    console.log("Final toppings:", localToppings);
-    
     // Process changes for the toppings state
     for (const topping of toppingsToRemove) {
-      console.log(`Removing topping: ${topping}`);
       onToppingChange(pizzaName, size, topping);
     }
     
     for (const topping of toppingsToAdd) {
-      console.log(`Adding topping: ${topping}`);
       onToppingChange(pizzaName, size, topping);
     }
     
     // Add to cart if we have the necessary properties
     if (item && addToCartDirectly && localToppings.length >= requiredToppings) {
-      console.log("Directly adding to cart with toppings:", localToppings);
-      
       try {
         // Create a direct copy of the toppings array to pass
         const toppingsCopy = [...localToppings];
-        console.log("Made copy of toppings:", toppingsCopy);
         
         // Add directly to cart with proper parameters
         addToCartDirectly(item, quantity, size, toppingsCopy);
-        
-        console.log("Successfully called addToCartDirectly");
       } catch (error) {
-        console.error("Error adding to cart:", error);
+        // Silent error handling in production
       }
-    } else {
-      console.log("Not enough toppings or missing addToCartDirectly function");
-      console.log("Required toppings:", requiredToppings);
-      console.log("Current toppings count:", localToppings.length);
-      console.log("Has addToCartDirectly:", Boolean(addToCartDirectly));
-      console.log("Has item:", Boolean(item));
     }
     
     onClose();
@@ -706,7 +690,7 @@ const CartSummary = React.memo(({
   cart: CartItem[];
   cartTotal: number;
   isSubmitting: boolean;
-  onCheckout: (customerData: { customerName: string; phone: string; email: string }) => void;
+  onCheckout: (customerData: { customerName: string; phone: string; email: string; cookingInstructions?: string }) => void;
   onRemoveItem: (index: number) => void;
   isPlacingOrder: boolean;
   setIsPlacingOrder: React.Dispatch<React.SetStateAction<boolean>>;
@@ -722,20 +706,13 @@ const CartSummary = React.memo(({
       phone: "",
       email: "",
       items: [],
+      cookingInstructions: "",
     },
   });
 
   // Debug output
   useEffect(() => {
-    console.log("Cart contents:", cart);
-    cart.forEach((item, index) => {
-      console.log(`Item ${index}: ${item.name}`, {
-        toppings: item.toppings || "No toppings",
-        size: item.size || "No size",
-        price: item.price,
-        quantity: item.quantity
-      });
-    });
+    // No console logs here
   }, [cart]);
 
   const handlePlaceOrderClick = () => {
@@ -759,7 +736,8 @@ const CartSummary = React.memo(({
     onCheckout({
       customerName: data.customerName,
       phone: data.phone,
-      email: data.email
+      email: data.email,
+      cookingInstructions: data.cookingInstructions
     });
     
     setShowCheckoutForm(false);
@@ -772,7 +750,8 @@ const CartSummary = React.memo(({
     await handleSubmitForm({
       customerName: formValues.customerName || "",
       phone: formValues.phone || "",
-      email: formValues.email || ""
+      email: formValues.email || "",
+      cookingInstructions: formValues.cookingInstructions
     });
   };
 
@@ -813,10 +792,6 @@ const CartSummary = React.memo(({
                   {!showCheckoutForm ? (
                     <>
                       {cart.map((item, index) => {
-                        // Debug output for each item
-                        console.log(`Rendering cart item ${index}:`, item);
-                        console.log(`Item has toppings:`, item.toppings ? `Yes, ${item.toppings.length}` : "No");
-                        
                         return (
                           <div key={index} className="text-sm mb-3 bg-white p-3 rounded-md shadow-md border-l-4 border-orange-600">
                             <div className="flex justify-between items-center border-b pb-2 mb-2">
@@ -842,29 +817,31 @@ const CartSummary = React.memo(({
                                 </div>
                               )}
                               
-                              {/* Always show toppings section for debugging */}
-                              <div className="border-t border-dashed pt-2 mt-1">
-                                <div className="font-medium text-green-600 mb-1 flex justify-between">
-                                  <span>Toppings:</span> 
-                                  <span className="bg-gray-100 px-1 rounded text-xs">
-                                    {item.toppings ? `${item.toppings.length} selected` : "none"}
-                                  </span>
+                              {/* Only show toppings section for relevant items */}
+                              {(item.name.includes("Toppings Pizza") || (item.toppings && item.toppings.length > 0)) && (
+                                <div className="border-t border-dashed pt-2 mt-1">
+                                  <div className="font-medium text-green-600 mb-1 flex justify-between">
+                                    <span>Toppings:</span> 
+                                    <span className="bg-gray-100 px-1 rounded text-xs">
+                                      {item.toppings ? `${item.toppings.length} selected` : "none"}
+                                    </span>
+                                  </div>
+                                  
+                                  {item.toppings && item.toppings.length > 0 ? (
+                                    <div className="pl-2 grid grid-cols-2 gap-x-1 border-l-2 border-green-600 bg-green-50 p-2 rounded">
+                                      {item.toppings.map((topping, i) => (
+                                        <div key={i} className="flex items-center">
+                                          <span className="text-xs">• {topping}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs text-red-500 italic bg-red-50 p-2 rounded">
+                                      No toppings selected for this pizza.
+                                    </div>
+                                  )}
                                 </div>
-                                
-                                {item.toppings && item.toppings.length > 0 ? (
-                                  <div className="pl-2 grid grid-cols-2 gap-x-1 border-l-2 border-green-600 bg-green-50 p-2 rounded">
-                                    {item.toppings.map((topping, i) => (
-                                      <div key={i} className="flex items-center">
-                                        <span className="text-xs">• {topping}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="text-xs text-red-500 italic bg-red-50 p-2 rounded">
-                                    No toppings found for this item. Please check console logs.
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -925,6 +902,23 @@ const CartSummary = React.memo(({
                               <FormLabel>Email</FormLabel>
                               <FormControl>
                                 <Input placeholder="Email address" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="cookingInstructions"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cooking Instructions (Optional)</FormLabel>
+                              <FormControl>
+                                <textarea
+                                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                  placeholder="Any special cooking instructions..."
+                                  {...field}
+                                />
                               </FormControl>
                             </FormItem>
                           )}
@@ -999,14 +993,8 @@ export default function PizzaOrder() {
     size: string, 
     toppings: string[]
   ) => {
-    console.log("DIRECT addToCartWithToppings called");
-    console.log("Item:", item.name);
-    console.log("Size:", size);
-    console.log("Quantity:", quantity);
-    
     // Ensure toppings is always a valid array
     const safeToppings = Array.isArray(toppings) ? [...toppings] : [];
-    console.log("Toppings (validated):", safeToppings);
     
     // Generate the item name with size
     const itemName = size ? `${item.name} (${size})` : item.name;
@@ -1024,8 +1012,6 @@ export default function PizzaOrder() {
       size: size,
       toppings: safeToppings // Use validated toppings array
     };
-    
-    console.log("Adding to cart:", newCartItem);
     
     // Update the cart state
     setCart(prev => {
@@ -1073,7 +1059,8 @@ export default function PizzaOrder() {
           name: "Supreme Pizza",
           prices: { medium: "20.99", large: "22.99" },
           description: "Pepperoni, sausage, onions, peppers, olives",
-          image: "/images/pizza4.jpg"
+          image: "/images/pizza4.jpg",
+          predefinedToppings: ["Pepperoni", "Sausage", "Onions", "Green Peppers", "Black Olives"]
         },
       ],
       specialty: [
@@ -1322,7 +1309,6 @@ export default function PizzaOrder() {
   // Handle topping selection with improved reliability
   const handleToppingSelection = useCallback((pizzaName: string, size: string, topping: string) => {
     if (!pizzaName || !size || !topping) {
-      console.error("Missing required parameters for topping selection", { pizzaName, size, topping });
       return;
     }
     
@@ -1349,7 +1335,6 @@ export default function PizzaOrder() {
       // Update the state with new toppings array
       newState[itemKey] = currentToppings;
       
-      console.log(`Updated toppings for ${itemKey}:`, newState[itemKey]);
       return newState;
     });
   }, []);
@@ -1361,23 +1346,14 @@ export default function PizzaOrder() {
     // Ensure directToppings is always a valid array if provided
     const safeToppings = directToppings && Array.isArray(directToppings) 
       ? [...directToppings] 
-      : [];
-    
-    console.log("directToppings received in handleQuantityChange:", 
-      directToppings ? safeToppings : "none provided");
+      : item.predefinedToppings && Array.isArray(item.predefinedToppings)
+        ? [...item.predefinedToppings]
+        : [];
     
     setCart(prevCart => {
       const newCart = [...prevCart];
       const itemKey = size ? `${item.name} (${size})` : item.name;
       const existingItemIndex = newCart.findIndex(i => i.name === itemKey);
-      
-      // Log the input parameters
-      console.log("handleQuantityChange called with:", {
-        item: item.name,
-        delta,
-        size,
-        directToppings: safeToppings.length > 0 ? safeToppings : "none"
-      });
       
       if (existingItemIndex >= 0) {
         // Item exists in cart, update quantity
@@ -1401,7 +1377,6 @@ export default function PizzaOrder() {
         
         // IMPORTANT: If direct toppings were provided, use them as priority
         if (safeToppings.length > 0) {
-          console.log("Using direct toppings:", safeToppings);
           itemToppings = safeToppings; // Already a safe copy
         } 
         // Otherwise try to get them from the selected toppings state
@@ -1410,9 +1385,6 @@ export default function PizzaOrder() {
           const toppingsFromState = selectedToppings[toppingKey];
           if (toppingsFromState && Array.isArray(toppingsFromState) && toppingsFromState.length > 0) {
             itemToppings = [...toppingsFromState]; // Make a copy
-            console.log("Using toppings from state:", itemToppings);
-          } else {
-            console.warn(`No toppings found for ${item.name} with size ${size}`);
           }
         }
         
@@ -1425,7 +1397,6 @@ export default function PizzaOrder() {
           size: size
         };
         
-        console.log("Added new item to cart with TOPPINGS:", newItem);
         newCart.push(newItem);
       }
       
@@ -1447,7 +1418,8 @@ export default function PizzaOrder() {
   const handleCustomerSubmit = async (customerData: { 
     customerName: string; 
     phone: string; 
-    email: string 
+    email: string;
+    cookingInstructions?: string;
   }) => {
     try {
       setIsSubmitting(true);
@@ -1478,22 +1450,8 @@ export default function PizzaOrder() {
 
       // Create detailed order items with toppings and size information
       const orderItems = cart.map((item) => {
-        // DEBUG TOPPINGS - Log each item's toppings explicitly
-        console.log(`TOPPINGS DEBUG for ${item.name}:`, {
-          hasToppings: Boolean(item.toppings),
-          toppingsArray: item.toppings,
-          toppingsCount: item.toppings ? item.toppings.length : 0,
-          toppingsData: item.toppings ? JSON.stringify(item.toppings) : 'null',
-          size: item.size || 'none'
-        });
-        
         // Make sure toppings is always an array
         const safeToppings = Array.isArray(item.toppings) ? [...item.toppings] : [];
-        
-        // Log warning if a toppings pizza doesn't have toppings
-        if (item.name.toLowerCase().includes('topping') && safeToppings.length === 0) {
-          console.warn(`Item ${item.name} has no toppings!`);
-        }
         
         return {
           name: item.name,
@@ -1504,20 +1462,6 @@ export default function PizzaOrder() {
         };
       });
       
-      // Log the final order data with toppings
-      console.log("FINAL ORDER DATA:", {
-        customerInfo: {
-          name: customerData.customerName,
-          email: customerData.email,
-          phone: customerData.phone
-        },
-        items: orderItems.map(item => ({
-          name: item.name,
-          toppings: item.toppings,
-          size: item.size
-        }))
-      });
-      
       const orderData = {
         customerName: customerData.customerName,
         phone: customerData.phone,
@@ -1525,9 +1469,9 @@ export default function PizzaOrder() {
         address: "Pickup",
         items: orderItems,
         totalAmount: cartTotal,
+        cookingInstructions: customerData.cookingInstructions || ""
       };
 
-      console.log("Sending order with toppings data:", JSON.stringify(orderData, null, 2));
       const response = await ordersApi.createOrder(orderData);
 
       if (response) {
@@ -1542,6 +1486,7 @@ export default function PizzaOrder() {
           phone: "",
           email: "",
           items: [],
+          cookingInstructions: "",
         });
         setCart([]);
         setSelectedToppings({});

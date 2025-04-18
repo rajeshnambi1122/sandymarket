@@ -104,6 +104,15 @@ export default function OrderSuccess() {
               <p className="text-sm text-gray-600">Phone: {order.phone}</p>
               <p className="text-sm text-gray-600">Pickup Address: Sandy's Market</p>
             </div>
+
+            {order.cookingInstructions && (
+              <div>
+                <h3 className="font-semibold">Cooking Instructions</h3>
+                <div className="text-sm bg-orange-50 p-3 rounded border-l-2 border-orange-600">
+                  {order.cookingInstructions}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-8 flex justify-center">
