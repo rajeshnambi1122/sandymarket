@@ -48,7 +48,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-orange-200 bg-white shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-orange-200 bg-white shadow-lg">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link to="/" className="font-bold text-xl text-orange-600">
@@ -78,7 +78,7 @@ export default function Header() {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="hover:bg-orange-50"
+            className="hover:bg-orange-50 shadow-md hover:shadow-lg transition-shadow"
             onClick={handleProfileClick}
             title={isAdmin ? "Admin Dashboard" : "User Profile"}
           >

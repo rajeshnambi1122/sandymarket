@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { OrderDetails, OrderItem } from '../types/order'; // Adjust the import path as necessary
+import twilio from 'twilio';
 
 dotenv.config();
 
@@ -10,6 +11,17 @@ console.log('Email Configuration:', {
   host: 'smtp.gmail.com',
   port: 587,
 });
+
+// Initialize Twilio client
+const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN 
+  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
+
+if (twilioClient) {
+  console.log('Twilio client initialized successfully');
+} else {
+  console.warn('Twilio client not initialized. SMS notifications will not be sent.');
+}
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -217,6 +229,41 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
   await transporter.sendMail(mailOptions);
 };
 
+// Add a function to send SMS notifications
+const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean> => {
+  if (!twilioClient || !process.env.TWILIO_PHONE_NUMBER || !process.env.STORE_PHONE_NUMBER) {
+    console.warn('SMS notification skipped: Twilio not configured properly');
+    return false;
+  }
+
+  try {
+    // Format the order information for SMS
+    const itemSummary = orderDetails.items
+      .map(item => `${item.quantity}x ${item.name}`)
+      .join(', ');
+    
+    const message = `New order received! Order #${orderDetails.id}\n` +
+      `Customer: ${orderDetails.customerName}\n` +
+      `Items: ${itemSummary}\n` +
+      `Total: $${orderDetails.totalAmount.toFixed(2)}\n` +
+      `${orderDetails.cookingInstructions ? `Instructions: ${orderDetails.cookingInstructions}\n` : ''}` +
+      `Phone: ${orderDetails.phone}`;
+
+    // Send SMS to the store
+    const result = await twilioClient.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: process.env.STORE_PHONE_NUMBER
+    });
+
+    console.log('SMS notification sent successfully:', result.sid);
+    return true;
+  } catch (error) {
+    console.error('Failed to send SMS notification:', error);
+    return false;
+  }
+};
+
 export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => {
   try {
     if (!orderDetails.customerEmail) {
@@ -350,15 +397,16 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
       `
     };
 
-    // Send both emails concurrently
+    // Send all notifications concurrently
     await Promise.all([
       transporter.sendMail(customerMailOptions),
-      sendStoreNotification(orderDetails)
+      sendStoreNotification(orderDetails),
+      sendSmsNotification(orderDetails)
     ]);
 
-    console.log('Emails sent successfully to customer and store');
+    console.log('Notifications sent successfully to customer and store');
   } catch (error) {
-    console.error('Failed to send emails:', error);
+    console.error('Failed to send notifications:', error);
     throw error;
   }
 }; 

@@ -1251,7 +1251,6 @@ export default function PizzaOrder() {
     "Pepperoni",
     "Bacon",
     "Sausage",
-    "Burger",
     "Green Olives",
     "Black Olives",
     "Mild Peppers",
