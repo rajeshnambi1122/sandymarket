@@ -237,16 +237,32 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
   }
 
   try {
-    // Format the order information for SMS
+    // Format the order information for SMS with toppings details
     const itemSummary = orderDetails.items
-      .map(item => `${item.quantity}x ${item.name}`)
-      .join(', ');
+      .map(item => {
+        let itemText = `${item.quantity}x ${item.name}`;
+        
+        // Add size information if available
+        if (item.size) {
+          itemText += ` (${item.size})`;
+        }
+        
+        // Add toppings information for pizza items
+        if (item.name.toLowerCase().includes('pizza') && item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) {
+          itemText += ` - Toppings: ${item.toppings.join(', ')}`;
+        } else if (item.name.toLowerCase().includes('topping') && (!item.toppings || !item.toppings.length)) {
+          itemText += ` - WARNING: No toppings selected!`;
+        }
+        
+        return itemText;
+      })
+      .join('\n');
     
     const message = `New order received! Order #${orderDetails.id}\n` +
       `Customer: ${orderDetails.customerName}\n` +
-      `Items: ${itemSummary}\n` +
-      `Total: $${orderDetails.totalAmount.toFixed(2)}\n` +
-      `${orderDetails.cookingInstructions ? `Instructions: ${orderDetails.cookingInstructions}\n` : ''}` +
+      `\nItems:\n${itemSummary}\n` +
+      `\nTotal: $${orderDetails.totalAmount.toFixed(2)}\n` +
+      `${orderDetails.cookingInstructions ? `\nInstructions: ${orderDetails.cookingInstructions}\n` : ''}` +
       `Phone: ${orderDetails.phone}`;
 
     // Send SMS to the store
