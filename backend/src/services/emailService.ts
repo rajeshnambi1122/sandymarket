@@ -231,8 +231,20 @@ const sendStoreNotification = async (orderDetails: OrderDetails) => {
 
 // Add a function to send SMS notifications
 const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean> => {
-  if (!twilioClient || !process.env.TWILIO_PHONE_NUMBER || !process.env.STORE_PHONE_NUMBER) {
+  if (!twilioClient || !process.env.TWILIO_PHONE_NUMBER) {
     console.warn('SMS notification skipped: Twilio not configured properly');
+    return false;
+  }
+
+  // Parse multiple store phone numbers from environment variable
+  // Format should be comma-separated: "+1234567890,+1987654321,+1555555555"
+  const storePhoneNumbers = (process.env.STORE_PHONE_NUMBERS || process.env.STORE_PHONE_NUMBER || '')
+    .split(',')
+    .map(phone => phone.trim())
+    .filter(phone => phone); // Remove any empty strings
+  
+  if (storePhoneNumbers.length === 0) {
+    console.warn('SMS notification skipped: No store phone numbers configured');
     return false;
   }
 
@@ -268,17 +280,33 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
       `${orderDetails.cookingInstructions ? `\nInstructions: ${orderDetails.cookingInstructions}` : ''}\n` +
       `Phone: ${orderDetails.phone}`;
 
-    // Send SMS to the store
-    const result = await twilioClient.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: process.env.STORE_PHONE_NUMBER
-    });
+    // Send SMS to all store phone numbers
+    const results = await Promise.all(storePhoneNumbers.map(async phoneNumber => {
+      try {
+        const result = await twilioClient.messages.create({
+          body: message,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: phoneNumber
+        });
+        console.log(`SMS notification sent successfully to ${phoneNumber}:`, result.sid);
+        return true;
+      } catch (error) {
+        console.error(`Failed to send SMS to ${phoneNumber}:`, error);
+        return false;
+      }
+    }));
 
-    console.log('SMS notification sent successfully:', result.sid);
-    return true;
+    // Consider it a success if at least one SMS was sent successfully
+    const atLeastOneSuccess = results.some(result => result === true);
+    if (atLeastOneSuccess) {
+      console.log(`SMS notifications sent to ${results.filter(r => r).length} of ${storePhoneNumbers.length} numbers`);
+    } else {
+      console.error('Failed to send SMS notifications to any store number');
+    }
+    
+    return atLeastOneSuccess;
   } catch (error) {
-    console.error('Failed to send SMS notification:', error);
+    console.error('Failed to send SMS notifications:', error);
     return false;
   }
 };

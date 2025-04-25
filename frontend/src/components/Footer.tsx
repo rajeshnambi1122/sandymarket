@@ -23,8 +23,12 @@ const Footer = () => {
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-4">Hours</h3>
-            <p className="text-gray-400">Open 24/7</p>
-            <p className="text-gray-400">365 days a year</p>
+            <div className="text-gray-400 space-y-1">
+              <p>Monday-Thursday: 6 am – 10 pm</p>
+              <p>Friday: 6 am – 11 pm</p>
+              <p>Saturday: 7 am – 11 pm</p>
+              <p>Sunday: 7 am – 10 pm</p>
+            </div>
             <div className="flex space-x-4 mt-4">
               <a href="https://www.facebook.com/sandysmarket2020" className="text-gray-400 hover:text-primary">
                 <Facebook className="w-6 h-6" />

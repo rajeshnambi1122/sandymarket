@@ -60,7 +60,7 @@ export default function Header() {
               to="/order-pizza"
               className="text-sm font-medium hover:text-orange-500 transition-colors"
             >
-              Order Pizza
+              Order Food
             </Link>
           </nav>
         </div>
