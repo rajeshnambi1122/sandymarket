@@ -242,9 +242,12 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
       .map(item => {
         let itemText = `${item.quantity}x ${item.name}`;
         
-        // Add size information if available
+        // Add size information if available - extract the size from parentheses if already included
         if (item.size) {
-          itemText += ` (${item.size})`;
+          // Don't add size if it's already included in the name
+          if (!item.name.includes(item.size)) {
+            itemText += ` (${item.size})`;
+          }
         }
         
         // Add toppings information for pizza items
@@ -260,9 +263,9 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
     
     const message = `New order received! Order #${orderDetails.id}\n` +
       `Customer: ${orderDetails.customerName}\n` +
-      `\nItems:\n${itemSummary}\n` +
-      `\nTotal: $${orderDetails.totalAmount.toFixed(2)}\n` +
-      `${orderDetails.cookingInstructions ? `\nInstructions: ${orderDetails.cookingInstructions}\n` : ''}` +
+      `Items:\n${itemSummary}\n` +
+      `Total: $${orderDetails.totalAmount.toFixed(2)}` +
+      `${orderDetails.cookingInstructions ? `\nInstructions: ${orderDetails.cookingInstructions}` : ''}\n` +
       `Phone: ${orderDetails.phone}`;
 
     // Send SMS to the store
