@@ -1148,7 +1148,7 @@ export default function PizzaOrder() {
     chicken: [
       {
         name: "Chicken Strips (4) w/ff",
-        price: "9.49",
+        price: "7.99",
         image: "/images/chickenstrips.jpg"
       },
       {
@@ -1227,7 +1227,7 @@ export default function PizzaOrder() {
     burgers: [
       {
         name: "Cheeseburger",
-        price: "5.99",
+        price: "8.99",
         image: "/images/burger.jpg"
       },
     ],

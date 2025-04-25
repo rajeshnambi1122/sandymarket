@@ -261,7 +261,7 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
       })
       .join('\n');
     
-    const message = `New order received! Order #${orderDetails.id}\n` +
+    const message = `New Food order received! Order #${orderDetails.id}\n` +
       `Customer: ${orderDetails.customerName}\n` +
       `Items:\n${itemSummary}\n` +
       `Total: $${orderDetails.totalAmount.toFixed(2)}` +
