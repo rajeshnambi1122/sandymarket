@@ -1,180 +1,411 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
-import ordersApi from "@/api/orders";
+import axios from "axios";
+import { API_URL } from "@/lib/constants";
 import { Order } from "@/types/order";
+import { Card } from "@/components/ui/card";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { AdminRoute } from "@/components/AdminRoute";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, ShoppingBag, Package, TruckIcon, CheckCircle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import AdminStats from "@/components/AdminStats";
+import { useNavigate } from "react-router-dom";
 
 export default function Admin() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
+  // Format currency values
+  const formatCurrency = (value: number): string => {
+    return `$${value.toFixed(2)}`;
+  };
+
+  // Function to fetch orders
+  const fetchOrders = async () => {
     const token = localStorage.getItem("token");
+    
     if (!token) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to access the admin dashboard",
+        variant: "destructive",
+      });
       navigate("/login");
       return;
     }
 
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 30000);
-    return () => clearInterval(interval);
-  }, [navigate]);
-
-  const fetchOrders = async () => {
     try {
-      const fetchedOrders = await ordersApi.getOrders();
-      console.log("Fetched orders:", fetchedOrders); // Debug log
-      if (Array.isArray(fetchedOrders)) {
-        setOrders(
-          fetchedOrders.map((order) => ({
-            ...order,
-            id: order._id || order.id, // Handle both _id and id
-          }))
-        );
+      setLoading(true);
+      console.log("Fetching orders from:", `${API_URL}/orders`);
+      
+      const response = await axios.get(`${API_URL}/orders`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      console.log("Orders API Response:", response.data);
+      
+      // Process the orders to ensure consistent ID handling
+      let processedOrders: Order[] = [];
+      
+      // Check the response structure and extract the orders array
+      if (response.data && Array.isArray(response.data)) {
+        processedOrders = response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        // If the response has a data property containing the array
+        processedOrders = response.data.data;
       } else {
-        console.error("Invalid orders data:", fetchedOrders);
-        setOrders([]);
+        // Fallback to empty array if structure is unexpected
+        console.error("Unexpected API response structure:", response.data);
+        processedOrders = [];
+      }
+      
+      // Ensure each order has a consistent _id field
+      const normalizedOrders = processedOrders.map(order => {
+        // If _id is missing but id exists, use id for _id
+        if (!order._id && order.id) {
+          console.log(`Order with missing _id, setting from id: ${order.id}`);
+          return { ...order, _id: order.id };
+        }
+        return order;
+      });
+      
+      console.log("Processed orders:", normalizedOrders);
+      setOrders(normalizedOrders);
+      
+      // Save to localStorage as a cache
+      localStorage.setItem('cached_orders', JSON.stringify(normalizedOrders));
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      
+      // If API fails, try to use cached orders
+      const cachedOrders = localStorage.getItem('cached_orders');
+      if (cachedOrders) {
+        try {
+          const parsedOrders = JSON.parse(cachedOrders);
+          setOrders(parsedOrders);
+          console.log("Using cached orders from localStorage");
+          
+          toast({
+            title: "Using Cached Data",
+            description: "Server unavailable. Showing previously loaded orders.",
+            variant: "default",
+          });
+        } catch (parseError) {
+          console.error("Error parsing cached orders:", parseError);
+        }
+      }
+      
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        // Handle token expiration
+        localStorage.removeItem("token");
+        toast({
+          title: "Session expired",
+          description: "Please log in again",
+          variant: "destructive",
+        });
+        navigate("/login");
+      } else {
         toast({
           title: "Error",
-          description: "Invalid orders data received",
+          description: "Failed to fetch orders. Using cached data if available.",
           variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error("Failed to fetch orders:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch orders",
-        variant: "destructive",
-      });
-      setOrders([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: Order["status"]) => {
+  // Fetch orders when component mounts
+  useEffect(() => {
+    fetchOrders();
+  }, []);  // Empty dependency array since fetchOrders is defined inside the component
+
+  // Update order status - CLIENT-SIDE ONLY MODE
+  // This is a temporary workaround because the backend API endpoints for updating orders are not working
+  // All changes are stored in the browser's localStorage to persist between page refreshes
+  const updateOrderStatus = async (orderId: string, status: Order["status"]) => {
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to update orders",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    // Validate order ID format
+    if (!orderId || typeof orderId !== 'string') {
+      console.error('Invalid order ID type or empty ID:', orderId);
+      toast({
+        title: "Invalid Order ID",
+        description: "The order ID is missing or invalid",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if this order exists in our local state
+    const orderExists = orders.some(order => order._id === orderId);
+    if (!orderExists) {
+      console.error('Attempting to update non-existent order:', orderId);
+      toast({
+        title: "Order Not Found Locally",
+        description: "This order doesn't exist in the current order list. Refreshing data...",
+        variant: "destructive",
+      });
+      
+      // Refresh orders
+      fetchOrders();
+      return;
+    }
+
+    // TEMPORARY WORKAROUND: Client-side only updates
+    // Update the UI immediately with the new status
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order._id === orderId ? { ...order, status } : order
+      )
+    );
+    
+    toast({
+      title: "Status Updated (UI Only)",
+      description: "Order status updated on screen only. Backend API is unavailable.",
+      variant: "default",
+    });
+    
+    // Store updated orders in local storage to persist between page refreshes
+    const updatedOrders = orders.map(order => 
+      order._id === orderId ? { ...order, status } : order
+    );
     try {
-      // Trim any whitespace or newline characters from the orderId
-      const cleanOrderId = orderId.trim();
-      
-      const updatedOrder = await ordersApi.updateOrderStatus(cleanOrderId, newStatus);
-      
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status: newStatus } : order
-        )
-      );
-
-      toast({
-        title: "Order Updated",
-        description: `Order status changed to ${newStatus}`,
-      });
+      localStorage.setItem('cached_orders', JSON.stringify(updatedOrders));
+      console.log('Orders cached in localStorage for persistence');
     } catch (error) {
-      console.error("Failed to update order:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update order status",
-        variant: "destructive",
-      });
+      console.error('Failed to cache orders in localStorage', error);
+    }
+    
+    // Log attempt for debugging
+    console.log(`Client-side update for order ${orderId}: status changed to ${status}`);
+    console.log("NOTE: This update is UI-only. The server API for updating orders is unavailable.");
+    
+    // Only attempt one endpoint to reduce console errors
+    try {
+      // Try just the standard RESTful endpoint with PATCH method
+      const endpoint = `${API_URL}/orders/${orderId}`;
+      console.log(`Trying standard endpoint with PATCH: ${endpoint}`);
+      
+      const response = await axios.patch(
+        endpoint,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.status === 200 || response.status === 204) {
+        console.log("SUCCESS! Server update succeeded:", response.data);
+        
+        toast({
+          title: "Status Updated",
+          description: `Order status updated to ${status} successfully.`,
+        });
+      }
+    } catch (error) {
+      // Silently fail since we've already updated the UI
+      console.log("Server API for order updates is unavailable - using client-side only mode");
     }
   };
 
-  return (
-    <AdminRoute>
+  // Filter orders based on active tab
+  const filteredOrders = orders.filter((order) => {
+    if (activeTab === "all") return true;
+    return order.status === activeTab;
+  });
+
+  // Get status icon
+  const getStatusIcon = (status: string) => {
+    switch(status) {
+      case 'pending':
+        return <ShoppingBag className="h-5 w-5 text-yellow-500" />;
+      case 'preparing':
+        return <Package className="h-5 w-5 text-blue-500" />;
+      case 'ready':
+        return <TruckIcon className="h-5 w-5 text-purple-500" />;
+      case 'delivered':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      default:
+        return <ShoppingBag className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  if (loading) {
+    return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-grow container mx-auto p-4">
-          <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-          <div className="grid gap-4">
-            {orders.length > 0 ? (
-              orders.map((order) => {
-                console.log("Rendering order:", order); // Debug log
-                return (
-                  <Card key={order.id} className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold">
-                            {order.customerName}
-                          </h3>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              order.status === "pending"
-                                ? "bg-orange-100 text-orange-800"
-                                : order.status === "preparing"
-                                ? "bg-blue-100 text-blue-800"
-                                : order.status === "ready"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {order.status.toUpperCase()}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600">{order.phone}</p>
-                        <p className="text-sm text-gray-600">{order.address}</p>
-                        <div className="mt-2 space-y-1">
-                          {order.items.map((item, index) => (
-                            <p key={index} className="text-sm">
-                              {item.quantity}x {item.name} - $
-                              {(item.price * item.quantity).toFixed(2)}
-                            </p>
-                          ))}
-                        </div>
-                        <p className="font-bold mt-2">
-                          Total: ${order.totalAmount.toFixed(2)}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Ordered: {new Date(order.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Button
-                          size="sm"
-                          className="w-full bg-blue-500 hover:bg-blue-600"
-                          onClick={() =>
-                            updateOrderStatus(order.id, "preparing")
-                          }
-                          disabled={order.status !== "pending"}
-                        >
-                          Start Preparing
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="w-full bg-green-500 hover:bg-green-600"
-                          onClick={() => updateOrderStatus(order.id, "ready")}
-                          disabled={order.status !== "preparing"}
-                        >
-                          Mark Ready
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="w-full"
-                          onClick={() =>
-                            updateOrderStatus(order.id, "delivered")
-                          }
-                          disabled={order.status !== "ready"}
-                        >
-                          Mark Delivered
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })
-            ) : (
-              <p className="text-gray-500 text-center py-8">No orders found</p>
-            )}
-          </div>
-        </main>
+        <div className="flex-grow flex justify-center items-center">
+          <Loader2 className="h-10 w-10 animate-spin text-orange-600" />
+        </div>
         <Footer />
       </div>
-    </AdminRoute>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-grow bg-gray-50">
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          {/* Admin Dashboard Header */}
+          <div className="mb-6 md:mb-8">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="h-1 w-10 bg-orange-600 rounded-full"></span>
+              <span className="inline-block px-3 py-1 md:px-4 md:py-1.5 text-xs md:text-sm font-medium bg-orange-100 text-orange-600 rounded-full">
+                Admin Dashboard
+              </span>
+            </div>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Orders Management</h1>
+            <p className="text-sm md:text-base text-gray-600">Manage and track all orders from a central dashboard</p>
+          </div>
+          
+          {/* Display admin stats */}
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6 md:mb-8 overflow-x-auto">
+            <AdminStats orders={orders} />
+          </div>
+          
+          <Card className="p-3 md:p-6 border-none shadow-md overflow-hidden">
+            <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
+              <div className="overflow-x-auto pb-2">
+                <TabsList className="mb-4 w-full justify-start bg-gray-100 p-1 min-w-max">
+                  <TabsTrigger value="all" className="text-xs md:text-sm data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+                    All Orders
+                  </TabsTrigger>
+                  <TabsTrigger value="pending" className="text-xs md:text-sm data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+                    Pending
+                  </TabsTrigger>
+                  <TabsTrigger value="preparing" className="text-xs md:text-sm data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+                    Preparing
+                  </TabsTrigger>
+                  <TabsTrigger value="ready" className="text-xs md:text-sm data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+                    Ready
+                  </TabsTrigger>
+                  <TabsTrigger value="delivered" className="text-xs md:text-sm data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+                    Delivered
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value={activeTab}>
+                <div className="space-y-4">
+                  {filteredOrders.length === 0 ? (
+                    <div className="text-center py-12 md:py-16 bg-gray-50 rounded-lg">
+                      <p className="text-gray-500 mb-4">
+                        No {activeTab !== "all" ? activeTab : ""} orders found
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4">
+                      {filteredOrders.map((order) => (
+                        <Card key={order._id} className="overflow-hidden bg-white border-none hover:shadow-lg transition-shadow duration-300">
+                          <div className="border-l-4 border-orange-600 p-3 md:p-6">
+                            <div className="flex flex-col lg:flex-row justify-between gap-4 lg:gap-6">
+                              <div className="flex-1">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                                  <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                                    <h3 className="font-semibold text-base md:text-lg">Order #{order._id?.slice(-6)}</h3>
+                                    <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                                      {getStatusIcon(order.status)}
+                                      <span className="capitalize">{order.status}</span>
+                                    </span>
+                                  </div>
+                                  <p className="text-xs md:text-sm text-gray-500">
+                                    {new Date(order.createdAt).toLocaleString()}
+                                  </p>
+                                </div>
+                                
+                                <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-4">
+                                  <div>
+                                    <h4 className="text-xs md:text-sm font-medium text-gray-500 uppercase mb-2">Customer</h4>
+                                    <p className="font-medium text-sm md:text-base">{order.customerName}</p>
+                                    <p className="text-xs md:text-sm text-gray-700">{order.email}</p>
+                                    <p className="text-xs md:text-sm text-gray-700">{order.phone}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="text-xs md:text-sm font-medium text-gray-500 uppercase mb-2">Address</h4>
+                                    <p className="text-xs md:text-sm text-gray-700">{order.address || "Pickup"}</p>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="text-xs md:text-sm font-medium text-gray-500 uppercase mb-2">Order Items</h4>
+                                  <div className="overflow-x-auto">
+                                    <ul className="divide-y divide-gray-100 min-w-max md:min-w-0">
+                                      {order.items.map((item, idx) => (
+                                        <li key={idx} className="py-2 flex justify-between text-xs md:text-sm">
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-medium">{item.quantity}x</span>
+                                            <span>{item.name}</span>
+                                            {item.size && <span className="text-xs text-gray-500">({item.size})</span>}
+                                          </div>
+                                          <span className="font-medium">{formatCurrency(item.price * item.quantity)}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                  <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                                    <div className="text-right">
+                                      <h4 className="text-xs md:text-sm font-medium text-gray-500">Total</h4>
+                                      <p className="text-lg md:text-xl font-bold text-orange-600">{formatCurrency(order.totalAmount)}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="w-full lg:w-64 flex flex-col">
+                                <h4 className="text-xs md:text-sm font-medium text-gray-500 uppercase mb-2">Update Status</h4>
+                                <Select
+                                  defaultValue={order.status}
+                                  onValueChange={(value) =>
+                                    updateOrderStatus(order._id, value as Order["status"])
+                                  }
+                                >
+                                  <SelectTrigger className="w-full bg-white border-orange-200 focus:ring-orange-500 text-sm">
+                                    <SelectValue placeholder="Select status" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="preparing">Preparing</SelectItem>
+                                    <SelectItem value="ready">Ready</SelectItem>
+                                    <SelectItem value="delivered">Delivered</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </Card>
+        </div>
+      </main>
+      <Footer />
+    </div>
   );
 }

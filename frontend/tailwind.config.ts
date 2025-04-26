@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -73,6 +72,14 @@ export default {
             opacity: "1",
           },
         },
+        "slowZoom": {
+          "0%": {
+            transform: "scale(1)",
+          },
+          "100%": {
+            transform: "scale(1.05)",
+          },
+        }
       },
       animation: {
         "fade-up": "fade-up 0.5s ease-out",

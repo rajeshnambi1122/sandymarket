@@ -74,8 +74,8 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-grow flex items-center justify-center">
-        <Card className="w-full max-w-md p-6">
+      <main className="flex-grow flex items-center justify-center py-16">
+        <Card className="w-full max-w-md p-8 shadow-lg my-10">
           <h1 className="text-2xl font-bold text-center mb-6">Login</h1>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
