@@ -30,19 +30,26 @@ const Footer = () => {
               <p>Sunday: 7 am – 10 pm</p>
             </div>
             <div className="flex space-x-4 mt-4">
-              <a href="https://www.facebook.com/sandysmarket2020" className="text-gray-400 hover:text-primary">
+              <a
+                href="https://www.facebook.com/sandysmarket2020"
+                className="text-gray-400 hover:text-primary"
+              >
                 <Facebook className="w-6 h-6" />
               </a>
-              <a href="mailto:sandysmarket19@gmail.com" className="text-gray-400 hover:text-primary">
+              <a
+                href="mailto:sandysmarket19@gmail.com"
+                className="text-gray-400 hover:text-primary"
+              >
                 <Mail className="w-6 h-6" />
               </a>
             </div>
           </div>
         </div>
+        <Link to="/privacy-policy" className="text-gray-400  hover:underline">
+          Privacy Policy
+        </Link>
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>
-           Sandy's Market
-          </p>
+          <p>Sandy's Market</p>
         </div>
       </div>
     </footer>
