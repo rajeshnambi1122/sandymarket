@@ -245,4 +245,10 @@ router.get("/me", auth, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Update FCM Token
+
+
+    // Update user's FCM token in the database
+
+
 export const authRoutes = router;

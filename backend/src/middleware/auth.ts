@@ -27,11 +27,12 @@ export const auth = async (
     }
 
     console.log("🔑 Token received:", token.substring(0, 20) + "...");
+    console.log("🔍 Using JWT_SECRET:", process.env.JWT_SECRET ? "Set" : "Not set");
 
     try {
       const decoded = jwt.verify(
         token,
-        process.env.JWT_SECRET || "your-secret-key"
+        process.env.JWT_SECRET || "secret"
       ) as { userId: string; role: string };
 
       console.log("✅ Token decoded successfully:", {

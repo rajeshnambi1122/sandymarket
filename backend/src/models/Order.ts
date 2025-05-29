@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema({
+  _id: {
+    type: Number,
+    default: 1000
+  },
   customerName: {
     type: String,
     required: true,
@@ -56,7 +60,21 @@ const orderSchema = new mongoose.Schema({
 
 orderSchema.index({ email: 1, user: 1 });
 
-orderSchema.pre('save', function(next) {
+// Custom ID generator to start from 1000
+orderSchema.pre('save', async function(next) {
+  if (this.isNew) {
+    try {
+      // Find the highest order ID
+      const highestOrder = await mongoose.model('Order').findOne({}, {}, { sort: { '_id': -1 } });
+      // Set the new ID to be the highest + 1, or 1000 if no orders exist
+      this._id = highestOrder ? highestOrder._id + 1 : 1000;
+    } catch (error) {
+      console.error('Error generating order ID:', error);
+      // Fallback to 1000 if there's an error
+      this._id = 1000;
+    }
+  }
+
   if (this.email) {
     this.email = this.email.toLowerCase();
   }

@@ -325,7 +325,7 @@ export default function Admin() {
                               <div className="flex-1">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
                                   <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                                    <h3 className="font-semibold text-base md:text-lg">Order #{order._id?.slice(-6)}</h3>
+                                    <h3 className="font-semibold text-base md:text-lg">Order #{order._id?.toString().slice(-6)}</h3>
                                     <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
                                       {getStatusIcon(order.status)}
                                       <span className="capitalize">{order.status}</span>
