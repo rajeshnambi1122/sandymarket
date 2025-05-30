@@ -299,6 +299,13 @@ router.post("/update-fcm-token", auth, async (req: AuthRequest, res: Response) =
       });
     }
 
+    if (!userId || typeof userId !== 'string') {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid user ID"
+      });
+    }
+
     // Update user's FCM token in Firestore
     const User = firebaseAdmin.firestore().collection('users');
     await User.doc(userId).set({
