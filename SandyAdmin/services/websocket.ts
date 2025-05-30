@@ -16,21 +16,23 @@ class WebSocketService {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
-        console.log('No auth token found, cannot connect to WebSocket');
+        console.log('No token found, cannot connect to WebSocket');
         return;
       }
 
-      // Replace with your WebSocket server URL
-      this.ws = new WebSocket(this.wsUrl);
+      console.log('Connecting to WebSocket...');
+      this.ws = new WebSocket('wss://api.sandysmarket.net/ws');
 
       this.ws.onopen = () => {
         console.log('WebSocket connected');
         this.reconnectAttempts = 0;
         // Send authentication message
-        this.ws?.send(JSON.stringify({
-          type: 'auth',
-          token
-        }));
+        if (this.ws) {
+          this.ws.send(JSON.stringify({
+            type: 'auth',
+            token
+          }));
+        }
       };
 
       this.ws.onmessage = (event) => {
