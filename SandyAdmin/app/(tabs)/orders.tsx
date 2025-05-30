@@ -15,19 +15,12 @@ import { theme } from '../../constants/theme';
 import { ordersAPI } from '../../services/api';
 import { Card } from '../../components/ui/card';
 import { LoadingSpinner } from '../../components/ui/loading-spinner';
-
-interface Order {
-  _id: string;
-  customerName: string;
-  email: string;
-  items: any[];
-  totalAmount: number;
-  status: string;
-  createdAt: string;
-}
+import { Order, OrderItem } from '../../types/order';
+import * as Notifications from 'expo-notifications';
+import OrderCard from '../../components/OrderCard';
 
 interface Styles {
-  container: ViewStyle;
+  container: any;
   loadingContainer: ViewStyle;
   listContainer: ViewStyle;
   orderCard: ViewStyle;
@@ -49,21 +42,40 @@ interface Styles {
   buttonText: TextStyle;
   emptyContainer: ViewStyle;
   emptyText: TextStyle;
+  orderItem: any;
 }
 
 export default function OrdersScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const response = await ordersAPI.getAllOrders();
-      if (response.success) {
-        setOrders(response.data);
-      } else {
-        Alert.alert('Error', 'Failed to fetch orders');
+      const newOrders = response.data;
+      
+      // Check if there's a new order
+      if (lastOrderId && newOrders.length > 0) {
+        const latestOrder = newOrders[0];
+        if (latestOrder._id !== lastOrderId) {
+          // Show notification for new order
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: 'New Order Received',
+              body: `Order #${latestOrder._id} from ${latestOrder.customerName}`,
+              data: { orderId: latestOrder._id },
+            },
+            trigger: null,
+          });
+        }
+      }
+      
+      setOrders(newOrders);
+      if (newOrders.length > 0) {
+        setLastOrderId(newOrders[0]._id);
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -76,11 +88,15 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     fetchOrders();
+    // Poll every 10 seconds
+    const interval = setInterval(fetchOrders, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    fetchOrders();
+    await fetchOrders();
+    setRefreshing(false);
   };
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
@@ -116,12 +132,12 @@ export default function OrdersScreen() {
       </View>
 
       <View style={styles.itemsContainer}>
-        {item.items.map((orderItem, index) => (
-          <Text key={index} style={styles.itemText}>
-            {orderItem.quantity}x {orderItem.name}
-            {orderItem.size ? ` (${orderItem.size})` : ''}
-            {orderItem.toppings?.length > 0 ? ` + ${orderItem.toppings.join(', ')}` : ''}
-          </Text>
+        {item.items.map((orderItem: OrderItem, index: number) => (
+          <View key={index} style={styles.orderItem}>
+            <Text>{orderItem.name}</Text>
+            <Text>Quantity: {orderItem.quantity}</Text>
+            <Text>Price: ${orderItem.price}</Text>
+          </View>
         ))}
       </View>
 
@@ -193,7 +209,7 @@ export default function OrdersScreen() {
 const styles = StyleSheet.create<Styles>({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background.DEFAULT,
+    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
@@ -292,5 +308,8 @@ const styles = StyleSheet.create<Styles>({
   emptyText: {
     ...theme.typography.body,
     color: theme.colors.text.light,
+  },
+  orderItem: {
+    marginBottom: 8,
   },
 }); 

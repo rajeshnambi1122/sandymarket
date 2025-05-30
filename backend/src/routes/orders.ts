@@ -422,12 +422,11 @@ router.post("/", async (req: AuthRequest, res) => {
       console.error('Failed to send confirmation email:', error);
     }
 
-    // Send push notification
-    try {
-      await sendNewOrderNotification(savedOrder);
-    } catch (error) {
-      console.error('Failed to send push notification:', error);
-    }
+    // Send notification to admin
+    await sendNewOrderNotification(
+      savedOrder._id.toString(),
+      savedOrder.customerName
+    );
 
     res.status(201).json({ 
       success: true, 

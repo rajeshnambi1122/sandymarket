@@ -2,13 +2,12 @@ import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { User } from "../models/User";
 import mongoose from "mongoose";
+import { Admin } from '../models/Admin';
 
 export interface AuthRequest extends Request {
-  userId?: string;
-  userRole?: string;
   user?: {
-    email: string;
-    // ... other user properties
+    userId: string;
+    role: string;
   };
 }
 
@@ -16,59 +15,24 @@ export const auth = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
-    console.log("\n=== AUTH MIDDLEWARE ===");
-    const token = req.headers.authorization?.replace("Bearer ", "");
+    const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
-      console.log("❌ No token provided in authorization header");
-      return res.status(401).json({ message: "No auth token" });
+      res.status(401).json({ message: 'No authentication token, access denied' });
+      return;
     }
 
-    console.log("🔑 Token received:", token.substring(0, 20) + "...");
-    console.log("🔍 Using JWT_SECRET:", process.env.JWT_SECRET ? "Set" : "Not set");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
+      userId: string;
+      role: string;
+    };
 
-    try {
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || "secret"
-      ) as { userId: string; role: string };
-
-      console.log("✅ Token decoded successfully:", {
-        userId: decoded.userId,
-        role: decoded.role
-      });
-
-      if (!mongoose.Types.ObjectId.isValid(decoded.userId)) {
-        console.log("❌ Invalid user ID format in token:", decoded.userId);
-        return res.status(401).json({ message: "Invalid user ID in token" });
-      }
-
-      // Check if user exists
-      const user = await User.findById(decoded.userId);
-      if (!user) {
-        console.log("❌ User not found in database:", decoded.userId);
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      console.log("✅ User found in database:", {
-        id: user._id,
-        email: user.email,
-        role: user.role
-      });
-
-      req.userId = decoded.userId;
-      req.userRole = user.role || "user";
-
-      next();
-    } catch (jwtError) {
-      console.error("❌ JWT verification failed:", jwtError);
-      return res.status(401).json({ message: "Invalid token" });
-    }
+    req.user = decoded;
+    next();
   } catch (error) {
-    console.error("❌ Auth middleware error:", error);
-    res.status(401).json({ message: "Authentication failed" });
+    res.status(401).json({ message: 'Token is not valid' });
   }
 };
 
@@ -76,13 +40,34 @@ export const adminAuth = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
-    if (req.userRole !== "admin") {
-      return res.status(403).json({ message: "Admin access required" });
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+
+    if (!token) {
+      res.status(401).json({ message: 'No authentication token, access denied' });
+      return;
     }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
+      userId: string;
+      role: string;
+    };
+
+    if (decoded.role !== 'admin') {
+      res.status(403).json({ message: 'Access denied. Admin only.' });
+      return;
+    }
+
+    const admin = await Admin.findById(decoded.userId);
+    if (!admin) {
+      res.status(401).json({ message: 'Admin not found' });
+      return;
+    }
+
+    req.user = decoded;
     next();
   } catch (error) {
-    res.status(403).json({ message: "Admin access required" });
+    res.status(401).json({ message: 'Token is not valid' });
   }
 };

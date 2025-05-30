@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { adminAPI } from './api';
@@ -19,6 +20,11 @@ Notifications.setNotificationHandler({
 
 export const requestNotificationPermission = async () => {
   try {
+    if (!Device.isDevice) {
+      console.log('Must use physical device for Push Notifications');
+      return;
+    }
+
     // Request notification permission
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -29,7 +35,7 @@ export const requestNotificationPermission = async () => {
     }
 
     if (finalStatus !== 'granted') {
-      console.log('User notification permissions rejected');
+      console.log('Failed to get push token for push notification!');
       return;
     }
 
@@ -70,7 +76,15 @@ export const setupNotificationListeners = () => {
   // Handle notification when app is in foreground
   const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
     console.log('Received notification in foreground:', notification);
-    // You can show a local notification here if needed
+    // Show a local notification
+    Notifications.scheduleNotificationAsync({
+      content: {
+        title: notification.request.content.title,
+        body: notification.request.content.body,
+        data: notification.request.content.data,
+      },
+      trigger: null,
+    });
   });
 
   // Handle notification when app is in background and user taps it
@@ -78,8 +92,8 @@ export const setupNotificationListeners = () => {
     console.log('Notification response:', response);
     const data = response.notification.request.content.data;
     
-    // If it's a new order notification, navigate to the order
-    if (data?.type === 'new_order' && data?.orderId) {
+    // If it's a new order notification, navigate to the orders tab
+    if (data?.type === 'new_order') {
       router.push('/(tabs)/orders');
     }
   });
