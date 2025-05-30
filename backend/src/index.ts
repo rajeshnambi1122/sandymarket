@@ -5,7 +5,7 @@ import { createServer } from "http";
 import { orderRoutes } from "./routes/orders";
 import { authRoutes } from "./routes/auth";
 import { gasPriceRoutes } from "./routes/gasprice";
-import { initializeWebSocket } from "./services/websocketService";
+import { wsService } from "./services/websocketService";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -13,8 +13,8 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
-// Initialize WebSocket
-initializeWebSocket(httpServer);
+// Make httpServer available globally for WebSocket service
+global.httpServer = httpServer;
 
 // Middleware
 app.use(
