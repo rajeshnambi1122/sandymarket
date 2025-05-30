@@ -1,69 +1,79 @@
-import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
+import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { adminAPI } from './api';
 
-const FCM_TOKEN_KEY = '@fcm_token';
+const EXPO_PUSH_TOKEN_KEY = 'expoPushToken';
+
+// Configure notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true
+  }),
+});
 
 export const requestNotificationPermission = async () => {
   try {
-    const authStatus = await messaging().requestPermission();
-    const enabled =
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-    if (enabled) {
-      console.log('Authorization status:', authStatus);
-      await getFCMToken();
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
     }
-  } catch (error) {
-    console.error('Permission request error:', error);
-  }
-};
 
-export const getFCMToken = async () => {
-  try {
-    const fcmToken = await AsyncStorage.getItem(FCM_TOKEN_KEY);
-
-    if (!fcmToken) {
-      const token = await messaging().getToken();
-      if (token) {
-        await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
-        // TODO: Send token to backend
-        console.log('New FCM Token:', token);
-      }
-    } else {
-      console.log('Existing FCM Token:', fcmToken);
+    if (finalStatus !== 'granted') {
+      console.log('Failed to get push token for push notification!');
+      return;
     }
+
+    // Get the token
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    console.log('Expo Push Token:', token);
+
+    // Store the token
+    await AsyncStorage.setItem(EXPO_PUSH_TOKEN_KEY, token);
+
+    // Send token to backend
+    try {
+      await adminAPI.updateFCMToken(token);
+      console.log('Token sent to backend successfully');
+    } catch (error) {
+      console.error('Error sending token to backend:', error);
+    }
+
+    return token;
   } catch (error) {
-    console.error('FCM Token error:', error);
+    console.error('Error requesting notification permission:', error);
   }
 };
 
 export const setupNotificationListeners = () => {
   // Handle notification when app is in foreground
-  messaging().onMessage(async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
-    console.log('Received foreground message:', remoteMessage);
-    // TODO: Show local notification
+  const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
+    console.log('Received notification in foreground:', notification);
   });
 
-  // Handle notification when app is in background
-  messaging().setBackgroundMessageHandler(async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
-    console.log('Received background message:', remoteMessage);
+  // Handle notification when app is in background and user taps it
+  const backgroundSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+    console.log('Notification response:', response);
   });
 
-  // Handle notification open
-  messaging().onNotificationOpenedApp((remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
-    console.log('Notification opened app:', remoteMessage);
-    // TODO: Navigate to order details
-  });
+  return () => {
+    foregroundSubscription.remove();
+    backgroundSubscription.remove();
+  };
+};
 
-  // Check if app was opened from a notification
-  messaging()
-    .getInitialNotification()
-    .then((remoteMessage: FirebaseMessagingTypes.RemoteMessage | null) => {
-      if (remoteMessage) {
-        console.log('App opened from quit state:', remoteMessage);
-        // TODO: Navigate to order details
-      }
-    });
+export const getPushToken = async () => {
+  try {
+    return await AsyncStorage.getItem(EXPO_PUSH_TOKEN_KEY);
+  } catch (error) {
+    console.error('Error getting push token:', error);
+    return null;
+  }
 }; 

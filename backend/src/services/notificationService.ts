@@ -2,12 +2,14 @@ import { firebaseAdmin } from '../config/firebase';
 import { Order } from '../models/Order';
 import { DocumentData } from 'firebase-admin/firestore';
 import { Document } from 'mongoose';
-import type { Messaging } from 'firebase-admin/messaging';
+import axios from 'axios';
 
 interface UserData extends DocumentData {
   fcmToken?: string;
   role?: string;
 }
+
+const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 
 export const sendNewOrderNotification = async (order: Document) => {
   try {
@@ -20,40 +22,35 @@ export const sendNewOrderNotification = async (order: Document) => {
       .filter((token): token is string => !!token); // Filter out null/undefined tokens
 
     if (adminTokens.length === 0) {
-      console.log('No admin FCM tokens found');
+      console.log('No admin push tokens found');
       return;
     }
 
     const orderData = order.toObject();
 
     // Create notification message
-    const message = {
-      notification: {
-        title: 'New Order Received',
-        body: `Order #${orderData._id} from ${orderData.customerName}`,
-      },
+    const messages = adminTokens.map(token => ({
+      to: token,
+      sound: 'default',
+      title: 'New Order Received',
+      body: `Order #${orderData._id} from ${orderData.customerName}`,
       data: {
         orderId: orderData._id.toString(),
         type: 'new_order',
         customerName: orderData.customerName,
         totalAmount: orderData.totalAmount.toString(),
       },
-      tokens: adminTokens,
-    };
+    }));
 
-    // Send notification
-    const response = await firebaseAdmin.messaging().sendMulticast(message);
-    console.log('Notification sent:', response);
-    
-    // Handle failed tokens
-    if (response.failureCount > 0) {
-      const failedTokens: string[] = [];
-      response.responses.forEach((resp, idx: number) => {
-        if (!resp.success) {
-          failedTokens.push(adminTokens[idx]);
-        }
-      });
-      console.log('Failed to send notifications to tokens:', failedTokens);
+    // Send notifications using Expo's push service
+    const chunks = [];
+    for (let i = 0; i < messages.length; i += 100) {
+      chunks.push(messages.slice(i, i + 100));
+    }
+
+    for (const chunk of chunks) {
+      const response = await axios.post(EXPO_PUSH_ENDPOINT, chunk);
+      console.log('Push notification response:', response.data);
     }
 
   } catch (error) {
