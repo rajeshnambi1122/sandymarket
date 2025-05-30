@@ -15,9 +15,9 @@ const api = axios.create({
 
 // Add request interceptor to add auth token
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = await AsyncStorage.getItem('token');
       console.log('🔍 Token from storage:', token ? token.substring(0, 20) + '...' : 'Not found');
       
       if (token) {
@@ -99,9 +99,9 @@ export const authAPI = {
     return response.data;
   },
 
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  logout: async () => {
+    await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
   }
 };
 
@@ -150,8 +150,8 @@ export const adminAPI = {
 
   logout: async () => {
     const response = await api.post('/auth/logout');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
     return response.data;
   },
 };

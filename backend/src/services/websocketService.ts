@@ -8,6 +8,16 @@ interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;
 }
 
+interface OrderData {
+  id: string;
+  customerName: string;
+  email: string;
+  items: any[];
+  totalAmount: number;
+  status: string;
+  createdAt: Date;
+}
+
 declare global {
   var httpServer: Server;
 }
@@ -23,11 +33,11 @@ class WebSocketService {
       const authenticatedWs = ws as AuthenticatedWebSocket;
       authenticatedWs.isAlive = true;
 
-      ws.on('message', async (message: string) => {
+      ws.on('message', async (data: Buffer) => {
         try {
-          const data = JSON.parse(message);
-          if (data.type === 'auth' && data.token) {
-            const decoded = jwt.verify(data.token, process.env.JWT_SECRET!) as { id: string };
+          const message = JSON.parse(data.toString());
+          if (message.type === 'auth' && message.token) {
+            const decoded = jwt.verify(message.token, process.env.JWT_SECRET!) as { id: string };
             authenticatedWs.userId = decoded.id;
             this.clients.set(decoded.id, authenticatedWs);
           }
@@ -57,7 +67,7 @@ class WebSocketService {
     }, 30000);
   }
 
-  public sendNewOrderNotification(order: any) {
+  public sendNewOrderNotification(order: OrderData) {
     this.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify({

@@ -360,7 +360,7 @@ router.post("/", async (req: AuthRequest, res) => {
 
     // Send WebSocket notification to admin
     wsService.sendNewOrderNotification({
-      id: savedOrder._id,
+      id: savedOrder._id.toString(),
       customerName: savedOrder.customerName,
       email: savedOrder.email,
       items: savedOrder.items,

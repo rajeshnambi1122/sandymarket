@@ -262,7 +262,7 @@ router.post("/fcm-token", auth, async (req: AuthRequest, res: Response) => {
       userId,
       { fcmToken },
       { new: true }
-    );
+    ).select('_id email');
 
     if (!user) {
       return res.status(404).json({
