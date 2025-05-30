@@ -32,7 +32,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // Verify transporter configuration
-transporter.verify(function (error, success) {
+transporter.verify(function (error) {
   if (error) {
     console.error('Email transporter verification failed:', error);
   } else {
@@ -40,7 +40,7 @@ transporter.verify(function (error, success) {
   }
 });
 
-const sendStoreNotification = async (orderDetails: OrderDetails) => {
+const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> => {
   // Split the STORE_EMAILS environment variable by comma and trim whitespace
   const storeEmails = (process.env.STORE_EMAILS || process.env.EMAIL_USER || '')
     .split(',')
@@ -237,7 +237,6 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
   }
 
   // Parse multiple store phone numbers from environment variable
-  // Format should be comma-separated: "+1234567890,+1987654321,+1555555555"
   const storePhoneNumbers = (process.env.STORE_PHONE_NUMBERS || process.env.STORE_PHONE_NUMBER || '')
     .split(',')
     .map(phone => phone.trim())
@@ -254,9 +253,8 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
       .map(item => {
         let itemText = `${item.quantity}x ${item.name}`;
         
-        // Add size information if available - extract the size from parentheses if already included
+        // Add size information if available
         if (item.size) {
-          // Don't add size if it's already included in the name
           if (!item.name.includes(item.size)) {
             itemText += ` (${item.size})`;
           }
@@ -277,8 +275,8 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
       `Customer: ${orderDetails.customerName}\n` +
       `Items:\n${itemSummary}\n` +
       `Total: $${orderDetails.totalAmount.toFixed(2)}` +
-      `${orderDetails.cookingInstructions ? `\nInstructions: ${orderDetails.cookingInstructions}` : ''}\n` +
-      `Phone: ${orderDetails.phone}`;
+      (orderDetails.cookingInstructions ? `\nInstructions: ${orderDetails.cookingInstructions}` : '') +
+      `\nPhone: ${orderDetails.phone}`;
 
     // Send SMS to all store phone numbers
     const results = await Promise.all(storePhoneNumbers.map(async phoneNumber => {
@@ -311,7 +309,7 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
   }
 };
 
-export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => {
+export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Promise<void> => {
   try {
     if (!orderDetails.customerEmail) {
       console.error('Customer email is missing');
@@ -456,4 +454,4 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
     console.error('Failed to send notifications:', error);
     throw error;
   }
-}; 
+};

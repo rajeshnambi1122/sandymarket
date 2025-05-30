@@ -4,19 +4,17 @@ import { auth, AuthRequest } from "../middleware/auth";
 import { sendOrderConfirmationEmail } from '../services/emailService';
 import { sendNewOrderNotification } from '../services/notificationService';
 import { OrderItem } from '../types/order';
-import { ObjectId } from 'mongoose';
-import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 
 const router = express.Router();
 
 // Get all orders
-router.get("/", auth, async (req, res) => {
+router.get("/", auth, async (_req: AuthRequest, res: Response) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
-    res.json({ success: true, data: orders });
+    return res.json({ success: true, data: orders });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching orders" });
+    return res.status(500).json({ success: false, message: "Error fetching orders" });
   }
 });
 
@@ -197,10 +195,10 @@ router.get("/:id", async (req, res, next) => {
       });
     }
     
-    res.json({ success: true, data: order });
+    return res.json({ success: true, data: order });
   } catch (error) {
     console.error("Error retrieving order by ID:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error fetching order",
     });
@@ -468,10 +466,10 @@ router.patch("/:id", auth, async (req: AuthRequest, res: Response) => {
     }
 
     console.log("Order updated:", order); // Debug log
-    res.json({ success: true, data: order });
+    return res.json({ success: true, data: order });
   } catch (error: any) {
     console.error("Error updating order:", error); // Debug log
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       message: "Error updating order",
       error: error.message,

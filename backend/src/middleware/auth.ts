@@ -1,7 +1,5 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import { User } from "../models/User";
-import mongoose from "mongoose";
 import { Admin } from '../models/Admin';
 
 export interface AuthRequest extends Request {

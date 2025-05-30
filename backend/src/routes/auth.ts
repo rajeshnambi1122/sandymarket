@@ -229,11 +229,14 @@ router.post("/login", async (req, res) => {
 // Get current user details
 router.get("/me", auth, async (req: AuthRequest, res: Response) => {
   try {
-    const user = await User.findById(req.userId).select("-password");
+    if (!req.user?.userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+    const user = await User.findById(req.user.userId).select("-password");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.json({
+    return res.json({
       id: user._id,
       name: user.name,
       email: user.email,
@@ -242,47 +245,24 @@ router.get("/me", auth, async (req: AuthRequest, res: Response) => {
       role: user.role,
     });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 });
 
 // Update FCM token
 router.post("/fcm-token", auth, async (req: AuthRequest, res: Response) => {
   try {
-    const { fcmToken } = req.body;
-    const userId = req.userId;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized",
-      });
+    if (!req.user?.userId) {
+      return res.status(401).json({ message: "User not authenticated" });
     }
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { fcmToken },
-      { new: true }
-    ).select('_id email');
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ message: "FCM token is required" });
     }
-
-    res.json({
-      success: true,
-      message: "FCM token updated successfully",
-    });
+    await User.findByIdAndUpdate(req.user.userId, { fcmToken: token });
+    return res.json({ message: "FCM token updated successfully" });
   } catch (error: any) {
-    console.error("Error updating FCM token:", error);
-    res.status(400).json({
-      success: false,
-      message: "Error updating FCM token",
-      error: error.message,
-    });
+    return res.status(500).json({ message: error.message });
   }
 });
 
@@ -290,7 +270,12 @@ router.post("/fcm-token", auth, async (req: AuthRequest, res: Response) => {
 router.post("/update-fcm-token", auth, async (req: AuthRequest, res: Response) => {
   try {
     const { token } = req.body;
-    const userId = req.userId;
+    if (!req.user?.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated"
+      });
+    }
 
     if (!token) {
       return res.status(400).json({
@@ -299,27 +284,20 @@ router.post("/update-fcm-token", auth, async (req: AuthRequest, res: Response) =
       });
     }
 
-    if (!userId || typeof userId !== 'string') {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid user ID"
-      });
-    }
-
     // Update user's FCM token in Firestore
     const User = firebaseAdmin.firestore().collection('users');
-    await User.doc(userId).set({
+    await User.doc(req.user.userId).set({
       fcmToken: token,
       updatedAt: new Date()
     }, { merge: true });
 
-    res.json({
+    return res.json({
       success: true,
       message: "FCM token updated successfully"
     });
   } catch (error: any) {
     console.error("Error updating FCM token:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error updating FCM token",
       error: error.message
