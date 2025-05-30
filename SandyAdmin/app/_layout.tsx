@@ -7,6 +7,7 @@ import { theme } from '../constants/theme';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { setupNotificationListeners, requestNotificationPermission } from '../services/notifications';
+import '../config/firebase'; // Import Firebase config
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,10 +26,13 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!isLoading) {
+      console.log('Navigation check:', { isAuthenticated, segments, isLoading });
       const inAuthGroup = segments[0] === 'login';
       if (!isAuthenticated && !inAuthGroup) {
+        console.log('Redirecting to /login');
         router.replace('/login');
       } else if (isAuthenticated && inAuthGroup) {
+        console.log('Redirecting to /(tabs)');
         router.replace('/(tabs)');
       }
     }

@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { adminAPI } from './api';
+import { router } from 'expo-router';
 
 const EXPO_PUSH_TOKEN_KEY = 'expoPushToken';
 
@@ -18,35 +19,48 @@ Notifications.setNotificationHandler({
 
 export const requestNotificationPermission = async () => {
   try {
+    // Request notification permission
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
-
+    
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
+      console.log('User notification permissions rejected');
       return;
     }
 
-    // Get the token
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log('Expo Push Token:', token);
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+
+    // Get Expo push token
+    const token = await Notifications.getExpoPushTokenAsync({
+      projectId: 'sandymarket-4e8e9' // Your Expo project ID
+    });
+    
+    console.log('Expo Push Token:', token.data);
 
     // Store the token
-    await AsyncStorage.setItem(EXPO_PUSH_TOKEN_KEY, token);
+    await AsyncStorage.setItem(EXPO_PUSH_TOKEN_KEY, token.data);
 
     // Send token to backend
     try {
-      await adminAPI.updateFCMToken(token);
+      await adminAPI.updateFCMToken(token.data);
       console.log('Token sent to backend successfully');
     } catch (error) {
       console.error('Error sending token to backend:', error);
     }
 
-    return token;
+    return token.data;
   } catch (error) {
     console.error('Error requesting notification permission:', error);
   }
@@ -56,11 +70,18 @@ export const setupNotificationListeners = () => {
   // Handle notification when app is in foreground
   const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
     console.log('Received notification in foreground:', notification);
+    // You can show a local notification here if needed
   });
 
   // Handle notification when app is in background and user taps it
   const backgroundSubscription = Notifications.addNotificationResponseReceivedListener(response => {
     console.log('Notification response:', response);
+    const data = response.notification.request.content.data;
+    
+    // If it's a new order notification, navigate to the order
+    if (data?.type === 'new_order' && data?.orderId) {
+      router.push('/(tabs)/orders');
+    }
   });
 
   return () => {
