@@ -9,24 +9,46 @@ import {
   ViewStyle,
   TextStyle,
   Alert,
+  FlatList,
 } from 'react-native';
 import { theme } from '../../constants/theme';
 import { ordersAPI } from '../../services/api';
 import { Card } from '../../components/ui/card';
 import { LoadingSpinner } from '../../components/ui/loading-spinner';
-import { wsService } from '../../services/websocket';
 
 interface Order {
   _id: string;
   customerName: string;
-  status: string;
+  email: string;
+  items: any[];
   totalAmount: number;
+  status: string;
   createdAt: string;
-  items: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
+}
+
+interface Styles {
+  container: ViewStyle;
+  loadingContainer: ViewStyle;
+  listContainer: ViewStyle;
+  orderCard: ViewStyle;
+  orderHeader: ViewStyle;
+  orderId: TextStyle;
+  orderDate: TextStyle;
+  orderDetails: ViewStyle;
+  customerName: TextStyle;
+  email: TextStyle;
+  total: TextStyle;
+  itemsContainer: ViewStyle;
+  itemText: TextStyle;
+  statusContainer: ViewStyle;
+  status: TextStyle;
+  actionButtons: ViewStyle;
+  button: ViewStyle;
+  completeButton: ViewStyle;
+  cancelButton: ViewStyle;
+  buttonText: TextStyle;
+  emptyContainer: ViewStyle;
+  emptyText: TextStyle;
 }
 
 export default function OrdersScreen() {
@@ -36,16 +58,16 @@ export default function OrdersScreen() {
 
   const fetchOrders = async () => {
     try {
+      setLoading(true);
       const response = await ordersAPI.getAllOrders();
-      if (!response.success || !Array.isArray(response.data)) {
-        console.error('Invalid response format:', response);
-        setOrders([]);
-        return;
+      if (response.success) {
+        setOrders(response.data);
+      } else {
+        Alert.alert('Error', 'Failed to fetch orders');
       }
-      setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
-      setOrders([]);
+      Alert.alert('Error', 'Failed to fetch orders');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -54,33 +76,6 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     fetchOrders();
-
-    // Set up WebSocket notification handler
-    wsService.onNewOrder((newOrder) => {
-      // Show notification
-      Alert.alert(
-        'New Order Received',
-        `Order #${newOrder.orderId} from ${newOrder.customerName}`,
-        [
-          {
-            text: 'View',
-            onPress: () => {
-              // Refresh orders list
-              fetchOrders();
-            },
-          },
-          {
-            text: 'Dismiss',
-            style: 'cancel',
-          },
-        ]
-      );
-    });
-
-    // Cleanup on unmount
-    return () => {
-      wsService.disconnect();
-    };
   }, []);
 
   const onRefresh = () => {
@@ -88,133 +83,111 @@ export default function OrdersScreen() {
     fetchOrders();
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
-      await ordersAPI.updateOrderStatus(orderId, newStatus);
-      fetchOrders(); // Refresh the orders list
+      const response = await ordersAPI.updateOrderStatus(orderId, newStatus);
+      if (response.success) {
+        // Update the order in the local state
+        setOrders(orders.map(order => 
+          order._id === orderId ? { ...order, status: newStatus } : order
+        ));
+      } else {
+        Alert.alert('Error', 'Failed to update order status');
+      }
     } catch (error) {
       console.error('Error updating order status:', error);
+      Alert.alert('Error', 'Failed to update order status');
     }
   };
 
-  if (loading) {
+  const renderOrderItem = ({ item }: { item: Order }) => (
+    <View style={styles.orderCard}>
+      <View style={styles.orderHeader}>
+        <Text style={styles.orderId}>Order #{item._id}</Text>
+        <Text style={styles.orderDate}>
+          {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
+      </View>
+      
+      <View style={styles.orderDetails}>
+        <Text style={styles.customerName}>{item.customerName}</Text>
+        <Text style={styles.email}>{item.email}</Text>
+        <Text style={styles.total}>Total: ${item.totalAmount.toFixed(2)}</Text>
+      </View>
+
+      <View style={styles.itemsContainer}>
+        {item.items.map((orderItem, index) => (
+          <Text key={index} style={styles.itemText}>
+            {orderItem.quantity}x {orderItem.name}
+            {orderItem.size ? ` (${orderItem.size})` : ''}
+            {orderItem.toppings?.length > 0 ? ` + ${orderItem.toppings.join(', ')}` : ''}
+          </Text>
+        ))}
+      </View>
+
+      <View style={styles.statusContainer}>
+        <Text style={[
+          styles.status,
+          { color: item.status === 'completed' ? '#22c55e' : 
+                  item.status === 'cancelled' ? '#ef4444' :
+                  '#f59e0b' }
+        ]}>
+          {item.status.toUpperCase()}
+        </Text>
+        
+        <View style={styles.actionButtons}>
+          {item.status === 'pending' && (
+            <>
+              <TouchableOpacity
+                style={[styles.button, styles.completeButton]}
+                onPress={() => handleStatusUpdate(item._id, 'completed')}
+              >
+                <Text style={styles.buttonText}>Complete</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => handleStatusUpdate(item._id, 'cancelled')}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <LoadingSpinner size={48} />
+        <LoadingSpinner />
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <View style={styles.header}>
-        <Text style={styles.title}>Orders</Text>
-      </View>
-
-      <View style={styles.content}>
-        {!orders || orders.length === 0 ? (
-          <Text style={styles.noDataText}>No orders available</Text>
-        ) : (
-          orders.map((order) => (
-            <Card key={order._id} style={styles.orderCard}>
-              <View style={styles.orderHeader}>
-                <View>
-                  <Text style={styles.orderCustomer}>{order.customerName}</Text>
-                  <Text style={styles.orderDate}>
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.orderStatus,
-                    { color: getStatusColor(order.status) },
-                  ]}
-                >
-                  {order.status}
-                </Text>
-              </View>
-
-              <View style={styles.orderItems}>
-                {order.items.map((item, index) => (
-                  <View key={index} style={styles.orderItem}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemQuantity}>x{item.quantity}</Text>
-                    <Text style={styles.itemPrice}>
-                      ${(item.price * item.quantity).toFixed(2)}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
-              <Text style={styles.orderTotal}>Total: ${order.totalAmount.toFixed(2)}</Text>
-              <View style={styles.statusButtons}>
-                {order.status !== 'completed' && (
-                  <TouchableOpacity
-                    style={[styles.statusButton, styles.completeButton]}
-                    onPress={() => updateOrderStatus(order._id, 'completed')}
-                  >
-                    <Text style={styles.statusButtonText}>Complete</Text>
-                  </TouchableOpacity>
-                )}
-                {order.status !== 'cancelled' && (
-                  <TouchableOpacity
-                    style={[styles.statusButton, styles.cancelButton]}
-                    onPress={() => updateOrderStatus(order._id, 'cancelled')}
-                  >
-                    <Text style={styles.statusButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </Card>
-          ))
-        )}
-      </View>
-    </ScrollView>
+    <View style={styles.container}>
+      <FlatList
+        data={orders}
+        renderItem={renderOrderItem}
+        keyExtractor={item => item._id}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary.DEFAULT]}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No orders found</Text>
+          </View>
+        }
+      />
+    </View>
   );
-}
-
-const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
-    case 'completed':
-      return theme.colors.primary[500];
-    case 'pending':
-      return '#f59e0b';
-    case 'cancelled':
-      return '#ef4444';
-    default:
-      return theme.colors.text.DEFAULT;
-  }
-};
-
-interface Styles {
-  container: ViewStyle;
-  loadingContainer: ViewStyle;
-  header: ViewStyle;
-  title: TextStyle;
-  content: ViewStyle;
-  orderCard: ViewStyle;
-  orderHeader: ViewStyle;
-  orderCustomer: TextStyle;
-  orderDate: TextStyle;
-  orderStatus: TextStyle;
-  orderItems: ViewStyle;
-  orderItem: ViewStyle;
-  itemName: TextStyle;
-  itemQuantity: TextStyle;
-  itemPrice: TextStyle;
-  orderFooter: ViewStyle;
-  orderTotal: TextStyle;
-  statusButtons: ViewStyle;
-  statusButton: ViewStyle;
-  completeButton: ViewStyle;
-  cancelButton: ViewStyle;
-  statusButtonText: TextStyle;
-  noDataText: TextStyle;
 }
 
 const styles = StyleSheet.create<Styles>({
@@ -227,104 +200,97 @@ const styles = StyleSheet.create<Styles>({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    padding: theme.spacing.lg,
-    backgroundColor: theme.colors.primary.DEFAULT,
-  },
-  title: {
-    ...theme.typography.h1,
-    color: theme.colors.text.light,
-    fontWeight: '700' as const,
-  } as TextStyle,
-  content: {
-    padding: theme.spacing.lg,
+  listContainer: {
+    padding: theme.spacing.md,
   },
   orderCard: {
-    marginBottom: theme.spacing.lg,
+    backgroundColor: '#ffffff',
+    borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
-  orderCustomer: {
+  orderId: {
     ...theme.typography.body,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.text.DEFAULT,
   },
   orderDate: {
-    ...theme.typography.caption,
-    color: theme.colors.text.DEFAULT,
-    marginTop: theme.spacing.xs,
-    fontWeight: '400' as const,
-  } as TextStyle,
-  orderStatus: {
-    ...theme.typography.caption,
-    fontWeight: 'bold',
+    ...theme.typography.body,
+    color: theme.colors.text.light,
   },
-  orderItems: {
+  orderDetails: {
     marginBottom: theme.spacing.md,
   },
-  orderItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  itemName: {
-    ...theme.typography.body,
-    flex: 1,
-    fontWeight: '400' as const,
-  } as TextStyle,
-  itemQuantity: {
-    ...theme.typography.caption,
+  customerName: {
+    ...theme.typography.h3,
     color: theme.colors.text.DEFAULT,
-    marginHorizontal: theme.spacing.md,
-    fontWeight: '400' as const,
-  } as TextStyle,
-  itemPrice: {
-    ...theme.typography.body,
-    fontWeight: 'bold',
+    marginBottom: theme.spacing.xs,
   },
-  orderFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: theme.spacing.md,
-    paddingTop: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border.DEFAULT,
-  },
-  orderTotal: {
+  email: {
     ...theme.typography.body,
-    fontWeight: 'bold',
+    color: theme.colors.text.light,
+    marginBottom: theme.spacing.xs,
+  },
+  total: {
+    ...theme.typography.body,
+    fontWeight: '700',
     color: theme.colors.primary.DEFAULT,
   },
-  statusButtons: {
+  itemsContainer: {
+    marginBottom: theme.spacing.md,
+  },
+  itemText: {
+    ...theme.typography.body,
+    color: theme.colors.text.DEFAULT,
+    marginBottom: theme.spacing.xs,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  status: {
+    ...theme.typography.body,
+    fontWeight: '700',
+  },
+  actionButtons: {
     flexDirection: 'row',
     gap: theme.spacing.sm,
   },
-  statusButton: {
+  button: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.sm,
   },
   completeButton: {
-    backgroundColor: theme.colors.primary.DEFAULT,
+    backgroundColor: '#22c55e',
   },
   cancelButton: {
     backgroundColor: '#ef4444',
   },
-  statusButtonText: {
-    color: theme.colors.text.light,
-    fontWeight: 'bold',
-  },
-  noDataText: {
+  buttonText: {
     ...theme.typography.body,
-    color: theme.colors.text.DEFAULT,
-    textAlign: 'center',
-    marginTop: theme.spacing.lg,
+    color: theme.colors.text.light,
+    fontWeight: '700',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+  },
+  emptyText: {
+    ...theme.typography.body,
+    color: theme.colors.text.light,
   },
 }); 

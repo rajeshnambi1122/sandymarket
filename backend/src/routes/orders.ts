@@ -6,7 +6,6 @@ import { OrderItem } from '../types/order';
 import { ObjectId } from 'mongoose';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { wsService } from '../services/websocketService';
 
 const router = express.Router();
 
@@ -139,6 +138,14 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
 // Get all orders (for admin)
 router.get("/admin", auth, async (req: AuthRequest, res: Response) => {
   try {
+    // Check if user is admin
+    if (req.userRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admin role required."
+      });
+    }
+
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json({ success: true, data: orders });
   } catch (error: any) {
@@ -152,8 +159,13 @@ router.get("/admin", auth, async (req: AuthRequest, res: Response) => {
 });
 
 // Get order by ID (for customers to check status)
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res, next) => {
   try {
+    // Skip if the ID is 'admin'
+    if (req.params.id === 'admin') {
+      return next();
+    }
+
     console.log("GET ORDER BY ID endpoint called for ID:", req.params.id);
     
     const order = await Order.findById(req.params.id);
@@ -356,17 +368,6 @@ router.post("/", async (req: AuthRequest, res) => {
       email: savedOrder.email,
       userId: savedOrder.user,
       userIdSource: userIdSource
-    });
-
-    // Send WebSocket notification to admin
-    wsService.sendNewOrderNotification({
-      id: savedOrder._id.toString(),
-      customerName: savedOrder.customerName,
-      email: savedOrder.email,
-      items: savedOrder.items,
-      totalAmount: savedOrder.totalAmount,
-      status: savedOrder.status,
-      createdAt: savedOrder.createdAt
     });
 
     // Log the items with toppings for debugging
