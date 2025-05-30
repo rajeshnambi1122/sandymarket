@@ -70,7 +70,7 @@ router.post("/register", async (req, res) => {
     );
 
     // Response without password
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Registration successful",
       token,
@@ -94,7 +94,7 @@ router.post("/register", async (req, res) => {
       });
     }
     
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false,
       message: "Registration failed", 
       error: error.message || "Unknown error" 
@@ -203,7 +203,7 @@ router.post("/login", async (req, res) => {
     }
 
     // Return user info and token
-    res.json({
+    return res.json({
       success: true,
       message: "Login successful",
       token,
@@ -218,7 +218,7 @@ router.post("/login", async (req, res) => {
     });
   } catch (error: any) {
     console.error("Login error:", error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false,
       message: "Login failed", 
       error: error.message || "Unknown error" 

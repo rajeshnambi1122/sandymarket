@@ -121,11 +121,11 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
     };
     
     console.log("Response size:", JSON.stringify(response).length, "bytes");
-    res.json(response);
+    return res.json(response);
     
   } catch (error: any) {
     console.error("❌ Error in my-orders endpoint:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error fetching orders",
       error: error.message,
@@ -146,10 +146,10 @@ router.get("/admin", auth, async (req: AuthRequest, res: Response) => {
     }
 
     const orders = await Order.find().sort({ createdAt: -1 });
-    res.json({ success: true, data: orders });
+    return res.json({ success: true, data: orders });
   } catch (error: any) {
     console.error("Error fetching admin orders:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error fetching orders",
       error: error.message,
@@ -426,7 +426,7 @@ router.post("/", async (req: AuthRequest, res) => {
       savedOrder.customerName
     );
 
-    res.status(201).json({ 
+    return res.status(201).json({ 
       success: true, 
       data: {
         ...savedOrder.toObject(),
@@ -435,7 +435,7 @@ router.post("/", async (req: AuthRequest, res) => {
     });
   } catch (error: any) {
     console.error("Error creating order:", error);
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       message: "Error creating order",
       error: error.message,
@@ -516,14 +516,14 @@ router.get("/by-email", auth, async (req: AuthRequest, res: Response) => {
       }
     }
     
-    res.json({ 
+    return res.json({ 
       success: true, 
       data: orders 
     });
     
   } catch (error: any) {
     console.error("Error in orders-by-email endpoint:", error.message);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error fetching orders by email",
       error: error.message || "Unknown error"
