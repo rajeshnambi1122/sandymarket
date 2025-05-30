@@ -4,7 +4,7 @@ import { GasPrice } from "../models/Gasprice";
 const router = express.Router();
 
 // Public route to get gas prices
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", async (_req: Request, res: Response) => {
   try {
     const gasPrices = await GasPrice.find();
     res.json(gasPrices);
@@ -12,12 +12,14 @@ router.get("/", async (req: Request, res: Response) => {
     console.error("Error fetching gas prices:", error);
     res.status(500).json({ message: "Error fetching gas prices" });
   }
+  res.json({ success: true });
+  return;
 });
 
-router.patch("/", async (req: Request, res: Response) => {
+router.patch("/", async (_req: Request, res: Response) => {
   try {
-    console.log("Received gas price update request:", req.body);
-    const { type, price } = req.body;
+    console.log("Received gas price update request:", _req.body);
+    const { type, price } = _req.body;
 
     // Validate input
     if (!type || !price) {
@@ -62,6 +64,8 @@ router.patch("/", async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : "Unknown error"
     });
   }
+  res.json({ success: true });
+  return;
 });
 
 export const gasPriceRoutes = router;

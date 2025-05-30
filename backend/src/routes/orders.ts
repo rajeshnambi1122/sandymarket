@@ -25,10 +25,10 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
     console.log("\n=== MY-ORDERS ENDPOINT CALLED ===");
     console.log("Authorization header:", req.headers.authorization?.substring(0, 20) + "...");
-    console.log("User ID from token:", req.userId);
+    console.log("User ID from token:", req.user?.userId);
     
     // Validate user ID
-    if (!req.userId) {
+    if (!req.user?.userId) {
       console.log("❌ No userId in request");
       return res.status(401).json({ 
         success: false, 
@@ -37,8 +37,8 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
       });
     }
     
-    if (!mongoose.Types.ObjectId.isValid(req.userId)) {
-      console.log("❌ Invalid userId format:", req.userId);
+    if (!mongoose.Types.ObjectId.isValid(req.user?.userId)) {
+      console.log("❌ Invalid userId format:", req.user?.userId);
       return res.status(400).json({
         success: false,
         message: "Invalid user ID format",
@@ -47,9 +47,9 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
     }
     
     console.log("🔍 Looking up user in database...");
-    const user = await mongoose.model('User').findById(req.userId);
+    const user = await mongoose.model('User').findById(req.user?.userId);
     if (!user) {
-      console.log("❌ User not found in database:", req.userId);
+      console.log("❌ User not found in database:", req.user?.userId);
       return res.status(404).json({
         success: false,
         message: "User not found",
@@ -64,9 +64,9 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
     });
     
     // First try to find orders directly linked to user
-    console.log("🔍 Searching for orders linked to user ID:", req.userId);
+    console.log("🔍 Searching for orders linked to user ID:", req.user?.userId);
     const linkedOrders = await Order.find({ 
-      user: new mongoose.Types.ObjectId(req.userId) 
+      user: new mongoose.Types.ObjectId(req.user?.userId) 
     }).sort({ createdAt: -1 });
     console.log(`Found ${linkedOrders.length} linked orders`);
     
@@ -83,9 +83,9 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
       console.log("🔗 Linking unlinked orders to user...");
       for (const order of unlinkedOrders) {
         try {
-          order.user = new mongoose.Types.ObjectId(req.userId);
+          order.user = new mongoose.Types.ObjectId(req.user?.userId);
           await order.save();
-          console.log(`✅ Linked order ${order._id} to user ${req.userId}`);
+          console.log(`✅ Linked order ${order._id} to user ${req.user?.userId}`);
         } catch (error) {
           console.error(`❌ Error linking order ${order._id}:`, error);
         }
@@ -117,7 +117,7 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
         linkedOrders: linkedOrders.length,
         unlinkedOrders: unlinkedOrders.length,
         totalOrders: allOrders.length,
-        userId: req.userId,
+        userId: req.user?.userId,
         userEmail: user.email
       }
     };
@@ -140,7 +140,7 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
 router.get("/admin", auth, async (req: AuthRequest, res: Response) => {
   try {
     // Check if user is admin
-    if (req.userRole !== 'admin') {
+    if (req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: "Access denied. Admin role required."
@@ -243,7 +243,7 @@ router.post("/", async (req: AuthRequest, res) => {
     }
     
     console.log("Authentication header:", req.headers.authorization ? "Present" : "Missing");
-    console.log("User ID from auth middleware:", req.userId);
+    console.log("User ID from auth middleware:", req.user?.userId);
     
     const { customerName, phone, email, items, address, userId, cookingInstructions } = req.body;
 
@@ -289,13 +289,13 @@ router.post("/", async (req: AuthRequest, res) => {
     }
     
     // Priority 2: Use userId from auth token if authenticated
-    if (!orderUserId && req.userId && mongoose.Types.ObjectId.isValid(req.userId)) {
-      console.log("Checking userId from auth token:", req.userId);
+    if (!orderUserId && req.user?.userId && mongoose.Types.ObjectId.isValid(req.user?.userId)) {
+      console.log("Checking userId from auth token:", req.user?.userId);
       try {
-        const user = await mongoose.model('User').findById(req.userId);
+        const user = await mongoose.model('User').findById(req.user?.userId);
         if (user) {
           console.log("Found valid user from auth token");
-          orderUserId = req.userId;
+          orderUserId = req.user?.userId;
           userIdSource = 'token';
         } else {
           console.log("User ID from auth token not found in database");
@@ -485,7 +485,7 @@ router.get("/by-email", auth, async (req: AuthRequest, res: Response) => {
     const { email } = req.query;
     console.log("GET ORDERS BY EMAIL ENDPOINT CALLED");
     console.log("Email query parameter:", email);
-    console.log("User ID from token:", req.userId);
+    console.log("User ID from token:", req.user?.userId);
     
     if (!email || typeof email !== 'string') {
       return res.status(400).json({
@@ -500,16 +500,16 @@ router.get("/by-email", auth, async (req: AuthRequest, res: Response) => {
     console.log(`Found ${orders.length} orders for email: ${email}`);
     
     // If we found orders by email but they're not linked to the user, update them
-    if (orders.length > 0 && req.userId) {
-      console.log(`Linking ${orders.length} orders to user: ${req.userId}`);
+    if (orders.length > 0 && req.user?.userId) {
+      console.log(`Linking ${orders.length} orders to user: ${req.user?.userId}`);
       
       // Update the orders to link them to this user - one by one to avoid errors
       for (const order of orders) {
         if (!order.user) {
           try {
-            order.user = new mongoose.Types.ObjectId(req.userId);
+            order.user = new mongoose.Types.ObjectId(req.user?.userId);
             await order.save();
-            console.log(`Order ${order._id} linked to user ${req.userId}`);
+            console.log(`Order ${order._id} linked to user ${req.user?.userId}`);
           } catch (error: any) {
             console.error(`Error linking order ${order._id}:`, error.message);
             // Continue with next order

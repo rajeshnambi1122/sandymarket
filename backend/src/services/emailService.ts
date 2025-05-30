@@ -332,16 +332,6 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails) => 
       });
     });
 
-    // Prepare push notification content
-    const notificationTitle = "New Order Received! 🔔";
-    const itemSummary = orderDetails.items
-      .map(item => `${item.quantity}x ${item.name}`)
-      .join(', ');
-    const notificationBody = `Order #${orderDetails.id}\nCustomer: ${orderDetails.customerName}\nItems: ${itemSummary}\nTotal: $${orderDetails.totalAmount.toFixed(2)}`;
-
-    // Get admin FCM tokens and send push notification
-
-
     // Send email to customer
     const customerMailOptions = {
       from: `"Sandy's Market" <${process.env.EMAIL_USER}>`,
