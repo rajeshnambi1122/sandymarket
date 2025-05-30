@@ -14,7 +14,7 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/", async (req: Request, res: Response) => {
+router.patch("/", async (req: Request, res: Response) => {
   try {
     console.log("Received gas price update request:", req.body);
     const { type, price } = req.body;

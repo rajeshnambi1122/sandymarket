@@ -8,11 +8,13 @@ import {
   TouchableOpacity,
   ViewStyle,
   TextStyle,
+  Alert,
 } from 'react-native';
 import { theme } from '../../constants/theme';
 import { ordersAPI } from '../../services/api';
 import { Card } from '../../components/ui/card';
 import { LoadingSpinner } from '../../components/ui/loading-spinner';
+import { wsService } from '../../services/websocket';
 
 interface Order {
   _id: string;
@@ -52,6 +54,33 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     fetchOrders();
+
+    // Set up WebSocket notification handler
+    wsService.onNewOrder((newOrder) => {
+      // Show notification
+      Alert.alert(
+        'New Order Received',
+        `Order #${newOrder.orderId} from ${newOrder.customerName}`,
+        [
+          {
+            text: 'View',
+            onPress: () => {
+              // Refresh orders list
+              fetchOrders();
+            },
+          },
+          {
+            text: 'Dismiss',
+            style: 'cancel',
+          },
+        ]
+      );
+    });
+
+    // Cleanup on unmount
+    return () => {
+      wsService.disconnect();
+    };
   }, []);
 
   const onRefresh = () => {
@@ -122,26 +151,24 @@ export default function OrdersScreen() {
                 ))}
               </View>
 
-              <View style={styles.orderFooter}>
-                <Text style={styles.orderTotal}>Total: ${order.totalAmount.toFixed(2)}</Text>
-                <View style={styles.statusButtons}>
-                  {order.status !== 'completed' && (
-                    <TouchableOpacity
-                      style={[styles.statusButton, styles.completeButton]}
-                      onPress={() => updateOrderStatus(order._id, 'completed')}
-                    >
-                      <Text style={styles.statusButtonText}>Complete</Text>
-                    </TouchableOpacity>
-                  )}
-                  {order.status !== 'cancelled' && (
-                    <TouchableOpacity
-                      style={[styles.statusButton, styles.cancelButton]}
-                      onPress={() => updateOrderStatus(order._id, 'cancelled')}
-                    >
-                      <Text style={styles.statusButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+              <Text style={styles.orderTotal}>Total: ${order.totalAmount.toFixed(2)}</Text>
+              <View style={styles.statusButtons}>
+                {order.status !== 'completed' && (
+                  <TouchableOpacity
+                    style={[styles.statusButton, styles.completeButton]}
+                    onPress={() => updateOrderStatus(order._id, 'completed')}
+                  >
+                    <Text style={styles.statusButtonText}>Complete</Text>
+                  </TouchableOpacity>
+                )}
+                {order.status !== 'cancelled' && (
+                  <TouchableOpacity
+                    style={[styles.statusButton, styles.cancelButton]}
+                    onPress={() => updateOrderStatus(order._id, 'cancelled')}
+                  >
+                    <Text style={styles.statusButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </Card>
           ))

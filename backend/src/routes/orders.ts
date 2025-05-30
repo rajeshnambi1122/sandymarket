@@ -6,6 +6,7 @@ import { OrderItem } from '../types/order';
 import { ObjectId } from 'mongoose';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import { wsService } from '../services/websocketService';
 
 const router = express.Router();
 
@@ -357,6 +358,9 @@ router.post("/", async (req: AuthRequest, res) => {
       userIdSource: userIdSource
     });
 
+    // Send WebSocket notification to admin
+    wsService.sendNewOrderNotification(savedOrder);
+
     // Log the items with toppings for debugging
     console.log("Order items with toppings:");
     items.forEach((item: any, index: number) => {
@@ -418,7 +422,8 @@ router.post("/", async (req: AuthRequest, res) => {
     console.error("Error creating order:", error);
     res.status(400).json({
       success: false,
-      message: error.message || "Error creating order",
+      message: "Error creating order",
+      error: error.message,
     });
   }
 });

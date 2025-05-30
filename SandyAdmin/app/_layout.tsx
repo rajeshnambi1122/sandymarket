@@ -5,6 +5,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { View } from 'react-native';
 import { theme } from '../constants/theme';
 
+
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);

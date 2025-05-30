@@ -245,10 +245,44 @@ router.get("/me", auth, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Update FCM Token
+// Update FCM token
+router.post("/fcm-token", auth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { fcmToken } = req.body;
+    const userId = req.user?._id;
 
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
 
-    // Update user's FCM token in the database
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { fcmToken },
+      { new: true }
+    );
 
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "FCM token updated successfully",
+    });
+  } catch (error: any) {
+    console.error("Error updating FCM token:", error);
+    res.status(400).json({
+      success: false,
+      message: "Error updating FCM token",
+      error: error.message,
+    });
+  }
+});
 
 export const authRoutes = router;

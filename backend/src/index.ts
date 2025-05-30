@@ -1,14 +1,20 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import dotenv from "dotenv";
+import { createServer } from "http";
 import { orderRoutes } from "./routes/orders";
 import { authRoutes } from "./routes/auth";
 import { gasPriceRoutes } from "./routes/gasprice";
+import { initializeWebSocket } from "./services/websocketService";
+import dotenv from "dotenv";
+
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const httpServer = createServer(app);
+
+// Initialize WebSocket
+initializeWebSocket(httpServer);
 
 // Middleware
 app.use(
@@ -47,8 +53,8 @@ mongoose
   .connect(mongoUri)
   .then(() => {
     console.log("Connected to MongoDB Atlas");
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+    httpServer.listen(process.env.PORT || 5000, () => {
+      console.log(`Server is running on port ${process.env.PORT || 5000}`);
     });
   })
   .catch((error) => {
