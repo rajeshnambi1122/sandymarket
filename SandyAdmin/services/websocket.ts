@@ -6,6 +6,7 @@ class WebSocketService {
   private maxReconnectAttempts = 5;
   private reconnectTimeout = 3000; // 3 seconds
   private onNewOrderCallback: ((order: any) => void) | null = null;
+  private readonly wsUrl = 'wss://api.sandysmarket.net/ws';
 
   constructor() {
     this.connect();
@@ -20,7 +21,7 @@ class WebSocketService {
       }
 
       // Replace with your WebSocket server URL
-      this.ws = new WebSocket('wss://api.sandymarket.com/ws');
+      this.ws = new WebSocket(this.wsUrl);
 
       this.ws.onopen = () => {
         console.log('WebSocket connected');
