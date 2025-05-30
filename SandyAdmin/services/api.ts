@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { wsService } from './websocket';
 
 // Use the main backend URL
 const API_URL = 'https://api.sandysmarket.net/api';
@@ -100,8 +101,15 @@ export const authAPI = {
   },
 
   logout: async () => {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
+    try {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      // Disconnect WebSocket
+      wsService.disconnect();
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   }
 };
 
