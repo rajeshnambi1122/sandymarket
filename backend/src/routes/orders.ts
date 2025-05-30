@@ -359,7 +359,15 @@ router.post("/", async (req: AuthRequest, res) => {
     });
 
     // Send WebSocket notification to admin
-    wsService.sendNewOrderNotification(savedOrder);
+    wsService.sendNewOrderNotification({
+      id: savedOrder._id,
+      customerName: savedOrder.customerName,
+      email: savedOrder.email,
+      items: savedOrder.items,
+      totalAmount: savedOrder.totalAmount,
+      status: savedOrder.status,
+      createdAt: savedOrder.createdAt
+    });
 
     // Log the items with toppings for debugging
     console.log("Order items with toppings:");

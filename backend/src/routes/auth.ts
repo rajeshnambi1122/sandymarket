@@ -249,7 +249,7 @@ router.get("/me", auth, async (req: AuthRequest, res: Response) => {
 router.post("/fcm-token", auth, async (req: AuthRequest, res: Response) => {
   try {
     const { fcmToken } = req.body;
-    const userId = req.user?._id;
+    const userId = req.userId;
 
     if (!userId) {
       return res.status(401).json({
