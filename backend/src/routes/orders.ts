@@ -2,6 +2,7 @@ import express, { Response } from "express";
 import { Order } from "../models/Order";
 import { auth, AuthRequest } from "../middleware/auth";
 import { sendOrderConfirmationEmail } from '../services/emailService';
+import { sendNewOrderNotification } from '../services/notificationService';
 import { OrderItem } from '../types/order';
 import { ObjectId } from 'mongoose';
 import jwt from 'jsonwebtoken';
@@ -392,21 +393,22 @@ router.post("/", async (req: AuthRequest, res) => {
       }
     }
 
+    // Make sure to explicitly include toppings and size in email data
+    const orderItemsForEmail = processedItems.map((item: OrderItem) => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      toppings: item.toppings || [],
+      size: item.size || undefined
+    }));
+    
+    console.log("Sending order confirmation with toppings data:",
+      orderItemsForEmail.map((item: { name: string; toppings?: string[] }) => {
+        return `${item.name} - toppings: ${(item.toppings || []).length}`;
+      }).join(', '));
+    
+    // Send email confirmation
     try {
-      // Make sure to explicitly include toppings and size in email data
-      const orderItemsForEmail = processedItems.map((item: OrderItem) => ({
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        toppings: item.toppings || [],
-        size: item.size || undefined
-      }));
-      
-      console.log("Sending order confirmation with toppings data:",
-        orderItemsForEmail.map((item: { name: string; toppings?: string[] }) => {
-          return `${item.name} - toppings: ${(item.toppings || []).length}`;
-        }).join(', '));
-      
       await sendOrderConfirmationEmail({
         id: savedOrder._id.toString(),
         customerName: savedOrder.customerName,
@@ -420,11 +422,18 @@ router.post("/", async (req: AuthRequest, res) => {
       console.error('Failed to send confirmation email:', error);
     }
 
+    // Send push notification
+    try {
+      await sendNewOrderNotification(savedOrder);
+    } catch (error) {
+      console.error('Failed to send push notification:', error);
+    }
+
     res.status(201).json({ 
       success: true, 
       data: {
         ...savedOrder.toObject(),
-        userIdSource // Include how we determined the user ID
+        userIdSource
       }
     });
   } catch (error: any) {

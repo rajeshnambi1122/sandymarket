@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/User";
 import { auth, AuthRequest } from "../middleware/auth";
 import mongoose from "mongoose";
+import { firebaseAdmin } from "../config/firebase";
 
 const router = express.Router();
 
@@ -281,6 +282,40 @@ router.post("/fcm-token", auth, async (req: AuthRequest, res: Response) => {
       success: false,
       message: "Error updating FCM token",
       error: error.message,
+    });
+  }
+});
+
+// Update FCM token
+router.post("/update-fcm-token", auth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { token } = req.body;
+    const userId = req.userId;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "FCM token is required"
+      });
+    }
+
+    // Update user's FCM token in Firestore
+    const User = firebaseAdmin.firestore().collection('users');
+    await User.doc(userId).set({
+      fcmToken: token,
+      updatedAt: new Date()
+    }, { merge: true });
+
+    res.json({
+      success: true,
+      message: "FCM token updated successfully"
+    });
+  } catch (error: any) {
+    console.error("Error updating FCM token:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating FCM token",
+      error: error.message
     });
   }
 });

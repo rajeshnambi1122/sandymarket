@@ -1,16 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Slot, useRouter, useSegments, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { View } from 'react-native';
 import { theme } from '../constants/theme';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { setupNotificationListeners, requestNotificationPermission } from '../services/notifications';
 
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const segments = useSegments();
   const router = useRouter();
+  const [loaded] = useFonts({
+    // ... your fonts
+  });
 
   useEffect(() => {
     checkAuth();
@@ -26,6 +33,18 @@ export default function RootLayout() {
       }
     }
   }, [isAuthenticated, segments, isLoading]);
+
+  useEffect(() => {
+    if (loaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded]);
+
+  useEffect(() => {
+    // Initialize Firebase and request notification permissions
+    requestNotificationPermission();
+    setupNotificationListeners();
+  }, []);
 
   const checkAuth = async () => {
     try {
@@ -46,5 +65,9 @@ export default function RootLayout() {
     );
   }
 
-  return <Slot />;
+  if (!loaded) {
+    return null;
+  }
+
+  return <Stack />;
 }

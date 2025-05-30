@@ -162,6 +162,16 @@ export const adminAPI = {
       throw error;
     }
   },
+
+  updateFCMToken: async (token: string) => {
+    try {
+      const response = await api.post('/auth/update-fcm-token', { token });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating FCM token:', error);
+      throw error;
+    }
+  },
 };
 
 export default api; 
