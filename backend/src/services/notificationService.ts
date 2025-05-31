@@ -69,6 +69,7 @@ export const sendNotification = async (
 
     // Send to FCM tokens via Firebase Admin
     if (fcmTokens.length > 0) {
+      console.log(`Attempting to send to ${fcmTokens.length} FCM token(s):`, fcmTokens);
       const message: MulticastMessage = {
         notification: {
           title,
