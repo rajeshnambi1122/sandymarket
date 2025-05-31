@@ -62,33 +62,67 @@ export const requestNotificationPermission = async () => {
 };
 
 export const setupNotificationListeners = () => {
-  // Handle notification when app is in foreground
-  const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
-    console.log('Received notification in foreground:', notification);
-    // Show a local notification
+  // Handle FCM messages when app is in foreground
+  const onMessageListener = messaging().onMessage(async remoteMessage => {
+    console.log('FCM Message received in foreground:', remoteMessage);
+    // Display a local notification using expo-notifications
+    // (since the Expo handler is configured to show alerts)
     Notifications.scheduleNotificationAsync({
       content: {
-        title: notification.request.content.title,
-        body: notification.request.content.body,
-        data: notification.request.content.data,
+        title: remoteMessage.notification?.title,
+        body: remoteMessage.notification?.body,
+        data: remoteMessage.data, // Pass data payload
       },
       trigger: null,
     });
   });
 
-  // Handle notification when app is in background and user taps it
-  const backgroundSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-    console.log('Notification response:', response);
-    const data = response.notification.request.content.data;
-    
-    // If it's a new order notification, navigate to the orders tab
+  // Handle FCM messages when app is in background or quit state
+  // This requires a headless task for Android in index.js or App.js
+  // For simplicity here, we'll just add the listener part.
+  // The actual background handling needs setup outside this file.
+  messaging().setBackgroundMessageHandler(async remoteMessage => {
+    console.log('FCM Message handled in the background!', remoteMessage);
+    // You can perform background tasks here, e.g., update local data
+    // For navigation on background tap, you need a different listener/approach.
+  });
+
+  // Handle notification tap when app is in background or quit state
+  // This listener fires when the user taps on the system notification
+  messaging().onNotificationOpenedApp(remoteMessage => {
+    console.log(
+      'FCM notification caused app to open from background state:',
+      remoteMessage,
+    );
+    const data = remoteMessage.data;
+    // Navigate based on data, e.g., to the orders tab
     if (data?.type === 'new_order') {
-      router.push('/(tabs)/orders');
+      // Use a timeout to ensure navigation state is ready, if needed
+      setTimeout(() => {
+         router.push('/(tabs)/orders');
+      }, 500); // Adjust timeout if necessary
     }
   });
 
-  return () => {
-    foregroundSubscription.remove();
-    backgroundSubscription.remove();
-  };
+  // Handle notification tap when app was opened from a quit state
+  messaging()
+    .getInitialNotification()
+    .then(remoteMessage => {
+      if (remoteMessage) {
+        console.log(
+          'FCM notification caused app to open from quit state:',
+          remoteMessage,
+        );
+        const data = remoteMessage.data;
+        // Navigate based on data, e.g., to the orders tab
+        if (data?.type === 'new_order') {
+          setTimeout(() => {
+             router.push('/(tabs)/orders');
+          }, 500); // Adjust timeout if necessary
+        }
+      }
+    });
+
+  // Return unsubscribe functions for foreground listener
+  return onMessageListener; // Only onMessage returns an unsubscribe function directly
 }; 
