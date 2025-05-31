@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { theme } from '../constants/theme';
 import { authAPI } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { AuthContext } from './_layout';
 
 interface Styles {
   container: ViewStyle;
@@ -40,6 +41,7 @@ export default function LoginScreen() {
     email?: string;
     password?: string;
   }>({});
+  const { signIn } = useContext(AuthContext);
 
   const validateForm = () => {
     const newErrors: {
@@ -71,8 +73,9 @@ export default function LoginScreen() {
       const response = await authAPI.login(email, password);
       
       if (response.token) {
-        // Navigate to dashboard
-        router.replace('/(tabs)');
+        // Use the AuthContext to sign in
+        await signIn(response.token);
+        // The navigation will be handled by the AuthContext
       } else {
         Alert.alert(
           'Login Failed',

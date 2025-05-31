@@ -165,7 +165,13 @@ export const adminAPI = {
 
   updateFCMToken: async (token: string) => {
     try {
+      console.log('Sending FCM token to backend:', {
+        token: token.substring(0, 20) + '...',
+        endpoint: '/auth/fcm-token'
+      });
+      
       const response = await api.post('/auth/fcm-token', { token });
+      console.log('FCM token update response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error updating FCM token:', error);

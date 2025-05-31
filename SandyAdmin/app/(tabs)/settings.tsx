@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { LoadingSpinner } from '../../components/ui/loading-spinner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { adminAPI } from '../../services/api';
+import { AuthContext } from '../_layout';
 
 interface UserProfile {
   id: string;
@@ -49,6 +50,7 @@ export default function SettingsScreen() {
     name: '',
     email: '',
   });
+  const { signOut } = useContext(AuthContext);
 
   useEffect(() => {
     fetchProfile();
@@ -92,8 +94,8 @@ export default function SettingsScreen() {
 
   const handleLogout = async () => {
     try {
-      await adminAPI.logout();
-      router.replace('/login');
+      await signOut();
+      // The navigation will be handled by the AuthContext
     } catch (error) {
       console.error('Logout error:', error);
       Alert.alert('Error', 'Failed to logout properly');
