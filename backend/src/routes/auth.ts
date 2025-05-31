@@ -1,10 +1,9 @@
 import express, { Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { User, IUser } from "../models/User";
+import { User } from "../models/User";
 import { auth, AuthRequest } from "../middleware/auth";
 import mongoose from "mongoose";
-import { firebaseAdmin } from "../config/firebase";
 
 const router = express.Router();
 
