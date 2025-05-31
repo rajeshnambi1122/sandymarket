@@ -1,6 +1,7 @@
 import { User } from '../models/User';
 import { firebaseAdmin } from '../config/firebase';
 import { MulticastMessage } from 'firebase-admin/messaging';
+// @ts-ignore
 import fetch from 'node-fetch';
 
 // Initialize Firebase Admin
