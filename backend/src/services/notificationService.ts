@@ -1,6 +1,6 @@
 import { User } from '../models/User';
 import { firebaseAdmin } from '../config/firebase';
-import { MulticastMessage } from 'firebase-admin/messaging';
+
 // @ts-ignore
 import fetch from 'node-fetch';
 
@@ -18,65 +18,43 @@ if (!firebaseAdmin.apps.length) {
 export const sendNotification = async (
   title: string,
   body: string,
-  data: any = {}
+  data: Record<string, string> = {}
 ) => {
   try {
     // Get all admin users with FCM tokens
     const adminUsers = await User.find({ 
       role: 'admin',
       fcmToken: { $exists: true, $ne: null }
-    }).lean();
+    }); // Removed .lean() here if not strictly necessary, to match suggested code structure
 
     if (adminUsers.length === 0) {
       console.log('No admin users with FCM tokens found');
       return;
     }
 
-    const tokens = adminUsers
+    const fcmTokens = adminUsers
       .map(user => user.fcmToken)
-      .filter((token): token is string => typeof token === 'string');
+      .filter((token): token is string => typeof token === 'string' && !!token);
 
-    if (tokens.length === 0) {
+    if (fcmTokens.length === 0) {
       console.log('No valid FCM tokens found');
       return;
     }
 
-    // Separate Expo and FCM tokens
-    const expoTokens = tokens.filter(token => token.startsWith('ExponentPushToken'));
-    const fcmTokens = tokens.filter(token => !token.startsWith('ExponentPushToken'));
+    console.log(`Attempting to send to ${fcmTokens.length} FCM token(s) individually:`, fcmTokens);
 
-    // Send to Expo tokens
-    if (expoTokens.length > 0) {
-      const expoMessages = expoTokens.map(token => ({
-        to: token,
-        sound: 'default',
-        title,
-        body,
-        data,
-      }));
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Accept-encoding': 'gzip, deflate',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(expoMessages),
-      });
-      const result = await response.json();
-      console.log('Expo notification result:', result);
-    }
+    const failedTokens: string[] = [];
 
-    // Send to FCM tokens via Firebase Admin
-    if (fcmTokens.length > 0) {
-      console.log(`Attempting to send to ${fcmTokens.length} FCM token(s):`, fcmTokens);
-      const message: MulticastMessage = {
+    for (const token of fcmTokens) {
+      const message = {
+        token,
         notification: {
           title,
-          body,
+          body
         },
         data: {
           ...data,
+          // Add click_action for Android, sound for iOS if needed in data payload for some clients
           click_action: 'FLUTTER_NOTIFICATION_CLICK',
         },
         android: {
@@ -85,7 +63,7 @@ export const sendNotification = async (
             channelId: 'default',
             priority: 'high' as const,
             sound: 'default',
-            vibrateTimingsMillis: [0, 250, 250, 250],
+            // vibrateTimingsMillis: [0, 250, 250, 250], // Optional
           },
         },
         apns: {
@@ -96,48 +74,51 @@ export const sendNotification = async (
             },
           },
         },
-        tokens: fcmTokens,
       };
 
-      const response = await firebaseAdmin.messaging().sendMulticast(message);
-      console.log('FCM notification sent:', {
-        successCount: response.successCount,
-        failureCount: response.failureCount,
-      });
-
-      // Handle failed tokens
-      if (response.failureCount > 0) {
-        const failedTokens: string[] = [];
-        response.responses.forEach((resp, idx) => {
-          if (!resp.success) {
-            failedTokens.push(fcmTokens[idx]);
-          }
-        });
-
-        // Remove invalid tokens from users
-        if (failedTokens.length > 0) {
-          await User.updateMany(
-            { fcmToken: { $in: failedTokens } },
-            { $unset: { fcmToken: 1 } }
-          );
-          console.log('Removed invalid FCM tokens:', failedTokens);
+      try {
+        const response = await firebaseAdmin.messaging().send(message);
+        console.log(`Notification sent successfully to token: ${token}`, response);
+      } catch (err: any) {
+        console.error(`Failed to send to token ${token}:`, err.message);
+        failedTokens.push(token);
+        // Optional: Log specific Firebase errors for debugging
+        if (err.errorInfo) {
+            console.error('Firebase Error Info:', err.errorInfo);
         }
       }
     }
-  } catch (error) {
-    console.error('Error sending notification:', error);
+
+    if (failedTokens.length > 0) {
+      console.log('Cleaning up failed FCM tokens:', failedTokens);
+      await User.updateMany(
+        { fcmToken: { $in: failedTokens } },
+        { $unset: { fcmToken: 1 } }
+      );
+      console.log('Removed invalid FCM tokens from database.');
+    }
+
+  } catch (error: any) {
+    console.error('Error in sendNotification function:', error);
   }
 };
 
 export const sendNewOrderNotification = async (orderId: string, customerName: string) => {
+  // Ensure data object values are strings for FCM payload
+  const notificationData: Record<string, string> = {
+    type: 'new_order',
+    orderId: orderId.toString(), // Ensure it's a string
+    customerName: customerName || 'Guest', // Ensure it's a string
+    timestamp: new Date().toISOString(),
+  };
+
   await sendNotification(
     'New Order Received',
-    `New order #${orderId} from ${customerName}`,
-    {
-      type: 'new_order',
-      orderId,
-      customerName,
-      timestamp: new Date().toISOString(),
-    }
+    `New order #${orderId} from ${customerName || 'Guest'}`,
+    notificationData
   );
-}; 
+};
+
+// Removed Expo related send logic as it's for different token type and not needed for admin push
+
+// Removed getPushToken if it existed and was only for Expo token AsyncStorage 
