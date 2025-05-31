@@ -1,4 +1,0 @@
-namespace 'com.sandysmarket.admin'
-defaultConfig {
-    applicationId 'com.sandysmarket.admin'
-} 
