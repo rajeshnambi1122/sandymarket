@@ -1,5 +1,5 @@
 import admin from 'firebase-admin';
-import { User, IUser } from '../models/User';
+import { User } from '../models/User';
 import { MulticastMessage } from 'firebase-admin/messaging';
 
 // Initialize Firebase Admin

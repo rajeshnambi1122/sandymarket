@@ -1,7 +1,7 @@
 import express, { Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { User } from "../models/User";
+import { User, IUser } from "../models/User";
 import { auth, AuthRequest } from "../middleware/auth";
 import mongoose from "mongoose";
 import { firebaseAdmin } from "../config/firebase";
@@ -56,7 +56,7 @@ router.post("/register", async (req, res) => {
     });
 
     // Save user to database
-    const savedUser = await user.save();
+    const savedUser = await user.save() as IUser;
     console.log(`User created with ID: ${savedUser._id}`);
 
     // Create token with user ID and role
@@ -122,7 +122,7 @@ router.post("/login", async (req, res) => {
     const normalizedEmail = email.toLowerCase();
 
     // Check if user exists
-    const user = await User.findOne({ email: normalizedEmail });
+    const user = await User.findOne({ email: normalizedEmail }) as IUser;
     if (!user) {
       console.log(`Login failed: No user found with email ${normalizedEmail}`);
       return res.status(400).json({ 
