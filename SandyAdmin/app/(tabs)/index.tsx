@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { theme } from '../../constants/theme';
 import { ordersAPI } from '../../services/api';
 import Card from '../../components/Card';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import messaging from '@react-native-firebase/messaging';
+import { adminAPI } from '../../services/api';
 
 interface DashboardStats {
   totalOrders: number;
@@ -44,6 +46,34 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     fetchStats();
+
+    // Request permission
+    messaging().requestPermission()
+      .then(authStatus => {
+        if (authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+            authStatus === messaging.AuthorizationStatus.PROVISIONAL) {
+          // Get the device token
+          messaging().getToken().then(async token => {
+            console.log('FCM Token:', token);
+            // Send this token to your backend!
+            if (token) {
+              try {
+                await adminAPI.updateFCMToken(token);
+                console.log('FCM Token sent to backend successfully');
+              } catch (error) {
+                console.error('Error sending FCM token to backend:', error);
+              }
+            }
+          });
+        }
+      });
+
+    // Listen for foreground messages
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
+    });
+
+    return unsubscribe;
   }, []);
 
   const onRefresh = () => {
