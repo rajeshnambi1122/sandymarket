@@ -8,6 +8,12 @@
     "scheme": "sandyadmin",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "owner": "rajeshnambi1122",
+    "extra": {
+      "eas": {
+        "projectId": "e8f104a8-261e-4d72-bc2e-484dec498ea7"
+      }
+    },
     "ios": {
       "supportsTablet": true
     },

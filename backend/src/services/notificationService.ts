@@ -1,6 +1,7 @@
 import { User } from '../models/User';
 import { firebaseAdmin } from '../config/firebase';
 import { MulticastMessage } from 'firebase-admin/messaging';
+import fetch from 'node-fetch';
 
 // Initialize Firebase Admin
 if (!firebaseAdmin.apps.length) {
@@ -39,57 +40,86 @@ export const sendNotification = async (
       return;
     }
 
-    const message: MulticastMessage = {
-      notification: {
+    // Separate Expo and FCM tokens
+    const expoTokens = tokens.filter(token => token.startsWith('ExponentPushToken'));
+    const fcmTokens = tokens.filter(token => !token.startsWith('ExponentPushToken'));
+
+    // Send to Expo tokens
+    if (expoTokens.length > 0) {
+      const expoMessages = expoTokens.map(token => ({
+        to: token,
+        sound: 'default',
         title,
         body,
-      },
-      data: {
-        ...data,
-        click_action: 'FLUTTER_NOTIFICATION_CLICK',
-      },
-      android: {
-        priority: 'high' as const,
-        notification: {
-          channelId: 'default',
-          priority: 'high' as const,
-          sound: 'default',
-          vibrateTimingsMillis: [0, 250, 250, 250],
+        data,
+      }));
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
         },
-      },
-      apns: {
-        payload: {
-          aps: {
+        body: JSON.stringify(expoMessages),
+      });
+      const result = await response.json();
+      console.log('Expo notification result:', result);
+    }
+
+    // Send to FCM tokens via Firebase Admin
+    if (fcmTokens.length > 0) {
+      const message: MulticastMessage = {
+        notification: {
+          title,
+          body,
+        },
+        data: {
+          ...data,
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+        android: {
+          priority: 'high' as const,
+          notification: {
+            channelId: 'default',
+            priority: 'high' as const,
             sound: 'default',
-            badge: 1,
+            vibrateTimingsMillis: [0, 250, 250, 250],
           },
         },
-      },
-      tokens,
-    };
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+              badge: 1,
+            },
+          },
+        },
+        tokens: fcmTokens,
+      };
 
-    const response = await firebaseAdmin.messaging().sendMulticast(message);
-    console.log('Notification sent:', {
-      successCount: response.successCount,
-      failureCount: response.failureCount,
-    });
-
-    // Handle failed tokens
-    if (response.failureCount > 0) {
-      const failedTokens: string[] = [];
-      response.responses.forEach((resp, idx) => {
-        if (!resp.success) {
-          failedTokens.push(tokens[idx]);
-        }
+      const response = await firebaseAdmin.messaging().sendMulticast(message);
+      console.log('FCM notification sent:', {
+        successCount: response.successCount,
+        failureCount: response.failureCount,
       });
 
-      // Remove invalid tokens from users
-      if (failedTokens.length > 0) {
-        await User.updateMany(
-          { fcmToken: { $in: failedTokens } },
-          { $unset: { fcmToken: 1 } }
-        );
-        console.log('Removed invalid FCM tokens:', failedTokens);
+      // Handle failed tokens
+      if (response.failureCount > 0) {
+        const failedTokens: string[] = [];
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            failedTokens.push(fcmTokens[idx]);
+          }
+        });
+
+        // Remove invalid tokens from users
+        if (failedTokens.length > 0) {
+          await User.updateMany(
+            { fcmToken: { $in: failedTokens } },
+            { $unset: { fcmToken: 1 } }
+          );
+          console.log('Removed invalid FCM tokens:', failedTokens);
+        }
       }
     }
   } catch (error) {

@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { adminAPI } from './api';
 import { router } from 'expo-router';
+import Constants from 'expo-constants';
 
 const EXPO_PUSH_TOKEN_KEY = 'expoPushToken';
 
@@ -50,7 +51,7 @@ export const requestNotificationPermission = async () => {
 
     // Get Expo push token
     const token = await Notifications.getExpoPushTokenAsync({
-      projectId: 'sandymarket-4e8e9' // Your Expo project ID
+      projectId: Constants.expoConfig?.extra?.eas?.projectId || Constants.expoConfig?.owner || 'sandymarket-4e8e9'
     });
     
     console.log('Expo Push Token:', token.data);
