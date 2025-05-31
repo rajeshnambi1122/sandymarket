@@ -1,11 +1,11 @@
-import admin from 'firebase-admin';
 import { User } from '../models/User';
+import { firebaseAdmin } from '../config/firebase';
 import { MulticastMessage } from 'firebase-admin/messaging';
 
 // Initialize Firebase Admin
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
+if (!firebaseAdmin.apps.length) {
+  firebaseAdmin.initializeApp({
+    credential: firebaseAdmin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
@@ -68,7 +68,7 @@ export const sendNotification = async (
       tokens,
     };
 
-    const response = await admin.messaging().sendMulticast(message);
+    const response = await firebaseAdmin.messaging().sendMulticast(message);
     console.log('Notification sent:', {
       successCount: response.successCount,
       failureCount: response.failureCount,

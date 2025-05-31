@@ -56,7 +56,7 @@ router.post("/register", async (req, res) => {
     });
 
     // Save user to database
-    const savedUser = await user.save() as IUser;
+    const savedUser = await user.save();
     console.log(`User created with ID: ${savedUser._id}`);
 
     // Create token with user ID and role
@@ -122,7 +122,7 @@ router.post("/login", async (req, res) => {
     const normalizedEmail = email.toLowerCase();
 
     // Check if user exists
-    const user = await User.findOne({ email: normalizedEmail }) as IUser;
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       console.log(`Login failed: No user found with email ${normalizedEmail}`);
       return res.status(400).json({ 
@@ -253,43 +253,24 @@ router.get("/me", auth, async (req: AuthRequest, res: Response) => {
 router.post("/fcm-token", auth, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user?.userId) {
-      return res.status(401).json({ message: "User not authenticated" });
+      return res.status(401).json({ 
+        success: false,
+        message: "User not authenticated" 
+      });
     }
     const { token } = req.body;
     if (!token) {
-      return res.status(400).json({ message: "FCM token is required" });
-    }
-    await User.findByIdAndUpdate(req.user.userId, { fcmToken: token });
-    return res.json({ message: "FCM token updated successfully" });
-  } catch (error: any) {
-    return res.status(500).json({ message: error.message });
-  }
-});
-
-// Update FCM token
-router.post("/update-fcm-token", auth, async (req: AuthRequest, res: Response) => {
-  try {
-    const { token } = req.body;
-    if (!req.user?.userId) {
-      return res.status(401).json({
+      return res.status(400).json({ 
         success: false,
-        message: "User not authenticated"
+        message: "FCM token is required" 
       });
     }
 
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: "FCM token is required"
-      });
-    }
-
-    // Update user's FCM token in Firestore
-    const User = firebaseAdmin.firestore().collection('users');
-    await User.doc(req.user.userId).set({
+    // Update user's FCM token in MongoDB
+    await User.findByIdAndUpdate(req.user.userId, { 
       fcmToken: token,
       updatedAt: new Date()
-    }, { merge: true });
+    });
 
     return res.json({
       success: true,
