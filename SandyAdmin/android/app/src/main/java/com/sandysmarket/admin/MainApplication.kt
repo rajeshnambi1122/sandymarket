@@ -2,7 +2,7 @@ package com.sandysmarket.admin
 
 import android.app.Application
 import android.content.res.Configuration
-
+import com.google.firebase.FirebaseApp
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactNativeHost
@@ -47,6 +47,8 @@ class MainApplication : Application(), ReactApplication {
       // If you opted-in for the New Architecture, we load the native entry point for this app.
       load()
     }
+    // Initialize Firebase
+    FirebaseApp.initializeApp(this)
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
   }
 

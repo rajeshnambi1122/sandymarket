@@ -32,6 +32,25 @@ export default function RootLayout() {
     // ... your fonts
   });
 
+  const checkAuth = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      console.log('Auth check - Token found:', !!token);
+      setIsAuthenticated(!!token);
+      
+      // If we have a token, request notification permissions
+      if (token) {
+        console.log('Requesting notification permissions...');
+        await requestNotificationPermission();
+      }
+    } catch (error) {
+      console.error('Error checking auth:', error);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     checkAuth();
   }, []);
@@ -42,11 +61,9 @@ export default function RootLayout() {
       const inAuthGroup = segments[0] === 'login';
       
       if (!isAuthenticated && !inAuthGroup) {
-        // Redirect to login if not authenticated and not already there
         console.log('Redirecting to /login');
         router.replace('/login');
       } else if (isAuthenticated && inAuthGroup) {
-        // Redirect to tabs if authenticated and on login screen
         console.log('Redirecting to /(tabs)');
         router.replace('/(tabs)');
       }
@@ -60,26 +77,20 @@ export default function RootLayout() {
   }, [loaded]);
 
   useEffect(() => {
-    // Initialize Firebase and request notification permissions
-    requestNotificationPermission();
-    setupNotificationListeners();
+    // Setup notification listeners
+    const cleanup = setupNotificationListeners();
+    return cleanup;
   }, []);
-
-  const checkAuth = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      setIsAuthenticated(!!token);
-    } catch (error) {
-      console.error('Error checking auth:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const signIn = async (token: string) => {
     try {
+      console.log('Signing in with token:', token.substring(0, 20) + '...');
       await AsyncStorage.setItem('token', token);
       setIsAuthenticated(true);
+      
+      // Request notification permissions after successful login
+      console.log('Requesting notification permissions after login...');
+      await requestNotificationPermission();
     } catch (error) {
       console.error('Error signing in:', error);
       throw error;
@@ -88,6 +99,7 @@ export default function RootLayout() {
 
   const signOut = async () => {
     try {
+      console.log('Signing out...');
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
       setIsAuthenticated(false);
