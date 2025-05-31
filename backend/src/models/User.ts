@@ -1,4 +1,15 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
+
+export interface IUser extends Document {
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+  address: string;
+  role: "user" | "admin";
+  fcmToken?: string;
+  createdAt: Date;
+}
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -27,10 +38,14 @@ const userSchema = new mongoose.Schema({
     enum: ["user", "admin"],
     default: "user",
   },
+  fcmToken: {
+    type: String,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-export const User = mongoose.model("User", userSchema);
+export const User = mongoose.model<IUser>("User", userSchema);
