@@ -7,6 +7,7 @@ import { theme } from '../constants/theme';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { setupNotificationListeners, requestNotificationPermission } from '../services/notifications';
+import messaging from '@react-native-firebase/messaging';
 import '../config/firebase'; // Import Firebase config
 import React from 'react';
 
@@ -23,6 +24,30 @@ export const AuthContext = React.createContext<{
   isAuthenticated: false,
 });
 
+// Initialize Firebase Messaging
+const initializeFirebaseMessaging = async () => {
+  try {
+    // Check if Firebase is initialized
+    if (!messaging().app) {
+      console.log('Firebase not initialized, waiting...');
+      return;
+    }
+
+    // Request permission and setup notifications
+    await requestNotificationPermission();
+    
+    // Setup notification listeners
+    const unsubscribe = setupNotificationListeners();
+    
+    // Return cleanup function
+    return () => {
+      unsubscribe();
+    };
+  } catch (error) {
+    console.error('Error initializing Firebase Messaging:', error);
+  }
+};
+
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -32,17 +57,19 @@ export default function RootLayout() {
     // ... your fonts
   });
 
+  useEffect(() => {
+    // Initialize Firebase Messaging
+    const cleanup = initializeFirebaseMessaging();
+    return () => {
+      cleanup?.then(unsubscribe => unsubscribe?.());
+    };
+  }, []);
+
   const checkAuth = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
       console.log('Auth check - Token found:', !!token);
       setIsAuthenticated(!!token);
-      
-      // If we have a token, request notification permissions
-      if (token) {
-        console.log('Requesting notification permissions...');
-        await requestNotificationPermission();
-      }
     } catch (error) {
       console.error('Error checking auth:', error);
       setIsAuthenticated(false);
@@ -75,12 +102,6 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
-
-  useEffect(() => {
-    // Setup notification listeners
-    const cleanup = setupNotificationListeners();
-    return cleanup;
-  }, []);
 
   const signIn = async (token: string) => {
     try {
