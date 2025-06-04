@@ -3,4 +3,15 @@ node_modules
 .expo
 .vscode
 *.log
-.DS_Store 
+.DS_Store
+android
+ios
+*.md
+.gitignore
+.eslintrc*
+.prettierrc*
+*.lock
+coverage
+__tests__
+*.test.*
+*.spec.* 
