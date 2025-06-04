@@ -117,12 +117,12 @@ export const ordersAPI = {
     return response.data;
   },
 
-  getOrderById: async (id: string) => {
+  getOrderById: async (id: number) => {
     const response = await api.get(`/orders/${id}`);
     return response.data;
   },
 
-  updateOrderStatus: async (id: string, status: string) => {
+  updateOrderStatus: async (id: number | string, status: string) => {
     const response = await api.patch(`/orders/${id}`, { status });
     return response.data;
   },

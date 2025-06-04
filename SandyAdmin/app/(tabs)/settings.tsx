@@ -1,106 +1,128 @@
-import React, { useState, useEffect, useContext } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  ViewStyle,
-  TextStyle,
-} from 'react-native';
-import { theme } from '../../constants/theme';
+import React, { useEffect, useState, useContext } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 import { authAPI } from '../../services/api';
 import { LoadingSpinner } from '../../components/ui/loading-spinner';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
-import { adminAPI } from '../../services/api';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../_layout';
 
-interface UserProfile {
-  id: string;
+interface AdminProfile {
   name: string;
   email: string;
+  phone?: string;
   role: string;
 }
 
-interface Styles {
-  container: ViewStyle;
-  loadingContainer: ViewStyle;
-  header: ViewStyle;
-  title: TextStyle;
-  content: ViewStyle;
-  section: ViewStyle;
-  sectionTitle: TextStyle;
-  inputGroup: ViewStyle;
-  label: TextStyle;
-  input: TextStyle;
-  button: ViewStyle;
-  buttonText: TextStyle;
-  saveButton: ViewStyle;
-  logoutButton: ViewStyle;
-}
-
 export default function SettingsScreen() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-  });
+  const { theme } = useTheme();
   const { signOut } = useContext(AuthContext);
+  const [profile, setProfile] = useState<AdminProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await authAPI.getCurrentUser();
+      setProfile(response);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      Alert.alert('Error', 'Failed to fetch profile information');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchProfile();
   }, []);
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      const response = await authAPI.getCurrentUser();
-      console.log('Profile response:', response);
-      if (!response) {
-        console.error('Invalid profile response:', response);
-        Alert.alert('Error', 'Invalid profile data received');
-        return;
-      }
-      setProfile(response);
-      setFormData({
-        name: response.name,
-        email: response.email,
-      });
-    } catch (error) {
-      console.error('Profile fetch error:', error);
-      Alert.alert('Error', 'Failed to fetch profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      setLoading(true);
-      // TODO: Implement profile update endpoint
-      Alert.alert('Info', 'Profile update not implemented yet');
-      setEditing(false);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      // The navigation will be handled by the AuthContext
-    } catch (error) {
-      console.error('Logout error:', error);
-      Alert.alert('Error', 'Failed to logout properly');
-    }
-  };
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background.DEFAULT,
+    },
+    content: {
+      padding: theme.spacing.lg,
+    },
+    section: {
+      backgroundColor: theme.colors.surface.DEFAULT,
+      borderRadius: theme.borderRadius.lg,
+      padding: theme.spacing.lg,
+      marginBottom: theme.spacing.lg,
+      shadowColor: theme.colors.text.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+      borderWidth: 1,
+      borderColor: theme.colors.border.light,
+    },
+    sectionTitle: {
+      ...theme.typography.h3,
+      color: theme.colors.text.DEFAULT,
+      marginBottom: theme.spacing.md,
+      fontWeight: '600',
+    },
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border.light,
+    },
+    infoIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.background.secondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.spacing.md,
+    },
+    infoContent: {
+      flex: 1,
+    },
+    infoLabel: {
+      ...theme.typography.caption,
+      color: theme.colors.text.secondary,
+      marginBottom: 2,
+    },
+    infoValue: {
+      ...theme.typography.body,
+      color: theme.colors.text.DEFAULT,
+      fontWeight: '500',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    logoutButton: {
+      marginTop: theme.spacing.md,
+      backgroundColor: theme.colors.surface.DEFAULT,
+      borderColor: theme.colors.error,
+      borderWidth: 1,
+    },
+    logoutContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: theme.spacing.md,
+    },
+    logoutIconContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: `${theme.colors.error}15`,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.spacing.sm,
+    },
+    logoutText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      fontSize: 14,
+    },
+  });
 
   if (loading) {
     return (
@@ -111,123 +133,64 @@ export default function SettingsScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Settings</Text>
-      </View>
-      <ScrollView style={styles.content}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Profile</Text>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Name</Text>
-            <TextInput
-              style={styles.input}
-              value={editing ? formData.name : profile?.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-              editable={editing}
-            />
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Profile Information</Text>
+        
+        <View style={styles.infoRow}>
+          <View style={styles.infoIcon}>
+            <Ionicons name="person" size={20} color={theme.colors.primary.DEFAULT} />
           </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={editing ? formData.email : profile?.email}
-              onChangeText={(text) => setFormData({ ...formData, email: text })}
-              editable={editing}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Name</Text>
+            <Text style={styles.infoValue}>{profile?.name || 'Not set'}</Text>
           </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Role</Text>
-            <Text style={styles.input}>{profile?.role}</Text>
-          </View>
-          {editing ? (
-            <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSave}>
-              <Text style={styles.buttonText}>Save Changes</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.button} onPress={() => setEditing(true)}>
-              <Text style={styles.buttonText}>Edit Profile</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
-            <Text style={styles.buttonText}>Logout</Text>
-          </TouchableOpacity>
+        <View style={styles.infoRow}>
+          <View style={styles.infoIcon}>
+            <Ionicons name="mail" size={20} color={theme.colors.primary.DEFAULT} />
+          </View>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Email</Text>
+            <Text style={styles.infoValue}>{profile?.email || 'Not set'}</Text>
+          </View>
         </View>
-      </ScrollView>
-    </View>
+
+        <View style={styles.infoRow}>
+          <View style={styles.infoIcon}>
+            <Ionicons name="call" size={20} color={theme.colors.primary.DEFAULT} />
+          </View>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Phone</Text>
+            <Text style={styles.infoValue}>{profile?.phone || 'Not set'}</Text>
+          </View>
+        </View>
+
+        <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+          <View style={styles.infoIcon}>
+            <Ionicons name="shield" size={20} color={theme.colors.primary.DEFAULT} />
+          </View>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Role</Text>
+            <Text style={styles.infoValue}>{profile?.role || 'Not set'}</Text>
+          </View>
+        </View>
+      </View>
+
+      <TouchableOpacity 
+        style={[styles.section, styles.logoutButton]} 
+        onPress={signOut}
+      >
+        <View style={styles.logoutContent}>
+          <View style={styles.logoutIconContainer}>
+            <Ionicons name="log-out" size={24} color={theme.colors.error} />
+          </View>
+          <Text style={[styles.logoutText, { color: theme.colors.error }]}>
+            Sign Out
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create<Styles>({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background.DEFAULT,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    padding: theme.spacing.lg,
-    backgroundColor: theme.colors.primary.DEFAULT,
-  },
-  title: {
-    ...theme.typography.h1,
-    color: theme.colors.text.light,
-    fontWeight: '700' as const,
-  },
-  content: {
-    padding: theme.spacing.lg,
-  },
-  section: {
-    marginBottom: theme.spacing.xl,
-  },
-  sectionTitle: {
-    ...theme.typography.h2,
-    color: theme.colors.text.DEFAULT,
-    marginBottom: theme.spacing.md,
-    fontWeight: '700' as const,
-  },
-  inputGroup: {
-    marginBottom: theme.spacing.md,
-  },
-  label: {
-    ...theme.typography.body,
-    color: theme.colors.text.DEFAULT,
-    marginBottom: theme.spacing.xs,
-    fontWeight: '400' as const,
-  },
-  input: {
-    ...theme.typography.body,
-    borderWidth: 1,
-    borderColor: theme.colors.border.DEFAULT,
-    borderRadius: theme.borderRadius.sm,
-    padding: theme.spacing.sm,
-    color: theme.colors.text.DEFAULT,
-    fontWeight: '400' as const,
-  },
-  button: {
-    backgroundColor: theme.colors.primary.DEFAULT,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.sm,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: theme.colors.text.light,
-    ...theme.typography.body,
-    fontWeight: '700' as const,
-  },
-  saveButton: {
-    backgroundColor: theme.colors.primary[600],
-  },
-  logoutButton: {
-    backgroundColor: '#ef4444',
-  },
-}); 

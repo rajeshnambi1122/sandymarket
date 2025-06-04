@@ -1,5 +1,5 @@
 export interface Order {
-  _id: string;
+  _id: number;
   customerName: string;
   email: string;
   phone?: string;
@@ -15,4 +15,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   notes?: string;
+  size?: string;
+  toppings?: string[];
+  _id?: string;
 } 
