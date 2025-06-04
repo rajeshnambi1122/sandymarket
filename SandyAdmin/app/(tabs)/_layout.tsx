@@ -16,12 +16,17 @@ export default function TabLayout() {
           backgroundColor: theme.colors.white.DEFAULT,
         },
         headerTintColor: theme.colors.text.DEFAULT,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        headerShown: true,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Dashboard',
+          headerTitle: 'Dashboard',
           tabBarIcon: ({ color }) => (
             <FontAwesome name="dashboard" size={24} color={color} />
           ),
@@ -31,21 +36,12 @@ export default function TabLayout() {
         name="orders"
         options={{
           title: 'Orders',
+          headerTitle: 'Orders',
           tabBarIcon: ({ color }) => (
             <FontAwesome name="list" size={24} color={color} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="gas-prices"
-        options={{
-          title: 'Gas Prices',
-          tabBarIcon: ({ color }) => (
-            <FontAwesome name="tachometer" size={24} color={color} />
-          ),
-        }}
-      />
-     
     </Tabs>
   );
 }

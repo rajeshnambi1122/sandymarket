@@ -144,7 +144,10 @@ export default function RootLayout() {
 
   return (
     <AuthContext.Provider value={{ signIn, signOut, isAuthenticated }}>
-      <Stack />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+      </Stack>
     </AuthContext.Provider>
   );
 }

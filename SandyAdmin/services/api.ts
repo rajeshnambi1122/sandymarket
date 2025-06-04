@@ -128,19 +128,6 @@ export const ordersAPI = {
   },
 };
 
-// Gas Prices API calls
-export const gasPricesAPI = {
-  getAllGasPrices: async () => {
-    const response = await api.get('/gasprice');
-    return response.data;
-  },
-
-  updateGasPrice: async (id: string, price: number) => {
-    const response = await api.patch(`/gasprice/${id}`, { price });
-    return response.data;
-  },
-};
-
 // Admin API calls
 export const adminAPI = {
   getProfile: async () => {

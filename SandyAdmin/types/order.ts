@@ -2,15 +2,17 @@ export interface Order {
   _id: string;
   customerName: string;
   email: string;
+  phone?: string;
+  address?: string;
   items: OrderItem[];
   totalAmount: number;
-  status: string;
+  status: 'pending' | 'preparing' | 'ready' | 'delivered';
   createdAt: string;
 }
 
 export interface OrderItem {
-  productId: string;
+  name: string;
   quantity: number;
   price: number;
-  name: string;
+  notes?: string;
 } 

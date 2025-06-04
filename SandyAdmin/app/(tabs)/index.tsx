@@ -10,16 +10,18 @@ import { adminAPI } from '../../services/api';
 interface DashboardStats {
   totalOrders: number;
   pendingOrders: number;
-  completedOrders: number;
-  cancelledOrders: number;
+  preparingOrders: number;
+  readyOrders: number;
+  deliveredOrders: number;
 }
 
 export default function DashboardScreen() {
   const [stats, setStats] = useState<DashboardStats>({
     totalOrders: 0,
     pendingOrders: 0,
-    completedOrders: 0,
-    cancelledOrders: 0,
+    preparingOrders: 0,
+    readyOrders: 0,
+    deliveredOrders: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,8 +34,9 @@ export default function DashboardScreen() {
         setStats({
           totalOrders: orders.length,
           pendingOrders: orders.filter((order: any) => order.status === 'pending').length,
-          completedOrders: orders.filter((order: any) => order.status === 'completed').length,
-          cancelledOrders: orders.filter((order: any) => order.status === 'cancelled').length,
+          preparingOrders: orders.filter((order: any) => order.status === 'preparing').length,
+          readyOrders: orders.filter((order: any) => order.status === 'ready').length,
+          deliveredOrders: orders.filter((order: any) => order.status === 'delivered').length,
         });
       }
     } catch (error) {
@@ -111,13 +114,18 @@ export default function DashboardScreen() {
         </Card>
         
         <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.completedOrders}</Text>
-          <Text style={styles.statLabel}>Completed Orders</Text>
+          <Text style={styles.statValue}>{stats.preparingOrders}</Text>
+          <Text style={styles.statLabel}>Preparing Orders</Text>
         </Card>
-        
+
         <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.cancelledOrders}</Text>
-          <Text style={styles.statLabel}>Cancelled Orders</Text>
+          <Text style={styles.statValue}>{stats.readyOrders}</Text>
+          <Text style={styles.statLabel}>Ready Orders</Text>
+        </Card>
+
+        <Card style={styles.statCard}>
+          <Text style={styles.statValue}>{stats.deliveredOrders}</Text>
+          <Text style={styles.statLabel}>Delivered Orders</Text>
         </Card>
       </View>
     </ScrollView>
