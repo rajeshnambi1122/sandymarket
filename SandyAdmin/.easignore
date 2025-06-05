@@ -1,0 +1,10 @@
+node_modules/
+.vscode/
+*.log
+.DS_Store
+android/
+ios/
+coverage/
+__tests__/
+*.test.*
+*.spec.*
