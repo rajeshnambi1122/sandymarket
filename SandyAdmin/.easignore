@@ -8,3 +8,5 @@ coverage/
 __tests__/
 *.test.*
 *.spec.*
+backend/
+frontend/
