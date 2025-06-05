@@ -1,13 +1,26 @@
 {
   "cli": {
-    "version": ">= 5.9.1",
-    "appVersionSource": "remote"
+    "version": ">= 3.0.0"
   },
   "build": {
+    "production": {
+      "developmentClient": false,
+      "distribution": "store",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      }
+    },
     "preview": {
       "android": {
         "buildType": "apk"
       }
     }
-  }
+  },
+  "submit": {
+    "production": {}
+  },
+  "root": "SandyAdmin"
 } 
