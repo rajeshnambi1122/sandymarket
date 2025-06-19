@@ -5,6 +5,7 @@
   "build": {
     "production": {
       "developmentClient": false,
+      "appRoot": "SandyAdmin",
       "distribution": "store",
       "android": {
         "buildType": "apk"

@@ -91,7 +91,6 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('Message handled in the background!', remoteMessage);
   
   // Only schedule a local notification if the app is in background
-  // When app is killed, FCM will handle showing the notification automatically
   if (remoteMessage.notification && appState === 'background') {
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -109,8 +108,8 @@ export const setupNotificationListeners = () => {
   const onMessageListener = messaging().onMessage(async remoteMessage => {
     console.log('FCM Message received in foreground:', remoteMessage);
     
-    // For foreground messages, we can show the notification directly
-    if (remoteMessage.notification) {
+    // Only show notification if app is in foreground
+    if (remoteMessage.notification && appState === 'active') {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: remoteMessage.notification.title,

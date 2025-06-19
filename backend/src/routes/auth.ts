@@ -65,7 +65,7 @@ router.post("/register", async (req, res) => {
         role: savedUser.role 
       },
       process.env.JWT_SECRET || "secret",
-      { expiresIn: "7d" }
+      { expiresIn: "1y" }
     );
 
     // Response without password
@@ -147,7 +147,7 @@ router.post("/login", async (req, res) => {
         role: user.role || "user" 
       },
       process.env.JWT_SECRET || "secret",
-      { expiresIn: "7d" }
+      { expiresIn: "1y" }
     );
 
     console.log("User successfully logged in:", {
