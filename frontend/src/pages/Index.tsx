@@ -500,14 +500,14 @@ const Index = () => {
                   </div>
                   <h3 className="text-xl font-semibold mb-3">Contact</h3>
                   <div className="flex items-center gap-2 mb-2 text-gray-600">
-                    <Phone className="w-4 h-4 text-primary" /> (555) 123-4567
+                    <Phone className="w-4 h-4 text-primary" /> +1 989-435-9688
                   </div>
                   <div className="flex items-center gap-2 mb-6 text-gray-600">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                       <polyline points="22,6 12,13 2,6"></polyline>
                     </svg>
-                    info@sandysmarket.com
+                    sandysmarket-gbs@hotmail.com
                   </div>
                   <Button 
                     className="mt-auto bg-primary hover:bg-primary/90 text-white transition-colors hover:scale-105 transform duration-300"

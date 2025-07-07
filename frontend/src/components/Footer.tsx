@@ -19,7 +19,7 @@ const Footer = () => {
             <p className="text-gray-400">Beaverton, MI</p>
             <p className="text-gray-400">United States</p>
             <p className="text-gray-400 mt-2">Phone: +1 989-435-9688</p>
-            <p className="text-gray-400">Email: sandysmarket19@gmail.com</p>
+            <p className="text-gray-400">Email: sandysmarket-gbs@hotmail.com</p>
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-4">Hours</h3>
