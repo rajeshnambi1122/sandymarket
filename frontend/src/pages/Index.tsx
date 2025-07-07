@@ -481,16 +481,12 @@ const Index = () => {
                   <h3 className="text-xl font-semibold mb-3">Hours</h3>
                   <div className="w-full">
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Monday - Friday:</span>
-                      <span className="text-primary font-medium">6:00 AM - 10:00 PM</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Saturday:</span>
-                      <span className="text-primary font-medium">7:00 AM - 10:00 PM</span>
+                      <span className="text-gray-600">Monday - Sunday:</span>
+                      <span className="text-primary font-medium">24 Hours</span>
                     </div>
                     <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-600">Sunday:</span>
-                      <span className="text-primary font-medium">8:00 AM - 9:00 PM</span>
+                      <span className="text-gray-600">Every Day:</span>
+                      <span className="text-primary font-medium">Open 24/7</span>
                     </div>
                   </div>
                 </div>

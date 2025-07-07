@@ -24,10 +24,8 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Hours</h3>
             <div className="text-gray-400 space-y-1">
-              <p>Monday-Thursday: 6 am – 10 pm</p>
-              <p>Friday: 6 am – 11 pm</p>
-              <p>Saturday: 7 am – 11 pm</p>
-              <p>Sunday: 7 am – 10 pm</p>
+              <p>Monday - Sunday: 24 Hours</p>
+              <p>Open 24/7</p>
             </div>
             <div className="flex space-x-4 mt-4">
               <a
