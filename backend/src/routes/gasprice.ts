@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import { GasPrice } from "../models/Gasprice";
+import { auth, AuthRequest } from "../middleware/auth";
 
 const router = express.Router();
 
@@ -12,13 +13,11 @@ router.get("/", async (_req: Request, res: Response) => {
     console.error("Error fetching gas prices:", error);
     res.status(500).json({ message: "Error fetching gas prices" });
   }
-  res.json({ success: true });
-  return;
 });
 
-router.patch("/", async (_req: Request, res: Response) => {
+router.patch("/", auth, async (_req: AuthRequest, res: Response) => {
   try {
-    console.log("Received gas price update request:", _req.body);
+
     const { type, price } = _req.body;
 
     // Validate input
@@ -55,17 +54,15 @@ router.patch("/", async (_req: Request, res: Response) => {
       }
     );
 
-    console.log("Gas price updated successfully:", updatedPrice);
-    res.status(200).json(updatedPrice);
+
+    return res.status(200).json(updatedPrice);
   } catch (error) {
     console.error("Error updating gas price:", error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       message: "Error updating gas price",
       error: error instanceof Error ? error.message : "Unknown error"
     });
   }
-  res.json({ success: true });
-  return;
 });
 
 export const gasPriceRoutes = router;

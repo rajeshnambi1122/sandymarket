@@ -46,7 +46,7 @@ export default function Admin() {
 
     try {
       setLoading(true);
-      console.log("Fetching orders from:", `${API_URL}/orders`);
+  
       
       const response = await axios.get(`${API_URL}/orders`, {
         headers: {
@@ -54,7 +54,7 @@ export default function Admin() {
         }
       });
       
-      console.log("Orders API Response:", response.data);
+
       
       // Process the orders to ensure consistent ID handling
       let processedOrders: Order[] = [];
@@ -75,13 +75,13 @@ export default function Admin() {
       const normalizedOrders = processedOrders.map(order => {
         // If _id is missing but id exists, use id for _id
         if (!order._id && order.id) {
-          console.log(`Order with missing _id, setting from id: ${order.id}`);
+
           return { ...order, _id: order.id };
         }
         return order;
       });
       
-      console.log("Processed orders:", normalizedOrders);
+
       setOrders(normalizedOrders);
       
       // Save to localStorage as a cache
@@ -95,7 +95,7 @@ export default function Admin() {
         try {
           const parsedOrders = JSON.parse(cachedOrders);
           setOrders(parsedOrders);
-          console.log("Using cached orders from localStorage");
+    
           
           toast({
             title: "Using Cached Data",
@@ -195,20 +195,19 @@ export default function Admin() {
     );
     try {
       localStorage.setItem('cached_orders', JSON.stringify(updatedOrders));
-      console.log('Orders cached in localStorage for persistence');
+
     } catch (error) {
       console.error('Failed to cache orders in localStorage', error);
     }
     
     // Log attempt for debugging
-    console.log(`Client-side update for order ${orderId}: status changed to ${status}`);
-    console.log("NOTE: This update is UI-only. The server API for updating orders is unavailable.");
+
     
     // Only attempt one endpoint to reduce console errors
     try {
       // Try just the standard RESTful endpoint with PATCH method
       const endpoint = `${API_URL}/orders/${orderId}`;
-      console.log(`Trying standard endpoint with PATCH: ${endpoint}`);
+      
       
       const response = await axios.patch(
         endpoint,
@@ -217,7 +216,7 @@ export default function Admin() {
       );
       
       if (response.status === 200 || response.status === 204) {
-        console.log("SUCCESS! Server update succeeded:", response.data);
+        
         
         toast({
           title: "Status Updated",
@@ -226,7 +225,7 @@ export default function Admin() {
       }
     } catch (error) {
       // Silently fail since we've already updated the UI
-      console.log("Server API for order updates is unavailable - using client-side only mode");
+      
     }
   };
 

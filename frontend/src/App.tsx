@@ -9,9 +9,8 @@ import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import PizzaOrder from "./pages/PizzaOrder";
+import OrderPage from "./pages/OrderPage";
 import OrderSuccess from "./pages/OrderSuccess";
-import PrivacyPolicy from './pages/PrivacyPolicy';
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -26,9 +25,8 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/order-pizza" element={<PizzaOrder />} />
+          <Route path="/order-pizza" element={<OrderPage />} />
           <Route path="/orders/:id" element={<OrderSuccess />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

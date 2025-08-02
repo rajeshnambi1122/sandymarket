@@ -43,9 +43,6 @@ const Footer = () => {
             </div>
           </div>
         </div>
-        <Link to="/privacy-policy" className="text-gray-400  hover:underline">
-          Privacy Policy
-        </Link>
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
           <p>Sandy's Market</p>
         </div>

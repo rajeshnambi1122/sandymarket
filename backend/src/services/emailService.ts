@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { OrderDetails, OrderItem } from '../types/order'; // Adjust the import path as necessary
-import twilio from 'twilio';
+// import twilio from 'twilio';
 
 dotenv.config();
 
@@ -12,16 +12,16 @@ console.log('Email Configuration:', {
   port: 587,
 });
 
-// Initialize Twilio client
-const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN 
-  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-  : null;
+// Initialize Twilio client (DISABLED)
+// const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN 
+//   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+//   : null;
 
-if (twilioClient) {
-  console.log('Twilio client initialized successfully');
-} else {
-  console.warn('Twilio client not initialized. SMS notifications will not be sent.');
-}
+// if (twilioClient) {
+//   console.log('Twilio client initialized successfully');
+// } else {
+//   console.warn('Twilio client not initialized. SMS notifications will not be sent.');
+// }
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -36,7 +36,7 @@ transporter.verify(function (error) {
   if (error) {
     console.error('Email transporter verification failed:', error);
   } else {
-    console.log('Email server is ready to send messages');
+  
   }
 });
 
@@ -229,8 +229,10 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
   await transporter.sendMail(mailOptions);
 };
 
-// Add a function to send SMS notifications
-const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean> => {
+// Add a function to send SMS notifications (TWILIO DISABLED)
+const sendSmsNotification = async (_orderDetails: OrderDetails): Promise<boolean> => {
+  // TWILIO SMS FUNCTIONALITY DISABLED
+  /*
   if (!twilioClient || !process.env.TWILIO_PHONE_NUMBER) {
     console.warn('SMS notification skipped: Twilio not configured properly');
     return false;
@@ -286,7 +288,7 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
           from: process.env.TWILIO_PHONE_NUMBER,
           to: phoneNumber
         });
-        console.log(`SMS notification sent successfully to ${phoneNumber}:`, result.sid);
+  
         return true;
       } catch (error) {
         console.error(`Failed to send SMS to ${phoneNumber}:`, error);
@@ -297,7 +299,7 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
     // Consider it a success if at least one SMS was sent successfully
     const atLeastOneSuccess = results.some(result => result === true);
     if (atLeastOneSuccess) {
-      console.log(`SMS notifications sent to ${results.filter(r => r).length} of ${storePhoneNumbers.length} numbers`);
+  
     } else {
       console.error('Failed to send SMS notifications to any store number');
     }
@@ -307,6 +309,10 @@ const sendSmsNotification = async (orderDetails: OrderDetails): Promise<boolean>
     console.error('Failed to send SMS notifications:', error);
     return false;
   }
+  */
+  
+  console.log('SMS notifications disabled (Twilio commented out)');
+  return true; // Return true so email notifications still work
 };
 
 export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Promise<void> => {
@@ -449,7 +455,7 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
       sendSmsNotification(orderDetails)
     ]);
 
-    console.log('All notifications sent successfully to customer and store');
+  
   } catch (error) {
     console.error('Failed to send notifications:', error);
     throw error;

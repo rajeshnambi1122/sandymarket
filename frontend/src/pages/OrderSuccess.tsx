@@ -21,7 +21,7 @@ export default function OrderSuccess() {
   const fetchOrder = async (orderId: string) => {
     try {
       const orderData = await ordersApi.getOrderById(orderId);
-      console.log("DEBUG: Retrieved order data:", orderData);
+  
       
       // Log toppings information for each item
       if (orderData && orderData.items) {

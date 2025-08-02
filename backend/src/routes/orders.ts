@@ -21,13 +21,11 @@ router.get("/", auth, async (_req: AuthRequest, res: Response) => {
 // Get user's orders
 router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
-    console.log("\n=== MY-ORDERS ENDPOINT CALLED ===");
-    console.log("Authorization header:", req.headers.authorization?.substring(0, 20) + "...");
-    console.log("User ID from token:", req.user?.userId);
+    
     
     // Validate user ID
     if (!req.user?.userId) {
-      console.log("❌ No userId in request");
+  
       return res.status(401).json({ 
         success: false, 
         message: "User ID not found in request",
@@ -36,7 +34,7 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
     }
     
     if (!mongoose.Types.ObjectId.isValid(req.user?.userId)) {
-      console.log("❌ Invalid userId format:", req.user?.userId);
+  
       return res.status(400).json({
         success: false,
         message: "Invalid user ID format",
@@ -44,10 +42,10 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
       });
     }
     
-    console.log("🔍 Looking up user in database...");
+  
     const user = await mongoose.model('User').findById(req.user?.userId);
     if (!user) {
-      console.log("❌ User not found in database:", req.user?.userId);
+
       return res.status(404).json({
         success: false,
         message: "User not found",
@@ -55,35 +53,31 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
       });
     }
     
-    console.log("✅ Found user:", {
-      id: user._id,
-      email: user.email,
-      name: user.name
-    });
+
     
     // First try to find orders directly linked to user
-    console.log("🔍 Searching for orders linked to user ID:", req.user?.userId);
+
     const linkedOrders = await Order.find({ 
       user: new mongoose.Types.ObjectId(req.user?.userId) 
     }).sort({ createdAt: -1 });
-    console.log(`Found ${linkedOrders.length} linked orders`);
+
     
     // Then find orders with matching email but not linked
-    console.log("🔍 Searching for orders with matching email:", user.email.toLowerCase());
+
     const unlinkedOrders = await Order.find({
       email: user.email.toLowerCase(),
       user: { $exists: false }
     }).sort({ createdAt: -1 });
-    console.log(`Found ${unlinkedOrders.length} unlinked orders`);
+
     
     // Link any unlinked orders to the user
     if (unlinkedOrders.length > 0) {
-      console.log("🔗 Linking unlinked orders to user...");
+
       for (const order of unlinkedOrders) {
         try {
           order.user = new mongoose.Types.ObjectId(req.user?.userId);
           await order.save();
-          console.log(`✅ Linked order ${order._id} to user ${req.user?.userId}`);
+
         } catch (error) {
           console.error(`❌ Error linking order ${order._id}:`, error);
         }
@@ -96,12 +90,8 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
     );
     
     // Log final order count and data
-    console.log(`📊 Returning ${allOrders.length} total orders`);
-    console.log("First order sample:", allOrders[0] ? {
-      id: allOrders[0]._id,
-      email: allOrders[0].email,
-      items: allOrders[0].items?.length || 0
-    } : "No orders");
+
+
     
     // Return response with detailed stats
     const response = {
@@ -120,7 +110,7 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
       }
     };
     
-    console.log("Response size:", JSON.stringify(response).length, "bytes");
+
     return res.json(response);
     
   } catch (error: any) {
@@ -165,35 +155,20 @@ router.get("/:id", async (req, res, next) => {
       return next();
     }
 
-    console.log("GET ORDER BY ID endpoint called for ID:", req.params.id);
+  
     
     const order = await Order.findById(req.params.id);
     if (!order) {
-      console.log("Order not found with ID:", req.params.id);
+
       return res.status(404).json({
         success: false,
         message: "Order not found",
       });
     }
     
-    console.log("Order retrieved successfully:", {
-      id: order._id,
-      customerName: order.customerName,
-      itemsCount: order.items.length
-    });
+
     
-    // Check each item for toppings
-    if (order.items && order.items.length > 0) {
-      console.log("ORDER ITEMS WITH TOPPINGS:");
-      order.items.forEach((item: any, index: number) => {
-        console.log(`Item ${index}: ${item.name}`, {
-          toppings: item.toppings || [],
-          toppingsType: item.toppings ? typeof item.toppings : 'undefined',
-          isArray: item.toppings && Array.isArray(item.toppings),
-          size: item.size || null
-        });
-      });
-    }
+
     
     return res.json({ success: true, data: order });
   } catch (error) {
@@ -208,41 +183,6 @@ router.get("/:id", async (req, res, next) => {
 // Create new order (for customers)
 router.post("/", async (req: AuthRequest, res) => {
   try {
-    console.log("CREATE ORDER endpoint called");
-    console.log("Request body:", {
-      ...req.body,
-      items: req.body.items?.length || 0,
-      userId: req.body.userId || 'not provided'
-    });
-    
-    // Log detailed item information including toppings
-    console.log("ORDER ITEMS DETAILS WITH TOPPINGS:");
-    if (req.body.items && Array.isArray(req.body.items)) {
-      req.body.items.forEach((item: any, index: number) => {
-        // First check if toppings exist and are an array
-        const hasToppingsArray = item.toppings && Array.isArray(item.toppings);
-        const toppingsCount = hasToppingsArray ? item.toppings.length : 0;
-        
-        console.log(`Item ${index}: ${item.name}`, {
-          hasToppingsArray,
-          toppingsCount,
-          toppingsData: hasToppingsArray ? JSON.stringify(item.toppings) : 'NOT AN ARRAY',
-          rawToppings: item.toppings, // Log the raw value
-          size: item.size || null,
-          quantity: item.quantity,
-          price: item.price
-        });
-        
-        // If it should have toppings but doesn't, log a warning
-        if (item.name.includes('Topping') && (!hasToppingsArray || toppingsCount === 0)) {
-          console.warn(`WARNING: Item ${item.name} should have toppings but has none or invalid format`);
-        }
-      });
-    }
-    
-    console.log("Authentication header:", req.headers.authorization ? "Present" : "Missing");
-    console.log("User ID from auth middleware:", req.user?.userId);
-    
     const { customerName, phone, email, items, address, userId, cookingInstructions } = req.body;
 
     if (!items || items.length === 0) {
@@ -271,15 +211,11 @@ router.post("/", async (req: AuthRequest, res) => {
     
     // Priority 1: Use userId from request body if provided
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-      console.log("Checking userId from request body:", userId);
       try {
         const user = await mongoose.model('User').findById(userId);
         if (user) {
-          console.log("Found valid user from request body userId");
           orderUserId = userId;
           userIdSource = 'request';
-        } else {
-          console.log("User ID from request body not found in database");
         }
       } catch (error) {
         console.error("Error checking user from request body:", error);
@@ -288,15 +224,11 @@ router.post("/", async (req: AuthRequest, res) => {
     
     // Priority 2: Use userId from auth token if authenticated
     if (!orderUserId && req.user?.userId && mongoose.Types.ObjectId.isValid(req.user?.userId)) {
-      console.log("Checking userId from auth token:", req.user?.userId);
       try {
         const user = await mongoose.model('User').findById(req.user?.userId);
         if (user) {
-          console.log("Found valid user from auth token");
           orderUserId = req.user?.userId;
           userIdSource = 'token';
-        } else {
-          console.log("User ID from auth token not found in database");
         }
       } catch (error) {
         console.error("Error checking user from auth token:", error);
@@ -305,28 +237,21 @@ router.post("/", async (req: AuthRequest, res) => {
     
     // Priority 3: Try to find user by email
     if (!orderUserId && email) {
-      console.log("Looking up user by email:", email);
       try {
         const user = await mongoose.model('User').findOne({ 
           email: email.toLowerCase() 
         });
         
         if (user) {
-          console.log("Found user by email lookup");
           orderUserId = user._id;
           userIdSource = 'email';
-        } else {
-          console.log("No user found with email:", email);
         }
       } catch (error) {
         console.error("Error looking up user by email:", error);
       }
     }
 
-    console.log("Final user ID determination:", {
-      userId: orderUserId,
-      source: userIdSource
-    });
+
 
     // Create order with the determined user ID and safeguard toppings
     const processedItems = items.map((item: any) => {
@@ -334,7 +259,7 @@ router.post("/", async (req: AuthRequest, res) => {
       let safeToppings: string[] = [];
       if (item.toppings && Array.isArray(item.toppings)) {
         safeToppings = [...item.toppings]; // Make a copy
-        console.log(`Order creation: Using toppings for ${item.name}:`, safeToppings);
+
       } else if (item.name.includes('Topping')) {
         console.warn(`Order creation: Item ${item.name} has invalid toppings format:`, item.toppings);
       }
@@ -362,30 +287,15 @@ router.post("/", async (req: AuthRequest, res) => {
     });
 
     const savedOrder = await order.save();
-    console.log("Order created:", {
-      id: savedOrder._id,
-      email: savedOrder.email,
-      userId: savedOrder.user,
-      userIdSource: userIdSource
-    });
+    console.log(`📦 NEW ORDER PLACED: #${savedOrder._id} by ${savedOrder.email} - Total: $${savedOrder.totalAmount} (${savedOrder.items?.length || 0} items)`);
 
-    // Log the items with toppings for debugging
-    console.log("Order items with toppings:");
-    items.forEach((item: any, index: number) => {
-      console.log(`Item ${index}: ${item.name}`, {
-        toppings: item.toppings || [],
-        size: item.size || null,
-        quantity: item.quantity
-      });
-    });
+
 
     // If order was saved without a user ID but we found one later, update it
     if (!savedOrder.user && orderUserId) {
       try {
-        console.log("Updating order to link to user:", orderUserId);
         savedOrder.user = new mongoose.Types.ObjectId(orderUserId);
         await savedOrder.save();
-        console.log("Order successfully linked to user");
       } catch (error) {
         console.error("Error linking order to user:", error);
       }
@@ -400,10 +310,7 @@ router.post("/", async (req: AuthRequest, res) => {
       size: item.size || undefined
     }));
     
-    console.log("Sending order confirmation with toppings data:",
-      orderItemsForEmail.map((item: { name: string; toppings?: string[] }) => {
-        return `${item.name} - toppings: ${(item.toppings || []).length}`;
-      }).join(', '));
+
     
     // Send email confirmation
     try {
@@ -449,7 +356,7 @@ router.patch("/:id", auth, async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    console.log("Updating order:", { id, status }); // Debug log
+
 
     const order = await Order.findByIdAndUpdate(
       id,
@@ -458,14 +365,14 @@ router.patch("/:id", auth, async (req: AuthRequest, res: Response) => {
     );
 
     if (!order) {
-      console.log("Order not found"); // Debug log
+
       return res.status(404).json({
         success: false,
         message: "Order not found",
       });
     }
 
-    console.log("Order updated:", order); // Debug log
+
     return res.json({ success: true, data: order });
   } catch (error: any) {
     console.error("Error updating order:", error); // Debug log
@@ -481,9 +388,7 @@ router.patch("/:id", auth, async (req: AuthRequest, res: Response) => {
 router.get("/by-email", auth, async (req: AuthRequest, res: Response) => {
   try {
     const { email } = req.query;
-    console.log("GET ORDERS BY EMAIL ENDPOINT CALLED");
-    console.log("Email query parameter:", email);
-    console.log("User ID from token:", req.user?.userId);
+
     
     if (!email || typeof email !== 'string') {
       return res.status(400).json({
@@ -495,11 +400,11 @@ router.get("/by-email", auth, async (req: AuthRequest, res: Response) => {
     // Get orders with matching email - use a simple string match instead of regex
     const orders = await Order.find({ email: email }).sort({ createdAt: -1 });
     
-    console.log(`Found ${orders.length} orders for email: ${email}`);
+
     
     // If we found orders by email but they're not linked to the user, update them
     if (orders.length > 0 && req.user?.userId) {
-      console.log(`Linking ${orders.length} orders to user: ${req.user?.userId}`);
+
       
       // Update the orders to link them to this user - one by one to avoid errors
       for (const order of orders) {
@@ -507,7 +412,7 @@ router.get("/by-email", auth, async (req: AuthRequest, res: Response) => {
           try {
             order.user = new mongoose.Types.ObjectId(req.user?.userId);
             await order.save();
-            console.log(`Order ${order._id} linked to user ${req.user?.userId}`);
+
           } catch (error: any) {
             console.error(`Error linking order ${order._id}:`, error.message);
             // Continue with next order

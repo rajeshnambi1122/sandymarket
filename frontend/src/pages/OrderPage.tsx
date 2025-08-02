@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { MinusCircle, PlusCircle, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ordersApi from "@/api/orders";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useInView } from "framer-motion";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -685,9 +685,7 @@ const CartSummary = React.memo(({
   onCheckout,
   onRemoveItem,
   isPlacingOrder,
-  setIsPlacingOrder,
-  orderConfirmed,
-  setOrderConfirmed
+  setIsPlacingOrder
 }: { 
   cart: CartItem[];
   cartTotal: number;
@@ -696,8 +694,6 @@ const CartSummary = React.memo(({
   onRemoveItem: (index: number) => void;
   isPlacingOrder: boolean;
   setIsPlacingOrder: React.Dispatch<React.SetStateAction<boolean>>;
-  orderConfirmed: boolean;
-  setOrderConfirmed: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
@@ -732,14 +728,6 @@ const CartSummary = React.memo(({
   };
 
   const handleSubmitForm = (data: z.infer<typeof orderSchema>) => {
-    if (!orderConfirmed) {
-      toast({
-        title: "Order Confirmation Required",
-        description: "Please confirm your order details before submitting",
-        variant: "destructive",
-      });
-      return;
-    }
     // Set form data in cart items
     form.setValue('items', cart);
     
@@ -935,26 +923,7 @@ const CartSummary = React.memo(({
                             </FormItem>
                           )}
                         />
-                        
-                        <div className="mt-4 mb-4">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="privacyPolicy"
-                              checked={orderConfirmed}
-                              onCheckedChange={(checked) => setOrderConfirmed(checked as boolean)}
-                              required
-                            />
-                            <label
-                              htmlFor="privacyPolicy"
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              I accept the <a href="/privacy-policy" className="text-orange-600 hover:text-orange-700 underline">Privacy Policy</a>
-                            </label>
-                          </div>
-                          <p className="text-sm text-gray-500 mt-1">
-                            By placing this order, you agree to our privacy policy and terms of service
-                          </p>
-                        </div>
+
                         
                         <div className="mt-3 font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200">
                           <span>Total:</span>
@@ -973,7 +942,7 @@ const CartSummary = React.memo(({
                           <Button 
                             type="submit"
                             className="flex-1 bg-orange-600 hover:bg-orange-700" 
-                            disabled={!orderConfirmed || isSubmitting}
+                            disabled={isSubmitting}
                           >
                             {isSubmitting ? (
                               <LoadingSpinner className="mr-2" />
@@ -1007,7 +976,7 @@ export default function PizzaOrder() {
   const [selectedToppings, setSelectedToppings] = useState<Record<string, string[]>>({});
   const [showToppingSelector, setShowToppingSelector] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string>("pizzas");
-  const [orderConfirmed, setOrderConfirmed] = useState(false);
+
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Optimize cart state
@@ -1597,8 +1566,6 @@ export default function PizzaOrder() {
           onRemoveItem={handleRemoveFromCart}
           isPlacingOrder={isPlacingOrder}
           setIsPlacingOrder={setIsPlacingOrder}
-          orderConfirmed={orderConfirmed}
-          setOrderConfirmed={setOrderConfirmed}
         />
       </main>
       <Footer />

@@ -22,7 +22,7 @@ export default function Profile() {
 
   const fetchUserData = useCallback(async (token: string) => {
     try {
-      console.log("Fetching user data...");
+  
       const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -30,7 +30,7 @@ export default function Profile() {
       });
 
       if (response.status === 401) {
-        console.log("Unauthorized - redirecting to login");
+  
         localStorage.removeItem("token");
         navigate("/login");
         return;
@@ -38,7 +38,7 @@ export default function Profile() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log("User data fetched:", data);
+  
         setUser(data);
       } else {
         console.error("Failed to fetch user data:", response.status);
@@ -55,7 +55,7 @@ export default function Profile() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        console.log("No token found - redirecting to login");
+    
         navigate("/login");
         return;
       }
@@ -70,7 +70,7 @@ export default function Profile() {
       }
 
       const userData = JSON.parse(userStr);
-      console.log("User data from localStorage:", userData);
+  
       
       if (!userData.id) {
         console.error("User data missing ID");
@@ -80,20 +80,20 @@ export default function Profile() {
       }
 
       try {
-        console.log(`Fetching orders for user ID: ${userData.id}`);
+  
         const userOrders = await ordersApi.getUserOrders();
-        console.log("Fetched user orders:", userOrders);
+  
 
         if (Array.isArray(userOrders) && userOrders.length > 0) {
           setOrders(userOrders);
           return;
         }
         
-        console.log("No orders found - creating test order automatically");
+
         await createTestOrder();
         
         const refreshedOrders = await ordersApi.getUserOrders();
-        console.log("Refreshed orders after test creation:", refreshedOrders);
+
         
         if (Array.isArray(refreshedOrders) && refreshedOrders.length > 0) {
           setOrders(refreshedOrders);
@@ -116,7 +116,7 @@ export default function Profile() {
   }, [navigate]);
 
   useEffect(() => {
-    console.log("Profile page mounted");
+  
     const token = localStorage.getItem("token");
     if (!token) {
       console.log("No token found on mount - redirecting to login");

@@ -61,11 +61,11 @@ const ordersApi = {
 
   createOrder: async (orderData: CreateOrderDTO): Promise<Order> => {
     try {
-      console.log("API: Sending order data to backend");
+    
       
       // Deep inspect the items array to ensure toppings are included
       if (orderData.items && Array.isArray(orderData.items)) {
-        console.log(`API: Order contains ${orderData.items.length} items`);
+    
         orderData.items.forEach((item, idx) => {
           const hasToppings = item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0;
           console.log(`API: Item ${idx} - ${item.name}:`, {
@@ -89,7 +89,7 @@ const ordersApi = {
           const userData = JSON.parse(userStr);
           // Include the user ID in the order data
           if (userData && userData.id) {
-            console.log("Adding user ID to order:", userData.id);
+      
             enhancedOrderData.userId = userData.id;
           }
         }
@@ -98,7 +98,7 @@ const ordersApi = {
         // Continue with original order data if there's an error
       }
       
-      console.log("Sending order with data:", JSON.stringify(enhancedOrderData, null, 2));
+  
       
       const response = await axios.post<OrderResponse>(
         `${API_URL}/orders`,
@@ -111,7 +111,7 @@ const ordersApi = {
         }
       );
       
-      console.log("API: Order creation successful, response:", response.data);
+  
       if (response.data && response.data.data) {
         return response.data.data;
       } else {
@@ -131,7 +131,7 @@ const ordersApi = {
         console.error("No token found in localStorage");
         throw new Error("Authentication required");
       }
-      console.log("Token from storage:", token.substring(0, 15) + '...');
+    
       
       // Get user data from localStorage
       const userStr = localStorage.getItem('user');
@@ -141,20 +141,19 @@ const ordersApi = {
       }
       
       const user = JSON.parse(userStr);
-      console.log("User email from localStorage:", user.email);
+  
       
       // Decode token to check payload
       try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         const payload = JSON.parse(window.atob(base64));
-        console.log("Decoded token userId:", payload.userId);
-        console.log("Decoded token role:", payload.role);
+        
       } catch (decodeError) {
         console.error("Error decoding token:", decodeError);
       }
 
-      console.log(`Requesting orders from: ${API_URL}/orders/my-orders`);
+  
       const response = await axios.get<OrdersResponse>(
         `${API_URL}/orders/my-orders`,
         {
@@ -165,8 +164,7 @@ const ordersApi = {
         }
       );
       
-      console.log("Raw response status:", response.status);
-      console.log("Raw response data:", response.data);
+      
       
       if (!response.data.success) {
         console.error("API returned error:", response.data.message);

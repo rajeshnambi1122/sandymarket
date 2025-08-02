@@ -4,7 +4,7 @@ const OrderForm: React.FC = () => {
   const [smsConsent, setSmsConsent] = useState(false);
   const [pizzaSize, setPizzaSize] = useState('medium');
   const [selectedToppings, setSelectedToppings] = useState<string[]>([]);
-  const [orderConfirmed, setOrderConfirmed] = useState(false);
+
 
   const toppings = [
     'Pepperoni',
@@ -29,10 +29,6 @@ const OrderForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!orderConfirmed) {
-      alert('Please confirm your order details before submitting');
-      return;
-    }
     // Handle order submission logic here
   };
 
@@ -115,19 +111,7 @@ const OrderForm: React.FC = () => {
         </label>
       </div>
 
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="orderConfirmed"
-          checked={orderConfirmed}
-          onChange={(e) => setOrderConfirmed(e.target.checked)}
-          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-          required
-        />
-        <label htmlFor="orderConfirmed" className="ml-2 block text-sm text-gray-700">
-          I confirm my pizza order details are correct
-        </label>
-      </div>
+
 
       <p className="text-sm text-gray-500">
         By placing this order, you consent to receive SMS notifications regarding your order status. Msg & Data rates may apply.
@@ -135,7 +119,6 @@ const OrderForm: React.FC = () => {
       <button 
         type="submit" 
         className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        disabled={!orderConfirmed}
       >
         Place Order
       </button>

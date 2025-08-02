@@ -15,7 +15,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
 
   try {
     const user = JSON.parse(userStr);
-    console.log("User role:", user.role); // Debug log
+  
 
     if (user.role !== "admin") {
       return <Navigate to="/" replace />;

@@ -41,7 +41,7 @@ export const sendNotification = async (
       return;
     }
 
-    console.log(`Attempting to send to ${fcmTokens.length} FCM token(s) individually:`, fcmTokens);
+    console.log(`📱 SENDING NOTIFICATIONS: Attempting to send to ${fcmTokens.length} device(s)`);
 
     const failedTokens: string[] = [];
 
@@ -77,8 +77,8 @@ export const sendNotification = async (
       };
 
       try {
-        const response = await firebaseAdmin.messaging().send(message);
-        console.log(`Notification sent successfully to token: ${token}`, response);
+        await firebaseAdmin.messaging().send(message);
+        // Success - don't log individual tokens for privacy
       } catch (err: any) {
         console.error(`Failed to send to token ${token}:`, err.message);
         failedTokens.push(token);
@@ -89,8 +89,12 @@ export const sendNotification = async (
       }
     }
 
+    // Log notification results summary
+    const successCount = fcmTokens.length - failedTokens.length;
+    console.log(`✅ NOTIFICATION RESULTS: ${successCount}/${fcmTokens.length} devices received notification successfully`);
+    
     if (failedTokens.length > 0) {
-      console.log('Cleaning up failed FCM tokens:', failedTokens);
+      console.log(`❌ ${failedTokens.length} notification(s) failed - cleaning up invalid tokens`);
       await User.updateMany(
         { fcmToken: { $in: failedTokens } },
         { $unset: { fcmToken: 1 } }
@@ -117,8 +121,4 @@ export const sendNewOrderNotification = async (orderId: string, customerName: st
     `New order #${orderId} from ${customerName || 'Guest'}`,
     notificationData
   );
-};
-
-// Removed Expo related send logic as it's for different token type and not needed for admin push
-
-// Removed getPushToken if it existed and was only for Expo token AsyncStorage 
+}; 

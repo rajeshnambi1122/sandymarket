@@ -10,8 +10,7 @@ const router = express.Router();
 // Register
 router.post("/register", async (req, res) => {
   try {
-    console.log("REGISTER ENDPOINT CALLED");
-    console.log("Request body:", { ...req.body, password: "[REDACTED]" });
+    
     
     const { email, password, name, phone, address } = req.body;
 
@@ -56,7 +55,8 @@ router.post("/register", async (req, res) => {
 
     // Save user to database
     const savedUser = await user.save();
-    console.log(`User created with ID: ${savedUser._id}`);
+    console.log(`✅ NEW USER REGISTERED: ${savedUser.email} (ID: ${savedUser._id}) - Role: ${savedUser.role}`);
+
 
     // Create token with user ID and role
     const token = jwt.sign(
@@ -104,8 +104,7 @@ router.post("/register", async (req, res) => {
 // Login
 router.post("/login", async (req, res) => {
   try {
-    console.log("LOGIN ENDPOINT CALLED");
-    console.log("Request body:", { ...req.body, password: "[REDACTED]" });
+    
     
     const { email, password } = req.body;
 
@@ -123,7 +122,7 @@ router.post("/login", async (req, res) => {
     // Check if user exists
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-      console.log(`Login failed: No user found with email ${normalizedEmail}`);
+
       return res.status(400).json({ 
         success: false,
         message: "Invalid credentials" 
@@ -133,7 +132,7 @@ router.post("/login", async (req, res) => {
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log(`Login failed: Invalid password for user ${normalizedEmail}`);
+
       return res.status(400).json({ 
         success: false,
         message: "Invalid credentials" 
@@ -150,12 +149,7 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1y" }
     );
 
-    console.log("User successfully logged in:", {
-      id: user._id,
-      email: user.email,
-      name: user.name,
-      role: user.role || "user",
-    });
+
 
     // Associate any existing orders with this user
     try {

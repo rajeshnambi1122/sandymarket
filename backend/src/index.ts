@@ -6,39 +6,13 @@ import { orderRoutes } from "./routes/orders";
 import { authRoutes } from "./routes/auth";
 import { gasPriceRoutes } from "./routes/gasprice";
 import dotenv from "dotenv";
-import { WebSocketServer, WebSocket } from 'ws';
+import 'dotenv/config'; // This loads .env automatically
 
 dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
-const wss = new WebSocketServer({ server: httpServer });
 
-// Store connected admin clients
-const adminClients = new Set<WebSocket>();
-
-// WebSocket connection handler
-wss.on('connection', (ws) => {
-  console.log('New admin client connected');
-  
-  // Add client to admin set
-  adminClients.add(ws);
-
-  // Handle client disconnect
-  ws.on('close', () => {
-    console.log('Admin client disconnected');
-    adminClients.delete(ws);
-  });
-});
-
-// Function to notify all admin clients
-export const notifyAdmins = (message: any) => {
-  adminClients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(message));
-    }
-  });
-};
 
 // Middleware
 app.use(
