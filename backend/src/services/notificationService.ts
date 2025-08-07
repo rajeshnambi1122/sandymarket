@@ -42,10 +42,24 @@ export const sendNotification = async (
     }
 
     console.log(`📱 SENDING NOTIFICATIONS: Attempting to send to ${fcmTokens.length} device(s)`);
+    
+    // Log detailed information about recipients
+    console.log('📋 NOTIFICATION RECIPIENTS:');
+    adminUsers.forEach((user, index) => {
+      if (user.fcmToken) {
+        const truncatedToken = `${user.fcmToken.substring(0, 20)}...${user.fcmToken.substring(user.fcmToken.length - 8)}`;
+        console.log(`  ${index + 1}. User: ${user.name} | FCM Token: ${truncatedToken}`);
+      }
+    });
 
     const failedTokens: string[] = [];
+    const failedUsers: Array<{name: string, token: string}> = [];
+    const successfulUsers: Array<{name: string, token: string}> = [];
 
-    for (const token of fcmTokens) {
+    for (let i = 0; i < fcmTokens.length; i++) {
+      const token = fcmTokens[i];
+      const user = adminUsers.find(u => u.fcmToken === token);
+      
       const message = {
         token,
         notification: {
@@ -78,10 +92,15 @@ export const sendNotification = async (
 
       try {
         await firebaseAdmin.messaging().send(message);
-        // Success - don't log individual tokens for privacy
+        if (user) {
+          successfulUsers.push({name: user.name, token});
+        }
       } catch (err: any) {
-        console.error(`Failed to send to token ${token}:`, err.message);
+        console.error(`Failed to send to ${user?.name || 'Unknown User'} (${token.substring(0, 20)}...):`, err.message);
         failedTokens.push(token);
+        if (user) {
+          failedUsers.push({name: user.name, token});
+        }
         // Optional: Log specific Firebase errors for debugging
         if (err.errorInfo) {
             console.error('Firebase Error Info:', err.errorInfo);
@@ -93,8 +112,27 @@ export const sendNotification = async (
     const successCount = fcmTokens.length - failedTokens.length;
     console.log(`✅ NOTIFICATION RESULTS: ${successCount}/${fcmTokens.length} devices received notification successfully`);
     
+    // Log successful notifications with user details
+    if (successfulUsers.length > 0) {
+      console.log('✅ SUCCESSFUL NOTIFICATIONS:');
+      successfulUsers.forEach((user, index) => {
+        const truncatedToken = `${user.token.substring(0, 20)}...${user.token.substring(user.token.length - 8)}`;
+        console.log(`  ${index + 1}. ✓ ${user.name} | FCM Token: ${truncatedToken}`);
+      });
+    }
+    
     if (failedTokens.length > 0) {
       console.log(`❌ ${failedTokens.length} notification(s) failed - cleaning up invalid tokens`);
+      
+      // Log failed notifications with user details
+      if (failedUsers.length > 0) {
+        console.log('❌ FAILED NOTIFICATIONS:');
+        failedUsers.forEach((user, index) => {
+          const truncatedToken = `${user.token.substring(0, 20)}...${user.token.substring(user.token.length - 8)}`;
+          console.log(`  ${index + 1}. ✗ ${user.name} | FCM Token: ${truncatedToken}`);
+        });
+      }
+      
       await User.updateMany(
         { fcmToken: { $in: failedTokens } },
         { $unset: { fcmToken: 1 } }
