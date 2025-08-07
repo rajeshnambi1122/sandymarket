@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Fuel, Pizza, Store, Clock, MapPin, Phone, Star, ArrowRight, Truck, ChevronDown } from "lucide-react";
+import { Fuel, Pizza, Store, Clock, MapPin, Phone, Star, ArrowRight, Truck, ChevronDown, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -29,12 +29,6 @@ const Index = () => {
       image: "/images/pizza3.jpg"
     },
     {
-      name: "BBQ Chicken Pizza",
-      price: "$15.99",
-      description: "Grilled chicken with BBQ sauce",
-      image: "/images/pizza4.jpg"
-    },
-    {
       name: "Fresh Subs",
       price: "$14.99",
       description: "Made with quality ingredients",
@@ -45,18 +39,6 @@ const Index = () => {
       price: "$13.99",
       description: "Juicy and flavorful burger",
       image: "/images/burger.jpg"
-    },
-    {
-      name: "Chicken Strips",
-      price: "$10.99",
-      description: "Crispy & tender chicken strips",
-      image: "/images/chickenstrips.jpg"
-    },
-    {
-      name: "Mozzarella Sticks",
-      price: "$8.99",
-      description: "Gooey cheese in crispy coating",
-      image: "/images/mozarellasticks.jpg"
     },
     {
       name: "French Fries",
@@ -499,15 +481,17 @@ const Index = () => {
                     <Phone className="w-8 h-8 text-primary group-hover:text-white transition-colors duration-300" />
                   </div>
                   <h3 className="text-xl font-semibold mb-3">Contact</h3>
-                  <div className="flex items-center gap-2 mb-2 text-gray-600">
-                    <Phone className="w-4 h-4 text-primary" /> +1 989-435-9688
+                  <div className="flex items-center justify-center mb-2 text-gray-600">
+                    <div className="w-4 h-4 flex items-center justify-center mr-2">
+                      <Phone className="w-4 h-4 text-primary" />
+                    </div>
+                    <span>+1 989-435-9688</span>
                   </div>
-                  <div className="flex items-center gap-2 mb-6 text-gray-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                      <polyline points="22,6 12,13 2,6"></polyline>
-                    </svg>
-                    sandysmarket-gbs@hotmail.com
+                  <div className="flex items-center justify-center mb-6 text-gray-600 whitespace-nowrap">
+                    <div className="w-4 h-4 flex items-center justify-center mr-2">
+                      <Mail className="w-4 h-4 text-primary" />
+                    </div>
+                    <span className="text-gray-600 whitespace-nowrap">sandysmarket-gbs@hotmail.com</span>
                   </div>
                   <Button 
                     className="mt-auto bg-primary hover:bg-primary/90 text-white transition-colors hover:scale-105 transform duration-300"

@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import { Admin } from '../models/Admin';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -54,12 +53,6 @@ export const adminAuth = async (
 
     if (decoded.role !== 'admin') {
       res.status(403).json({ message: 'Access denied. Admin only.' });
-      return;
-    }
-
-    const admin = await Admin.findById(decoded.userId);
-    if (!admin) {
-      res.status(401).json({ message: 'Admin not found' });
       return;
     }
 
