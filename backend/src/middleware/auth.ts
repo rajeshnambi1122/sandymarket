@@ -51,7 +51,7 @@ export const adminAuth = async (
       role: string;
     };
 
-    if (decoded.role !== 'admin') {
+    if (decoded.role !== 'admin' && decoded.role !== 'admin1') {
       res.status(403).json({ message: 'Access denied. Admin only.' });
       return;
     }

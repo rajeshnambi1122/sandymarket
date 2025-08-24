@@ -7,7 +7,7 @@ export interface IUser extends Document {
   name: string;
   phone: string;
   address: string;
-  role: "user" | "admin";
+  role: "user" | "admin" | "admin1";
   fcmToken?: string;
   createdAt: Date;
 }
@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["user", "admin"],
+    enum: ["user", "admin", "admin1"],
     default: "user",
   },
   fcmToken: {

@@ -128,7 +128,7 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
 router.get("/admin", auth, async (req: AuthRequest, res: Response) => {
   try {
     // Check if user is admin
-    if (req.user?.role !== 'admin') {
+    if (req.user?.role !== 'admin' && req.user?.role !== 'admin1') {
       return res.status(403).json({
         success: false,
         message: "Access denied. Admin role required."

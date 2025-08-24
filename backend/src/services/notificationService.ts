@@ -21,9 +21,9 @@ export const sendNotification = async (
   data: Record<string, string> = {}
 ) => {
   try {
-    // Get all admin users with FCM tokens
+    // Get all admin users with FCM tokens (including admin1 role)
     const adminUsers = await User.find({ 
-      role: 'admin',
+      role: { $in: ['admin', 'admin1'] },
       fcmToken: { $exists: true, $ne: null }
     }); // Removed .lean() here if not strictly necessary, to match suggested code structure
 
