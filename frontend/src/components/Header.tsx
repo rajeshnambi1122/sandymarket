@@ -51,8 +51,13 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-orange-200 bg-white shadow-lg">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link to="/" className="font-bold text-xl text-orange-600">
-            Sandy's Market
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/images/favi.png" 
+              alt="Sandy's Market Logo" 
+              className="h-10 w-auto"
+            />
+             <h1 className="text-sm font-bold">Sandy's Market</h1>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">

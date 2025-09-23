@@ -1,7 +1,7 @@
 import express, { Response } from "express";
 import { Order } from "../models/Order";
 import { auth, AuthRequest } from "../middleware/auth";
-import { sendOrderConfirmationEmail } from '../services/emailService';
+import { sendOrderConfirmationEmail } from '../services/resendEmailService';
 import { sendNewOrderNotification } from '../services/notificationService';
 import { OrderItem } from '../types/order';
 import mongoose from 'mongoose';
