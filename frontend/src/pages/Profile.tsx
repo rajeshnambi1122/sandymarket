@@ -22,7 +22,6 @@ export default function Profile() {
 
   const fetchUserData = useCallback(async (token: string) => {
     try {
-  
       const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -30,7 +29,6 @@ export default function Profile() {
       });
 
       if (response.status === 401) {
-  
         localStorage.removeItem("token");
         navigate("/login");
         return;
@@ -38,14 +36,11 @@ export default function Profile() {
       
       if (response.ok) {
         const data = await response.json();
-  
         setUser(data);
       } else {
-        console.error("Failed to fetch user data:", response.status);
         setError("Failed to load user data");
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
       setError("Error loading user data");
     }
   }, [navigate]);
@@ -55,150 +50,36 @@ export default function Profile() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-    
         navigate("/login");
         return;
       }
 
-      // Get user data from localStorage
-      const userStr = localStorage.getItem("user");
-      if (!userStr) {
-        console.error("No user data found in localStorage");
-        setError("No user data found");
-        setLoading(false);
+      const userOrders = await ordersApi.getUserOrders();
+      setOrders(Array.isArray(userOrders) ? userOrders : []);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
         return;
       }
-
-      const userData = JSON.parse(userStr);
-  
-      
-      if (!userData.id) {
-        console.error("User data missing ID");
-        setError("Invalid user data");
-        setLoading(false);
-        return;
-      }
-
-      try {
-  
-        const userOrders = await ordersApi.getUserOrders();
-  
-
-        if (Array.isArray(userOrders) && userOrders.length > 0) {
-          setOrders(userOrders);
-          return;
-        }
-        
-
-        await createTestOrder();
-        
-        const refreshedOrders = await ordersApi.getUserOrders();
-
-        
-        if (Array.isArray(refreshedOrders) && refreshedOrders.length > 0) {
-          setOrders(refreshedOrders);
-        } else {
-          console.error("Still no orders after creating test order");
-          setOrders([]);
-        }
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-        if (error.response?.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
-          return;
-        }
-        setError("Failed to fetch orders");
-      }
+      setError("Failed to fetch orders");
+      setOrders([]);
     } finally {
       setLoading(false);
     }
   }, [navigate]);
 
   useEffect(() => {
-  
     const token = localStorage.getItem("token");
     if (!token) {
-      console.log("No token found on mount - redirecting to login");
       navigate("/login");
       return;
     }
 
-    // Initial data fetch
     fetchUserData(token);
     fetchUserOrders();
   }, [fetchUserData, fetchUserOrders, navigate]);
 
-  const createTestOrder = async () => {
-    if (!user) {
-      console.error("Cannot create test order: user not found");
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      console.log("Creating test order for user:", user.id);
-      
-      // Create a simple test order with current timestamp to make it unique
-      const timestamp = new Date().toLocaleTimeString();
-      const testOrder = {
-        customerName: user.name,
-        phone: user.phone || "1234567890",
-        email: user.email,
-        address: user.address || "Pickup",
-        userId: user.id, // Explicitly include the user ID
-        items: [
-          {
-            name: `Test Pizza (${timestamp})`,
-            quantity: 1,
-            price: 15.99
-          },
-          {
-            name: `Test Side Item (${timestamp})`,
-            quantity: 2,
-            price: 4.99
-          }
-        ],
-        totalAmount: 25.97
-      };
-      
-      console.log("Test order data:", {
-        ...testOrder,
-        userId: user.id // Make sure user ID is included
-      });
-      
-      // Send the order to the API
-      const response = await ordersApi.createOrder(testOrder);
-      console.log("Test order response:", response);
-      
-      if (response && response._id) {
-        toast({
-          title: "Test Order Created",
-          description: `Order #${response._id} created successfully`,
-        });
-      } else {
-        console.error("Invalid response from createOrder:", response);
-        toast({
-          title: "Warning",
-          description: "Order created but response format unexpected",
-        });
-      }
-      
-      // Allow some time for the database to update
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Refresh orders list
-      await fetchUserOrders();
-    } catch (error) {
-      console.error("Error creating test order:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create test order. See console for details.",
-        variant: "destructive",
-      });
-      setLoading(false);
-    }
-  };
 
   if (error) {
     return (
@@ -277,18 +158,17 @@ export default function Profile() {
           </div>
         </Card>
 
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Order History</h2>
-          <div className="flex space-x-2">
-            <Button 
-              onClick={fetchUserOrders} 
-              variant="outline"
-              size="sm"
-              disabled={loading}
-            >
-              Refresh Orders
-            </Button>
-          </div>
+          <Button 
+            onClick={fetchUserOrders} 
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className="text-orange-600 border-orange-600 hover:bg-orange-50"
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </Button>
         </div>
         
         {loading ? (
@@ -328,18 +208,18 @@ export default function Profile() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 border rounded-lg">
-            <p className="text-gray-500 mb-2">No orders found</p>
-            <p className="text-sm text-gray-400 mb-4">
-              You haven't placed any orders yet, or there was an error retrieving your orders.
+          <div className="text-center py-12 border rounded-lg bg-gray-50">
+            <div className="text-6xl mb-4">🍕</div>
+            <p className="text-gray-600 text-lg font-medium mb-2">No orders yet</p>
+            <p className="text-sm text-gray-500 mb-6">
+              Ready to order some delicious food? Start browsing our menu!
             </p>
-            <div className="text-left mx-auto max-w-md p-4 bg-gray-50 rounded border">
-              <p className="text-sm font-semibold mb-2">Debugging Information:</p>
-              <p className="text-xs text-gray-600 mb-1">User ID: {user.id}</p>
-              <p className="text-xs text-gray-600 mb-1">Email: {user.email}</p>
-              <p className="text-xs text-gray-600 mb-3">Role: {user.role}</p>
-              <p className="text-xs text-gray-600">Try creating a test order to check if the ordering system is working correctly.</p>
-            </div>
+            <Button 
+              onClick={() => navigate('/order-pizza')}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              Browse Menu
+            </Button>
           </div>
         )}
       </main>

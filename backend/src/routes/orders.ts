@@ -155,8 +155,6 @@ router.get("/:id", async (req, res, next) => {
       return next();
     }
 
-  
-    
     const order = await Order.findById(req.params.id);
     if (!order) {
 
@@ -165,10 +163,6 @@ router.get("/:id", async (req, res, next) => {
         message: "Order not found",
       });
     }
-    
-
-    
-
     
     return res.json({ success: true, data: order });
   } catch (error) {

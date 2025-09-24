@@ -449,7 +449,7 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                 <div style="text-align: center; margin: 30px 0;">
                   <p style="font-size: 18px; margin-bottom: 15px;"><strong>What's Next?</strong></p>
                   <p>We'll send you another email when your order is ready for pickup!</p>
-                  <a href="https://sandysmarket.net/orders/${orderDetails.id}" class="cta-button">
+                  <a href="https://www.sandysmarket.net/profile" class="cta-button">
                     🔍 Track Your Order
                   </a>
                 </div>

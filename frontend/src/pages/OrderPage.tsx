@@ -15,7 +15,6 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { MinusCircle, PlusCircle, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ordersApi from "@/api/orders";
@@ -23,7 +22,7 @@ import ordersApi from "@/api/orders";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useInView } from "framer-motion";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const orderSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
@@ -617,7 +616,7 @@ const MenuSection = React.memo(({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="py-8"
+      className="py-4 first:pt-0"
     >
       <h2 className={`text-2xl font-bold mb-6 ${color || 'text-green-600'} border-b-2 pb-2 inline-block`}>{title}</h2>
       {isInView ? (
@@ -979,8 +978,33 @@ export default function PizzaOrder() {
 
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Optimize cart state
-  const [cart, setCart] = useState<CartItem[]>([]);
+  // Initialize cart state with localStorage value to prevent clearing
+  const getInitialCart = (): CartItem[] => {
+    try {
+      const savedCart = localStorage.getItem('items');
+      if (savedCart) {
+        return JSON.parse(savedCart);
+      }
+    } catch (error) {
+      console.error('Error parsing saved cart:', error);
+    }
+    return [];
+  };
+
+  const [cart, setCart] = useState<CartItem[]>(getInitialCart);
+  
+  // Save cart to localStorage whenever it changes (but skip initial render)
+  const isInitialRender = useRef(true);
+  useEffect(() => {
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      return;
+    }
+    
+    localStorage.setItem('items', JSON.stringify(cart));
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
+  }, [cart]);
   const cartTotal = useMemo(() => 
     cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   , [cart]);
@@ -1488,6 +1512,7 @@ export default function PizzaOrder() {
           cookingInstructions: "",
         });
         setCart([]);
+        localStorage.removeItem('items');
         setSelectedToppings({});
 
         navigate(`/orders/${response._id || response.id}`);
@@ -1532,17 +1557,12 @@ export default function PizzaOrder() {
       <div className="shadow-lg">
         <Header />
       </div>
-      <main className="flex-grow container mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-32 md:pb-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
+      <main className="flex-grow container mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-12 md:pb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3 sm:gap-1">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Sandy's Market Menu</h1>
-          <div className="text-right p-3 bg-gray-50 rounded-lg shadow-sm border border-gray-200 md:ml-auto">
-            <p className="font-medium">1057 Estey Rd</p>
-            <p>Beaverton, MI 48612</p>
-            <p className="font-semibold text-orange-600">(989)435-9688</p>
-          </div>
         </div>
 
-        <div className="space-y-6 sm:space-y-8">
+        <div className="space-y-0">
           {menuSections.map((section) => (
             <MenuSection 
               key={section.category}

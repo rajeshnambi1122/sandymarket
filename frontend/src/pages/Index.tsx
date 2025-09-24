@@ -124,16 +124,7 @@ const Index = () => {
               </div>
             </div>
           </div>
-          
-          <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
-            <button 
-              onClick={() => document.getElementById('why-choose-us')?.scrollIntoView({behavior: 'smooth'})}
-              className="flex flex-col items-center text-white opacity-70 hover:opacity-100 transition-opacity"
-            >
-              <span className="text-sm mb-2">Scroll Down</span>
-              <ChevronDown size={24} />
-            </button>
-          </div>
+
         </section>
 
         {/* Why Choose Us Section */}
