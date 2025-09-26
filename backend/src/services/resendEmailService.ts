@@ -8,14 +8,17 @@ dotenv.config();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Store email configuration
-const STORE_EMAIL = process.env.STORE_EMAIL || 'rajeshnambi2016@gmail.com';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'orders@sandysmarket.net';
+const STORE_EMAIL = process.env.STORE_EMAILS;
+const FROM_EMAIL = "Sandy's Market <orders@sandysmarket.net>";
 
 /**
  * Send notification to store staff about new orders
  */
 const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> => {
   try {
+    if (!STORE_EMAIL) {
+      throw new Error('STORE_EMAIL environment variable is not set');
+    }
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: [STORE_EMAIL],
