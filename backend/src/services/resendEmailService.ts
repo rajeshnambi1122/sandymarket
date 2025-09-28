@@ -8,20 +8,41 @@ dotenv.config();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Store email configuration
-const STORE_EMAIL = process.env.STORE_EMAILS;
 const FROM_EMAIL = "Sandy's Market <orders@sandysmarket.net>";
+
+/**
+ * Validate and parse email addresses for Resend API
+ */
+const parseAndValidateEmails = (emailString: string): string[] => {
+  if (!emailString) return [];
+  
+  const emails = emailString
+    .split(',')
+    .map(email => email.trim())
+    .filter(email => email && email.includes('@'));
+  
+  // Validate email format for Resend
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emails.filter(email => emailRegex.test(email));
+};
 
 /**
  * Send notification to store staff about new orders
  */
 const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> => {
   try {
-    if (!STORE_EMAIL) {
-      throw new Error('STORE_EMAIL environment variable is not set');
+    const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
+    
+    if (storeEmails.length === 0) {
+      throw new Error('No valid store email addresses found in STORE_EMAILS environment variable');
     }
+    
+    console.log('📧 SENDING STORE NOTIFICATION:', `Attempting to send to ${storeEmails.length} store email(s)`);
+    console.log('📋 STORE EMAIL RECIPIENTS:', storeEmails.map((email, index) => `  ${index + 1}. ${email}`).join('\n'));
+    
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
-      to: [STORE_EMAIL],
+      to: storeEmails,
       subject: "🚨New Food Order Received - Sandy's Market",
       html: `
         <!DOCTYPE html>
@@ -246,6 +267,13 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
     if (!orderDetails.customerEmail) {
       console.error('Customer email is missing');
       return;
+    }
+
+    // Validate customer email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(orderDetails.customerEmail)) {
+      console.error('Customer email format is invalid:', orderDetails.customerEmail);
+      throw new Error(`Invalid customer email format: ${orderDetails.customerEmail}`);
     }
 
     // Log order items for debugging

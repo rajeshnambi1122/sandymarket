@@ -11,7 +11,7 @@ Sandy's Market is a full-stack application that allows customers to view gas pri
 ### Frontend (Web)
 - **React 18** with TypeScript
 - **Vite** for build tooling
-- **Radix UI** for accessible components
+- **Radix UI** for accessible componentss
 - **Tailwind CSS** for styling
 - **React Router** for navigation
 - **Lucide React** for icons
@@ -25,12 +25,12 @@ Sandy's Market is a full-stack application that allows customers to view gas pri
 - **Nodemailer** for email notifications
 
 ### Mobile Applications
-- **Admin Android App**: React Native (in development)
+- **Admin Android App**: React Native
 - **Customer App**: Planned for future development
 
 ### Infrastructure
-- **Frontend**: Deployed on web hosting
-- **Backend**: Node.js server with API endpoints
+- **Frontend**: Deployed on Railway
+- **Backend**: Deployed on Railway
 - **Database**: MongoDB Atlas cloud database
 - **Push Notifications**: Firebase Cloud Messaging (FCM)
 
