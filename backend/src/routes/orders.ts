@@ -316,7 +316,9 @@ router.post("/", async (req: AuthRequest, res) => {
         phone: savedOrder.phone,
         items: orderItemsForEmail,
         totalAmount: savedOrder.totalAmount,
-        cookingInstructions: typeof savedOrder.cookingInstructions === 'string' ? savedOrder.cookingInstructions : undefined
+        cookingInstructions: typeof savedOrder.cookingInstructions === 'string' ? savedOrder.cookingInstructions : undefined,
+        deliveryType: savedOrder.deliveryType || 'pickup',
+        address: savedOrder.address || 'Pickup at store'
       });
     } catch (error) {
       console.error('Failed to send confirmation email:', error);

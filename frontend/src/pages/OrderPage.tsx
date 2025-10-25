@@ -13,6 +13,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { MinusCircle, PlusCircle, CheckCircle2, X } from "lucide-react";
@@ -32,6 +33,15 @@ const orderSchema = z.object({
   cookingInstructions: z.string().optional(),
   deliveryType: z.enum(["pickup", "door-delivery"]).default("pickup"),
   deliveryAddress: z.string().optional(),
+}).refine((data) => {
+  // If door-delivery is selected, deliveryAddress is required
+  if (data.deliveryType === "door-delivery") {
+    return data.deliveryAddress && data.deliveryAddress.trim().length > 0;
+  }
+  return true;
+}, {
+  message: "Delivery address is required for door delivery",
+  path: ["deliveryAddress"],
 });
 
 interface CartItem {
@@ -733,16 +743,6 @@ const CartSummary = React.memo(({
   };
 
   const handleSubmitForm = (data: z.infer<typeof orderSchema>) => {
-    // Validate delivery address if door delivery is selected
-    if (data.deliveryType === "door-delivery" && !data.deliveryAddress?.trim()) {
-      toast({
-        title: "Delivery Address Required",
-        description: "Please enter a delivery address",
-        variant: "destructive",
-      });
-      return;
-    }
-
     // Set form data in cart items
     form.setValue('items', cart);
     
@@ -966,14 +966,16 @@ const CartSummary = React.memo(({
                             name="deliveryAddress"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Delivery Address</FormLabel>
+                                <FormLabel>Delivery Address <span className="text-red-500">*</span></FormLabel>
                                 <FormControl>
                                   <textarea
                                     className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="Enter your delivery address..."
+                                    required={true}
                                     {...field}
                                   />
                                 </FormControl>
+                                <FormMessage />
                               </FormItem>
                             )}
                           />

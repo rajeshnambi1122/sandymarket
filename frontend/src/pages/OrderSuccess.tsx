@@ -112,7 +112,9 @@ export default function OrderSuccess() {
                 </span>
               </div>
               <p className="text-sm text-gray-600 mt-2">
-                {order.deliveryType === "door-delivery" ? "Delivery Address" : "Pickup Address"}: {order.address}
+                {order.deliveryType === "door-delivery" ? "Delivery Address" : "Pickup Address"}: {
+                  order.deliveryType === "door-delivery" ? order.address : "1057 Estey Rd, Beaverton, MI 48612"
+                }
               </p>
             </div>
 

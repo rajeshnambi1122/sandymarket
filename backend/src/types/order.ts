@@ -16,4 +16,6 @@ export interface OrderDetails {
   totalAmount: number;
   items: OrderItem[];
   cookingInstructions?: string; // Optional cooking instructions
+  deliveryType?: "pickup" | "door-delivery"; // Delivery method
+  address?: string; // Delivery address
 } 

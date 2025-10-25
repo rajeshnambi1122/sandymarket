@@ -171,6 +171,14 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
                   <p><strong>Email:</strong> <a href="mailto:${orderDetails.customerEmail}">${orderDetails.customerEmail}</a></p>
                   <p><strong>Status:</strong> <span style="color: #ff9800; font-weight: bold;">⏳ PENDING</span></p>
                   <p><strong>Order Time:</strong> ${new Date().toLocaleString()}</p>
+                  <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #2E7D32;">
+                    <p style="margin-bottom: 10px;"><strong>Delivery Method:</strong> 
+                      <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: bold; background-color: ${orderDetails.deliveryType === 'door-delivery' ? '#2196F3' : '#4CAF50'}; color: white;">
+                        ${orderDetails.deliveryType === 'door-delivery' ? '🚚 DOOR DELIVERY' : '📍 PICKUP'}
+                      </span>
+                    </p>
+                    <p style="margin: 0; font-weight: bold; color: ${orderDetails.deliveryType === 'door-delivery' ? '#1976d2' : '#2E7D32'};"><strong>${orderDetails.deliveryType === 'door-delivery' ? '🚚 Delivery' : '📍 Pickup'} Address:</strong> ${orderDetails.address || 'Pickup at store'}</p>
+                  </div>
                 </div>
 
                 ${orderDetails.cookingInstructions ? `
@@ -430,6 +438,14 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                   <p><strong>Order ID:</strong> ${orderDetails.id}</p>
                   <p><strong>Status:</strong> <span class="status-badge">⏳ Pending</span></p>
                   <p><strong>Order Time:</strong> ${new Date().toLocaleString()}</p>
+                  <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                    <p style="margin-bottom: 10px;"><strong>Delivery Method:</strong> 
+                      <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: bold; background-color: ${orderDetails.deliveryType === 'door-delivery' ? '#2196F3' : '#4CAF50'}; color: white;">
+                        ${orderDetails.deliveryType === 'door-delivery' ? '🚚 Door Delivery' : '📍 Pickup'}
+                      </span>
+                    </p>
+                    <p style="margin: 0;"><strong>${orderDetails.deliveryType === 'door-delivery' ? 'Delivery' : 'Pickup'} Address:</strong> ${orderDetails.address || 'Pickup at store'}</p>
+                  </div>
                 </div>
 
                 ${orderDetails.cookingInstructions ? `
