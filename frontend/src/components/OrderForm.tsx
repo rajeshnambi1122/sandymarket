@@ -4,6 +4,7 @@ const OrderForm: React.FC = () => {
   const [smsConsent, setSmsConsent] = useState(false);
   const [pizzaSize, setPizzaSize] = useState('medium');
   const [selectedToppings, setSelectedToppings] = useState<string[]>([]);
+  const [deliveryType, setDeliveryType] = useState('pickup');
 
 
   const toppings = [
@@ -42,6 +43,54 @@ const OrderForm: React.FC = () => {
         <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number</label>
         <input type="tel" id="phone" name="phone" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required />
       </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Type</label>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center">
+            <input
+              type="radio"
+              id="pickup"
+              name="deliveryType"
+              value="pickup"
+              checked={deliveryType === 'pickup'}
+              onChange={() => setDeliveryType('pickup')}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+            />
+            <label htmlFor="pickup" className="ml-2 block text-sm text-gray-700">
+              Pickup
+            </label>
+          </div>
+          <div className="flex items-center">
+            <input
+              type="radio"
+              id="door-delivery"
+              name="deliveryType"
+              value="door-delivery"
+              checked={deliveryType === 'door-delivery'}
+              onChange={() => setDeliveryType('door-delivery')}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+            />
+            <label htmlFor="door-delivery" className="ml-2 block text-sm text-gray-700">
+              Door Delivery
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {deliveryType === 'door-delivery' && (
+        <div>
+          <label htmlFor="address" className="block text-sm font-medium text-gray-700">Delivery Address</label>
+          <textarea 
+            id="address" 
+            name="address" 
+            rows={2} 
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            placeholder="Enter your delivery address..."
+            required
+          ></textarea>
+        </div>
+      )}
       
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Pizza Size</label>

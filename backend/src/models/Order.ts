@@ -19,6 +19,17 @@ const orderSchema = new mongoose.Schema({
     lowercase: true,
     index: true
   },
+  address: {
+    type: String,
+    required: false,
+    default: "Pickup"
+  },
+  deliveryType: {
+    type: String,
+    enum: ["pickup", "door-delivery"],
+    default: "pickup",
+    required: false
+  },
   items: [
     {
       name: String,

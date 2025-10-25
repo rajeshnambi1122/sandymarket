@@ -20,6 +20,7 @@ export interface Order {
   user?: string; // Reference to User ID
   userId?: string; // For creating orders with explicit user ID
   cookingInstructions?: string; // Optional cooking instructions
+  deliveryType?: "pickup" | "door-delivery"; // Delivery method
 }
 
 export type OrderStatus = Order["status"];
@@ -33,6 +34,7 @@ export interface CreateOrderDTO {
   totalAmount: number;
   userId?: string; // Optional user ID for associating with a user
   cookingInstructions?: string; // Optional cooking instructions
+  deliveryType?: "pickup" | "door-delivery"; // Delivery method
 }
 
 export interface OrderResponse {

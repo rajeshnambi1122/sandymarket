@@ -343,8 +343,19 @@ export default function Admin() {
                                     <p className="text-xs md:text-sm text-gray-700">{order.phone}</p>
                                   </div>
                                   <div>
-                                    <h4 className="text-xs md:text-sm font-medium text-gray-500 uppercase mb-2">Address</h4>
-                                    <p className="text-xs md:text-sm text-gray-700">{order.address || "Pickup"}</p>
+                                    <h4 className="text-xs md:text-sm font-medium text-gray-500 uppercase mb-2">
+                                      {order.deliveryType === "door-delivery" ? "Delivery Address" : "Fulfillment"}
+                                    </h4>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                                        order.deliveryType === "door-delivery" 
+                                          ? "bg-blue-100 text-blue-700" 
+                                          : "bg-green-100 text-green-700"
+                                      }`}>
+                                        {order.deliveryType === "door-delivery" ? "Door Delivery" : "Pickup"}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs md:text-sm text-gray-700">{order.address || "Pickup at store"}</p>
                                   </div>
                                 </div>
 

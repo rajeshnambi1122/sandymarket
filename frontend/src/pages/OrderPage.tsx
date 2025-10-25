@@ -30,6 +30,8 @@ const orderSchema = z.object({
   email: z.string().email("Valid email required"),
   items: z.array(z.any()),
   cookingInstructions: z.string().optional(),
+  deliveryType: z.enum(["pickup", "door-delivery"]).default("pickup"),
+  deliveryAddress: z.string().optional(),
 });
 
 interface CartItem {
@@ -689,7 +691,7 @@ const CartSummary = React.memo(({
   cart: CartItem[];
   cartTotal: number;
   isSubmitting: boolean;
-  onCheckout: (customerData: { customerName: string; phone: string; email: string; cookingInstructions?: string }) => void;
+  onCheckout: (customerData: { customerName: string; phone: string; email: string; cookingInstructions?: string; deliveryType?: string; deliveryAddress?: string }) => void;
   onRemoveItem: (index: number) => void;
   isPlacingOrder: boolean;
   setIsPlacingOrder: React.Dispatch<React.SetStateAction<boolean>>;
@@ -706,8 +708,12 @@ const CartSummary = React.memo(({
       email: "",
       items: [],
       cookingInstructions: "",
+      deliveryType: "pickup",
+      deliveryAddress: "",
     },
   });
+
+  const deliveryType = form.watch("deliveryType");
 
   // Debug output
   useEffect(() => {
@@ -727,6 +733,16 @@ const CartSummary = React.memo(({
   };
 
   const handleSubmitForm = (data: z.infer<typeof orderSchema>) => {
+    // Validate delivery address if door delivery is selected
+    if (data.deliveryType === "door-delivery" && !data.deliveryAddress?.trim()) {
+      toast({
+        title: "Delivery Address Required",
+        description: "Please enter a delivery address",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Set form data in cart items
     form.setValue('items', cart);
     
@@ -736,7 +752,9 @@ const CartSummary = React.memo(({
       customerName: data.customerName,
       phone: data.phone,
       email: data.email,
-      cookingInstructions: data.cookingInstructions
+      cookingInstructions: data.cookingInstructions,
+      deliveryType: data.deliveryType,
+      deliveryAddress: data.deliveryAddress
     });
     
     setShowCheckoutForm(false);
@@ -905,6 +923,61 @@ const CartSummary = React.memo(({
                             </FormItem>
                           )}
                         />
+
+                        <FormField
+                          control={form.control}
+                          name="deliveryType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Delivery Type</FormLabel>
+                              <FormControl>
+                                <div className="flex gap-4">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      value="pickup"
+                                      checked={field.value === "pickup"}
+                                      onChange={() => field.onChange("pickup")}
+                                      className="h-4 w-4 cursor-pointer accent-orange-600"
+                                      style={{ accentColor: '#ea580c' }}
+                                    />
+                                    <span>Pickup</span>
+                                  </label>
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      value="door-delivery"
+                                      checked={field.value === "door-delivery"}
+                                      onChange={() => field.onChange("door-delivery")}
+                                      className="h-4 w-4 cursor-pointer accent-orange-600"
+                                      style={{ accentColor: '#ea580c' }}
+                                    />
+                                    <span>Door Delivery</span>
+                                  </label>
+                                </div>
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        {deliveryType === "door-delivery" && (
+                          <FormField
+                            control={form.control}
+                            name="deliveryAddress"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Delivery Address</FormLabel>
+                                <FormControl>
+                                  <textarea
+                                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter your delivery address..."
+                                    {...field}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        )}
                         
                         <FormField
                           control={form.control}
@@ -1443,6 +1516,8 @@ export default function PizzaOrder() {
     phone: string; 
     email: string;
     cookingInstructions?: string;
+    deliveryType?: "pickup" | "door-delivery";
+    deliveryAddress?: string;
   }) => {
     try {
       setIsSubmitting(true);
@@ -1489,7 +1564,8 @@ export default function PizzaOrder() {
         customerName: customerData.customerName,
         phone: customerData.phone,
         email: customerData.email,
-        address: "Pickup",
+        address: customerData.deliveryType === "door-delivery" ? customerData.deliveryAddress || "" : "Pickup",
+        deliveryType: (customerData.deliveryType || "pickup") as "pickup" | "door-delivery",
         items: orderItems,
         totalAmount: cartTotal,
         cookingInstructions: customerData.cookingInstructions || ""

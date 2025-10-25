@@ -177,7 +177,7 @@ router.get("/:id", async (req, res, next) => {
 // Create new order (for customers)
 router.post("/", async (req: AuthRequest, res) => {
   try {
-    const { customerName, phone, email, items, address, userId, cookingInstructions } = req.body;
+    const { customerName, phone, email, items, address, userId, cookingInstructions, deliveryType } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({
@@ -272,6 +272,7 @@ router.post("/", async (req: AuthRequest, res) => {
       phone,
       email: email.toLowerCase(), // Normalize email
       address: address || "Pickup",
+      deliveryType: deliveryType || "pickup",
       items: processedItems, // Use the processed items with safe toppings
       totalAmount: Math.round(totalAmount * 100) / 100,
       status: "pending",
