@@ -99,10 +99,21 @@ export default function OrderSuccess() {
             </div>
 
             <div>
-              <h3 className="font-semibold">Customer Information</h3>
+              <h3 className="font-semibold">Your Details</h3>
               <p className="text-sm text-gray-600">Name: {order.customerName}</p>
               <p className="text-sm text-gray-600">Phone: {order.phone}</p>
-              <p className="text-sm text-gray-600">Pickup Address: Sandy's Market</p>
+              <div className="mt-2">
+                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                  order.deliveryType === "door-delivery"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-green-100 text-green-700"
+                }`}>
+                  {order.deliveryType === "door-delivery" ? "Door Delivery" : "Pickup"}
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                {order.deliveryType === "door-delivery" ? "Delivery Address" : "Pickup Address"}: {order.address}
+              </p>
             </div>
 
             {order.cookingInstructions && (
