@@ -25,6 +25,11 @@ import { useInView } from "framer-motion";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";
 
+// ===== PIZZA DISCOUNT CONFIGURATION =====
+// Set this to true to enable the 10% pizza discount offer
+const PIZZA_DISCOUNT_ENABLED = true;
+// ==========================================
+
 const orderSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
   phone: z.string().min(10, "Valid phone number required"),
@@ -696,7 +701,8 @@ const CartSummary = React.memo(({
   onCheckout,
   onRemoveItem,
   isPlacingOrder,
-  setIsPlacingOrder
+  setIsPlacingOrder,
+  isPizzaDiscountDay
 }: { 
   cart: CartItem[];
   cartTotal: number;
@@ -705,6 +711,7 @@ const CartSummary = React.memo(({
   onRemoveItem: (index: number) => void;
   isPlacingOrder: boolean;
   setIsPlacingOrder: React.Dispatch<React.SetStateAction<boolean>>;
+  isPizzaDiscountDay?: boolean;
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
@@ -863,10 +870,29 @@ const CartSummary = React.memo(({
                           </div>
                         );
                       })}
-                      <div className="mt-3 font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200">
-                        <span>Total:</span>
-                        <span className="text-orange-600 text-lg">${cartTotal.toFixed(2)}</span>
-                      </div>
+                      {(() => {
+                        const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                        const hasPizzaDiscount = isPizzaDiscountDay && cart.some(item => item.name.toLowerCase().includes('pizza'));
+                        const pizzaSubtotal = hasPizzaDiscount ? cart
+                          .filter(item => item.name.toLowerCase().includes('pizza'))
+                          .reduce((sum, item) => sum + item.price * item.quantity, 0) : 0;
+                        const discountAmount = pizzaSubtotal * 0.1;
+                        
+                        return (
+                          <div className="mt-3 space-y-1">
+                            {hasPizzaDiscount && (
+                              <div className="text-sm text-green-700 font-medium flex justify-between items-center">
+                                <span>🍕 Pizza Discount (10%):</span>
+                                <span>${discountAmount.toFixed(2)}</span>
+                              </div>
+                            )}
+                            <div className="font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200">
+                              <span>Total:</span>
+                              <span className="text-orange-600 text-lg">${cartTotal.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <Button 
                         className="mt-3 w-full h-12 text-base font-bold shadow-md bg-orange-600 hover:bg-orange-700" 
                         onClick={handlePlaceOrderClick}
@@ -1053,6 +1079,15 @@ export default function PizzaOrder() {
 
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // Check if today is Monday-Friday for pizza discount
+  const isPizzaDiscountDay = useMemo(() => {
+    if (!PIZZA_DISCOUNT_ENABLED) return false; // Check if discount is enabled
+    
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    return dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
+  }, []);
+
   // Initialize cart state with localStorage value to prevent clearing
   const getInitialCart = (): CartItem[] => {
     try {
@@ -1080,9 +1115,19 @@ export default function PizzaOrder() {
     // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent('cartUpdated'));
   }, [cart]);
-  const cartTotal = useMemo(() => 
-    cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  , [cart]);
+  const cartTotal = useMemo(() => {
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    
+    // Apply 10% discount on pizzas for Monday-Friday
+    if (isPizzaDiscountDay) {
+      const pizzaDiscount = cart
+        .filter(item => item.name.toLowerCase().includes('pizza'))
+        .reduce((sum, item) => sum + item.price * item.quantity, 0);
+      return subtotal - (pizzaDiscount * 0.1);
+    }
+    
+    return subtotal;
+  }, [cart, isPizzaDiscountDay]);
 
   // Add direct function to add items to cart with toppings
   const addToCartWithToppings = useCallback((
@@ -1175,7 +1220,7 @@ export default function PizzaOrder() {
           image: "/images/pizza2.jpg"
         },
         {
-          name: "The Big Pig",
+          name: "The Big Pig Pizza",
           price: "22.99",
           description: "All meat pizza",
           image: "/images/pizza3.jpg"
@@ -1193,7 +1238,7 @@ export default function PizzaOrder() {
           image: "/images/pizza1.jpg"
         },
         {
-          name: "Hawaiian",
+          name: "Hawaiian Pizza",
           price: "22.99",
           description: "Bacon, ham, pineapple",
           image: "/images/pizza2.jpg"
@@ -1635,6 +1680,13 @@ export default function PizzaOrder() {
       <div className="shadow-lg">
         <Header />
       </div>
+      {isPizzaDiscountDay && (
+        <div className="bg-orange-600 text-white text-center py-2 px-4 shadow-md">
+          <p className="text-sm sm:text-base font-medium">
+            🍕 Limited Time Offer: 10% OFF All Pizzas (Monday-Friday Only!)
+          </p>
+        </div>
+      )}
       <main className="flex-grow container mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-12 md:pb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3 sm:gap-1">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Sandy's Market Menu</h1>
@@ -1664,6 +1716,7 @@ export default function PizzaOrder() {
           onRemoveItem={handleRemoveFromCart}
           isPlacingOrder={isPlacingOrder}
           setIsPlacingOrder={setIsPlacingOrder}
+          isPizzaDiscountDay={isPizzaDiscountDay}
         />
       </main>
       <Footer />
