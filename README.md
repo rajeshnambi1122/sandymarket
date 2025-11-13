@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🏪 Sandy's Market
+<img src="./frontend/public/images/favi.png" alt="Sandy's Market Logo" width="100" />
+
+# Sandy's Market
 
 ### *A complete digital solution for a US gas station & food store*
 
@@ -147,7 +149,7 @@ sandymarket/
 | `GET` | `/api/orders/` | Get all orders | Admin only |
 | `GET` | `/api/orders/my-orders` | Get user's order history | Required |
 | `GET` | `/api/orders/:id` | Get order by ID | Required (email match) |
-| `POST` | `/api/orders/` | Create new order | None |
+| `POST` | `/api/orders/` | Create new order | Required |
 | `PATCH` | `/api/orders/:id` | Update order status | Admin only |
 
 ### ⛽ Gas Prices

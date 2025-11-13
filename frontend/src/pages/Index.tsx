@@ -78,7 +78,7 @@ const Index = () => {
         <section className="relative h-screen flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0">
             <img
-              src="/images/02cd446d-f09f-4647-88e4-e7b5508c6209.png"
+              src="/images/storeimage-1.png"
               alt="Gas station"
               className="w-full h-full object-cover scale-[1.02] motion-safe:animate-[slowZoom_20s_ease-in-out_infinite_alternate]"
               style={{transformOrigin: 'center center'}}
@@ -147,7 +147,7 @@ const Index = () => {
                   </p>
                   <div className="relative overflow-hidden rounded-xl w-full h-48">
                     <img
-                      src="/images/02cd446d-f09f-4647-88e4-e7b5508c6209.png"
+                      src="/images/storeimage-1.png"
                       alt="Fuel station"
                       className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                     />
@@ -169,7 +169,7 @@ const Index = () => {
                   </p>
                   <div className="relative overflow-hidden rounded-xl w-full h-48">
                     <img
-                      src="/images/ce094248-3f2d-4835-9b7c-6f2dc995f3ae.png"
+                      src="/images/storeimage-3.png"
                       alt="Store interior"
                       className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                     />
@@ -189,7 +189,7 @@ const Index = () => {
                   </p>
                   <div className="relative overflow-hidden rounded-xl w-full h-48">
                     <img
-                      src="/images/pizza3.jpg"
+                      src="/images/storeimage-2.png"
                       alt="Food"
                       className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                     />

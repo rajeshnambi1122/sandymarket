@@ -207,7 +207,7 @@ router.get("/:id", auth, async (req: AuthRequest, res: Response) => {
 });
 
 // Create new order (for customers)
-router.post("/", async (req: AuthRequest, res) => {
+router.post("/", auth, async (req: AuthRequest, res) => {
   try {
     const { customerName, phone, email, items, address, userId, cookingInstructions, deliveryType } = req.body;
 
