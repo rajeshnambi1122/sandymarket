@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 import { GasPrice } from "../models/Gasprice";
-import { auth, AuthRequest } from "../middleware/auth";
+import { adminAuth, AuthRequest } from "../middleware/auth";
 
 const router = express.Router();
 
@@ -15,7 +15,7 @@ router.get("/", async (_req: Request, res: Response) => {
   }
 });
 
-router.patch("/", auth, async (_req: AuthRequest, res: Response) => {
+router.patch("/", adminAuth, async (_req: AuthRequest, res: Response) => {
   try {
 
     const { type, price } = _req.body;

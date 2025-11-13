@@ -2,8 +2,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Fuel, Pizza, Store, Clock, MapPin, Phone, Star, ArrowRight, Truck, ChevronDown, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
 import gasPricesApi, { GasPrice } from "@/api/gasPrices";
 import { useState, useEffect } from "react";
@@ -75,11 +73,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
+        <section className="relative h-screen flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0">
             <img
               src="/images/02cd446d-f09f-4647-88e4-e7b5508c6209.png"
@@ -111,7 +107,7 @@ const Index = () => {
                   size="lg"
                   className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                 >
-                  <Link to="/order-pizza" className="flex items-center gap-2">Order Food <ArrowRight size={18} /></Link>
+                  <Link to="/order" className="flex items-center gap-2">Order Food <ArrowRight size={18} /></Link>
                 </Button>
                 <Button
                   size="lg"
@@ -242,7 +238,7 @@ const Index = () => {
                             variant="outline" 
                             size="sm"
                             className="border-white text-white bg-primary/80 hover:bg-white hover:text-primary transition-colors"
-                            onClick={() => navigate("/order-pizza")}
+                            onClick={() => navigate("/order")}
                           >
                             <span className="flex items-center gap-1">
                               Order
@@ -260,7 +256,7 @@ const Index = () => {
               <Button
                 size="lg"
                 className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-                onClick={() => navigate("/order-pizza")}
+                onClick={() => navigate("/order")}
               >
                 <span className="flex items-center gap-2">
                   View Full Menu
@@ -486,14 +482,13 @@ const Index = () => {
                   </div>
                   <Button 
                     className="mt-auto bg-primary hover:bg-primary/90 text-white transition-colors hover:scale-105 transform duration-300"
-                    onClick={() => window.open("tel:5551234567")}
+                    onClick={() => window.open("tel:+19894359688")}
                   >
                     <span className="flex items-center gap-2">
                       Call Now
                       <Phone size={16} />
                     </span>
-                  </Button>
-                </div>
+                  </Button>                </div>
               </Card>
             </div>
           </div>
@@ -536,7 +531,7 @@ const Index = () => {
               <Button 
                 size="lg"
                 className="bg-white text-primary hover:bg-white/90 rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-                onClick={() => navigate("/order-pizza")}
+                onClick={() => navigate("/order")}
               >
                 <span className="flex items-center gap-2">
                   Order Now
@@ -547,8 +542,6 @@ const Index = () => {
           </div>
         </section>
       </main>
-
-      <Footer />
     </div>
   );
 };

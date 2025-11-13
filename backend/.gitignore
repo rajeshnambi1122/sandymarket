@@ -10,3 +10,7 @@ logs
 .idea/
 .vscode/
 
+# Test/development files
+sendTestNotification.js
+testResend.ts
+

@@ -3,8 +3,6 @@ import axios from "axios";
 import { API_URL } from "@/lib/constants";
 import { Order } from "@/types/order";
 import { Card } from "@/components/ui/card";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import {
   Select,
   SelectContent,
@@ -107,15 +105,32 @@ export default function Admin() {
         }
       }
       
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        // Handle token expiration
-        localStorage.removeItem("token");
-        toast({
-          title: "Session expired",
-          description: "Please log in again",
-          variant: "destructive",
-        });
-        navigate("/login");
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          // Handle token expiration
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          toast({
+            title: "Session expired",
+            description: "Please log in again",
+            variant: "destructive",
+          });
+          navigate("/login");
+        } else if (error.response?.status === 403) {
+          // Handle unauthorized access (not admin)
+          toast({
+            title: "Access Denied",
+            description: "You do not have permission to access the admin dashboard",
+            variant: "destructive",
+          });
+          navigate("/");
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to fetch orders. Using cached data if available.",
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Error",
@@ -128,10 +143,43 @@ export default function Admin() {
     }
   };
 
-  // Fetch orders when component mounts
+  // Verify admin access on component mount
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
+
+    if (!token || !userStr) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to access the admin dashboard",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const user = JSON.parse(userStr);
+      if (user.role !== "admin" && user.role !== "admin1") {
+        toast({
+          title: "Access Denied",
+          description: "You do not have permission to access the admin dashboard",
+          variant: "destructive",
+        });
+        navigate("/");
+        return;
+      }
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login");
+      return;
+    }
+
+    // If checks pass, fetch orders
     fetchOrders();
-  }, []);  // Empty dependency array since fetchOrders is defined inside the component
+  }, []);  // Empty dependency array
 
   // Update order status - CLIENT-SIDE ONLY MODE
   // This is a temporary workaround because the backend API endpoints for updating orders are not working
@@ -224,8 +272,21 @@ export default function Admin() {
         });
       }
     } catch (error) {
-      // Silently fail since we've already updated the UI
-      
+      // Handle errors silently since we've already updated the UI
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          toast({
+            title: "Access Denied",
+            description: "You do not have permission to update orders",
+            variant: "destructive",
+          });
+          navigate("/");
+        } else if (error.response?.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
+        }
+      }
     }
   };
 
@@ -254,18 +315,15 @@ export default function Admin() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
         <div className="flex-grow flex justify-center items-center">
           <Loader2 className="h-10 w-10 animate-spin text-orange-600" />
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
       <main className="flex-grow bg-gray-50">
         <div className="container mx-auto px-4 py-6 md:py-8">
           {/* Admin Dashboard Header */}
@@ -415,7 +473,6 @@ export default function Admin() {
           </Card>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

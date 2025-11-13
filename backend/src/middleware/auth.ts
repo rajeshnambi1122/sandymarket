@@ -30,8 +30,8 @@ export const auth = async (
     next();
   } catch (error) {
     res.status(401).json({ message: 'Token is not valid' });
-  }
-};
+    return;
+  }};
 
 export const adminAuth = async (
   req: AuthRequest,
@@ -60,5 +60,34 @@ export const adminAuth = async (
     next();
   } catch (error) {
     res.status(401).json({ message: 'Token is not valid' });
+  }
+};
+
+// Optional auth - sets req.user if token is present, but doesn't fail if missing
+export const optionalAuth = async (
+  req: AuthRequest,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
+          userId: string;
+          role: string;
+        };
+        req.user = decoded;
+      } catch (error) {
+        // Invalid token, but continue without authentication
+        req.user = undefined;
+      }
+    }
+    
+    next();
+  } catch (error) {
+    // Continue without authentication
+    next();
   }
 };

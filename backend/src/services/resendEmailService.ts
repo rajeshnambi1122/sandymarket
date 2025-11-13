@@ -32,6 +32,7 @@ const parseAndValidateEmails = (emailString: string): string[] => {
 const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> => {
   try {
     const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
+    console.log('storeEmails', storeEmails);
     
     if (storeEmails.length === 0) {
       throw new Error('No valid store email addresses found in STORE_EMAILS environment variable');

@@ -1,6 +1,6 @@
 import express, { Response } from "express";
 import { Order } from "../models/Order";
-import { auth, AuthRequest } from "../middleware/auth";
+import { auth, AuthRequest, adminAuth } from "../middleware/auth";
 import { sendOrderConfirmationEmail } from '../services/resendEmailService';
 import { sendNewOrderNotification } from '../services/notificationService';
 import { OrderItem } from '../types/order';
@@ -9,7 +9,7 @@ import mongoose from 'mongoose';
 const router = express.Router();
 
 // Get all orders
-router.get("/", auth, async (_req: AuthRequest, res: Response) => {
+router.get("/", adminAuth, async (_req: AuthRequest, res: Response) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
     return res.json({ success: true, data: orders });
@@ -124,47 +124,79 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Get all orders (for admin)
-router.get("/admin", auth, async (req: AuthRequest, res: Response) => {
-  try {
-    // Check if user is admin
-    if (req.user?.role !== 'admin' && req.user?.role !== 'admin1') {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Admin role required."
-      });
-    }
-
-    const orders = await Order.find().sort({ createdAt: -1 });
-    return res.json({ success: true, data: orders });
-  } catch (error: any) {
-    console.error("Error fetching admin orders:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error fetching orders",
-      error: error.message,
-    });
-  }
-});
-
 // Get order by ID (for customers to check status)
-router.get("/:id", async (req, res, next) => {
+// Requires authentication
+// Admins can view any order, regular users can only view orders matching their email
+router.get("/:id", auth, async (req: AuthRequest, res: Response) => {
   try {
-    // Skip if the ID is 'admin'
-    if (req.params.id === 'admin') {
-      return next();
-    }
-
-    const order = await Order.findById(req.params.id);
-    if (!order) {
-
+    // Skip if the ID is 'my-orders' to avoid route conflicts
+    if (req.params.id === 'my-orders') {
       return res.status(404).json({
         success: false,
         message: "Order not found",
       });
     }
+
+    if (!req.user?.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    // Check if user is admin first
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'admin1';
     
-    return res.json({ success: true, data: order });
+    const order = await Order.findById(req.params.id);
+    
+    // If order not found
+    if (!order) {
+      // Admins see "Order not found"
+      if (isAdmin) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found",
+        });
+      }
+      // Regular users see "Access denied" (don't leak info about order existence)
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only view your own orders.",
+      });
+    }
+    
+    // Admins can view any order
+    if (isAdmin) {
+      return res.json({ success: true, data: order });
+    }
+    
+    // For regular users, check if order email matches their email
+    try {
+      const user = await mongoose.model('User').findById(req.user.userId);
+      if (!user || !user.email) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Unable to verify user email.",
+        });
+      }
+
+      // Check if order email matches user email
+      if (order.email && order.email.toLowerCase() === user.email.toLowerCase()) {
+        return res.json({ success: true, data: order });
+      }
+      
+      // Email doesn't match - return access denied (don't leak that order exists)
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only view your own orders.",
+      });
+    } catch (error) {
+      console.error("Error checking user email:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error verifying access",
+      });
+    }
   } catch (error) {
     console.error("Error retrieving order by ID:", error);
     return res.status(500).json({
@@ -348,7 +380,7 @@ router.post("/", async (req: AuthRequest, res) => {
 });
 
 // Update order status (for admin)
-router.patch("/:id", auth, async (req: AuthRequest, res: Response) => {
+router.patch("/:id", adminAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -381,56 +413,5 @@ router.patch("/:id", auth, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Get orders by email (for user accounts)
-router.get("/by-email", auth, async (req: AuthRequest, res: Response) => {
-  try {
-    const { email } = req.query;
-
-    
-    if (!email || typeof email !== 'string') {
-      return res.status(400).json({
-        success: false,
-        message: "Email parameter is required"
-      });
-    }
-    
-    // Get orders with matching email - use a simple string match instead of regex
-    const orders = await Order.find({ email: email }).sort({ createdAt: -1 });
-    
-
-    
-    // If we found orders by email but they're not linked to the user, update them
-    if (orders.length > 0 && req.user?.userId) {
-
-      
-      // Update the orders to link them to this user - one by one to avoid errors
-      for (const order of orders) {
-        if (!order.user) {
-          try {
-            order.user = new mongoose.Types.ObjectId(req.user?.userId);
-            await order.save();
-
-          } catch (error: any) {
-            console.error(`Error linking order ${order._id}:`, error.message);
-            // Continue with next order
-          }
-        }
-      }
-    }
-    
-    return res.json({ 
-      success: true, 
-      data: orders 
-    });
-    
-  } catch (error: any) {
-    console.error("Error in orders-by-email endpoint:", error.message);
-    return res.status(500).json({
-      success: false,
-      message: "Error fetching orders by email",
-      error: error.message || "Unknown error"
-    });
-  }
-});
 
 export const orderRoutes = router;

@@ -236,6 +236,7 @@ router.get("/me", auth, async (req: AuthRequest, res: Response) => {
       phone: user.phone,
       address: user.address,
       role: user.role,
+      fcmToken: user.fcmToken,
     });
   } catch (error: any) {
     return res.status(500).json({ message: error.message });

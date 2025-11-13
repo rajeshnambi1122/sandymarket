@@ -5,8 +5,6 @@ import { Card } from "@/components/ui/card";
 import ordersApi from "@/api/orders";
 import { Order } from "@/types/order";
 import { useToast } from "@/components/ui/use-toast";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -84,7 +82,6 @@ export default function Profile() {
   if (error) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
         <main className="flex-grow container mx-auto px-4 py-8">
           <div className="text-center py-8">
             <h2 className="text-xl font-bold text-red-600 mb-4">Error</h2>
@@ -105,7 +102,6 @@ export default function Profile() {
             </Button>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -113,21 +109,18 @@ export default function Profile() {
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
         <main className="flex-grow container mx-auto px-4 py-8">
           <div className="flex flex-col items-center justify-center py-8">
             <LoadingSpinner size={32} className="mb-4" />
             <p className="text-gray-500">Loading profile...</p>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">My Profile</h1>
@@ -215,7 +208,7 @@ export default function Profile() {
               Ready to order some delicious food? Start browsing our menu!
             </p>
             <Button 
-              onClick={() => navigate('/order-pizza')}
+              onClick={() => navigate('/order')}
               className="bg-orange-600 hover:bg-orange-700 text-white"
             >
               Browse Menu
@@ -223,7 +216,6 @@ export default function Profile() {
           </div>
         )}
       </main>
-      <Footer />
     </div>
   );
 }

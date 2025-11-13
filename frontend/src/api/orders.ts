@@ -194,20 +194,6 @@ const ordersApi = {
     }
   },
 
-  getOrders: async (): Promise<Order[]> => {
-    try {
-      const response = await axios.get<OrdersResponse>(
-        `${API_URL}/orders/admin`,
-        {
-          headers: getAuthHeader(),
-        }
-      );
-      return response.data.data;
-    } catch (error) {
-      throw handleApiError(error);
-    }
-  },
-
   getOrderById: async (orderId: string): Promise<Order> => {
     try {
       console.log("API: Getting order by ID:", orderId);
@@ -240,31 +226,8 @@ const ordersApi = {
       console.error("API: Error getting order by ID:", error);
       throw handleApiError(error);
     }
-  },
+  }
 
-  getOrdersByEmail: async (email: string): Promise<Order[]> => {
-    try {
-      if (!email) {
-        console.error("No email provided for getOrdersByEmail");
-        return [];
-      }
-      
-      console.log(`Fetching orders for email: ${email}`);
-      const response = await axios.get<OrdersResponse>(
-        `${API_URL}/orders/by-email?email=${encodeURIComponent(email)}`,
-        {
-          headers: getAuthHeader(),
-        }
-      );
-      
-      console.log("Orders by email response:", response.data);
-      return response.data.data || [];
-    } catch (error) {
-      console.error("Error in getOrdersByEmail:", error);
-      // Don't throw error here, just return empty array
-      return [];
-    }
-  },
 };
 
 export default ordersApi;

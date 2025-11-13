@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,12 +20,12 @@ import ordersApi from "@/api/orders";
 
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useInView } from "framer-motion";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";
+import { menu, toppings } from "@/data/menu";
 
 // ===== PIZZA DISCOUNT CONFIGURATION =====
 // Set this to true to enable the 10% pizza discount offer
-const PIZZA_DISCOUNT_ENABLED = true;
+const PIZZA_DISCOUNT_ENABLED = import.meta.env.VITE_IS_PIZZA_DISCOUNT_ENABLED;
 // ==========================================
 
 const orderSchema = z.object({
@@ -702,7 +700,7 @@ const CartSummary = React.memo(({
   onRemoveItem,
   isPlacingOrder,
   setIsPlacingOrder,
-  isPizzaDiscountDay
+  discountInfo
 }: { 
   cart: CartItem[];
   cartTotal: number;
@@ -711,10 +709,11 @@ const CartSummary = React.memo(({
   onRemoveItem: (index: number) => void;
   isPlacingOrder: boolean;
   setIsPlacingOrder: React.Dispatch<React.SetStateAction<boolean>>;
-  isPizzaDiscountDay?: boolean;
+  discountInfo: { subtotal: number; pizzaSubtotal: number; discountAmount: number; total: number; hasDiscount: boolean };
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+  const [userEmail, setUserEmail] = useState<string>("");
   const isAnyItemInCart = cart.length > 0;
   const { toast } = useToast();
   const form = useForm<z.infer<typeof orderSchema>>({
@@ -732,10 +731,21 @@ const CartSummary = React.memo(({
 
   const deliveryType = form.watch("deliveryType");
 
-  // Debug output
+  // Load user email from localStorage and lock it
   useEffect(() => {
-    // No console logs here
-  }, [cart]);
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        if (userData && userData.email) {
+          setUserEmail(userData.email);
+          form.setValue('email', userData.email);
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, [form]);
 
   const handlePlaceOrderClick = () => {
     if (cart.length === 0) {
@@ -870,29 +880,18 @@ const CartSummary = React.memo(({
                           </div>
                         );
                       })}
-                      {(() => {
-                        const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-                        const hasPizzaDiscount = isPizzaDiscountDay && cart.some(item => item.name.toLowerCase().includes('pizza'));
-                        const pizzaSubtotal = hasPizzaDiscount ? cart
-                          .filter(item => item.name.toLowerCase().includes('pizza'))
-                          .reduce((sum, item) => sum + item.price * item.quantity, 0) : 0;
-                        const discountAmount = pizzaSubtotal * 0.1;
-                        
-                        return (
-                          <div className="mt-3 space-y-1">
-                            {hasPizzaDiscount && (
-                              <div className="text-sm text-green-700 font-medium flex justify-between items-center">
-                                <span>🍕 Pizza Discount (10%):</span>
-                                <span>${discountAmount.toFixed(2)}</span>
-                              </div>
-                            )}
-                            <div className="font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200">
-                              <span>Total:</span>
-                              <span className="text-orange-600 text-lg">${cartTotal.toFixed(2)}</span>
-                            </div>
+                      <div className="mt-3 space-y-1">
+                        {discountInfo.hasDiscount && (
+                          <div className="text-sm text-green-700 font-medium flex justify-between items-center">
+                            <span>🍕 Pizza Discount (10%):</span>
+                            <span>${discountInfo.discountAmount.toFixed(2)}</span>
                           </div>
-                        );
-                      })()}
+                        )}
+                        <div className="font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200">
+                          <span>Total:</span>
+                          <span className="text-orange-600 text-lg">${cartTotal.toFixed(2)}</span>
+                        </div>
+                      </div>
                       <Button 
                         className="mt-3 w-full h-12 text-base font-bold shadow-md bg-orange-600 hover:bg-orange-700" 
                         onClick={handlePlaceOrderClick}
@@ -944,8 +943,18 @@ const CartSummary = React.memo(({
                             <FormItem>
                               <FormLabel>Email</FormLabel>
                               <FormControl>
-                                <Input placeholder="Email address" {...field} />
+                                <Input 
+                                  placeholder="Email address" 
+                                  {...field} 
+                                  disabled={!!userEmail}
+                                  className={userEmail ? "bg-gray-100 cursor-not-allowed" : ""}
+                                />
                               </FormControl>
+                              {userEmail && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  ✅From Account
+                                </p>
+                              )}
                             </FormItem>
                           )}
                         />
@@ -1077,15 +1086,14 @@ export default function PizzaOrder() {
   const [showToppingSelector, setShowToppingSelector] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string>("pizzas");
 
-  const parentRef = useRef<HTMLDivElement>(null);
-
   // Check if today is Monday-Friday for pizza discount
   const isPizzaDiscountDay = useMemo(() => {
-    if (!PIZZA_DISCOUNT_ENABLED) return false; // Check if discount is enabled
+    if (PIZZA_DISCOUNT_ENABLED === "false") return false; // Check if discount is enabled
     
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
     return dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
+    
   }, []);
 
   // Initialize cart state with localStorage value to prevent clearing
@@ -1115,19 +1123,40 @@ export default function PizzaOrder() {
     // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent('cartUpdated'));
   }, [cart]);
-  const cartTotal = useMemo(() => {
+  
+  // Single source of truth for pizza discount calculation
+  const discountInfo = useMemo(() => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    console.log("isPizzaDiscountDay", isPizzaDiscountDay);
     
-    // Apply 10% discount on pizzas for Monday-Friday
-    if (isPizzaDiscountDay) {
-      const pizzaDiscount = cart
+    // Calculate pizza discount if applicable
+    if (isPizzaDiscountDay && cart.some(item => item.name.toLowerCase().includes('pizza'))) {
+      const pizzaSubtotal = cart
         .filter(item => item.name.toLowerCase().includes('pizza'))
         .reduce((sum, item) => sum + item.price * item.quantity, 0);
-      return subtotal - (pizzaDiscount * 0.1);
+      const discountAmount = pizzaSubtotal * 0.1;
+      const total = subtotal - discountAmount;
+      
+      return {
+        subtotal,
+        pizzaSubtotal,
+        discountAmount,
+        total,
+        hasDiscount: true
+      };
     }
     
-    return subtotal;
+    return {
+      subtotal,
+      pizzaSubtotal: 0,
+      discountAmount: 0,
+      total: subtotal,
+      hasDiscount: false
+    };
   }, [cart, isPizzaDiscountDay]);
+
+  // Use the total from discountInfo for cartTotal
+  const cartTotal = discountInfo.total;
 
   // Add direct function to add items to cart with toppings
   const addToCartWithToppings = useCallback((
@@ -1176,244 +1205,6 @@ export default function PizzaOrder() {
       }
     });
   }, []);
-
-  const menu = {
-    pizzas: {
-      regular: [
-        {
-          name: "1 Toppings Pizza",
-          prices: { medium: "13.99", large: "16.99" },
-          description: "Choose one topping from our selection",
-          image: "/images/pizza1.jpg"
-        },
-        {
-          name: "2 Toppings Pizza",
-          prices: { medium: "14.99", large: "17.99" },
-          description: "Choose two toppings from our selection",
-          image: "/images/pizza2.jpg"
-        },
-        {
-          name: "3 Toppings Pizza",
-          prices: { medium: "15.99", large: "18.99" },
-          description: "Choose three toppings from our selection",
-          image: "/images/pizza3.jpg"
-        },
-        {
-          name: "Supreme Pizza",
-          prices: { medium: "20.99", large: "22.99" },
-          description: "Pepperoni, sausage, onions, peppers, olives",
-          image: "/images/pizza4.jpg",
-          predefinedToppings: ["Pepperoni", "Sausage", "Onions", "Green Peppers", "Black Olives"]
-        },
-      ],
-      specialty: [
-        {
-          name: "Chicken Bacon Ranch",
-          price: "22.99",
-          description: "Grilled chicken, bacon, and ranch",
-          image: "/images/pizza1.jpg"
-        },
-        {
-          name: "BLT Pizza",
-          price: "22.99",
-          description: "Bacon, lettuce & tomato",
-          image: "/images/pizza2.jpg"
-        },
-        {
-          name: "The Big Pig Pizza",
-          price: "22.99",
-          description: "All meat pizza",
-          image: "/images/pizza3.jpg"
-        },
-        {
-          name: "Breakfast Pizza",
-          price: "22.99",
-          description: "Bacon, ham, sausage & eggs",
-          image: "/images/pizza4.jpg"
-        },
-        {
-          name: "BBQ Chicken",
-          price: "22.99",
-          description: "Chicken with BBQ sauce",
-          image: "/images/pizza1.jpg"
-        },
-        {
-          name: "Hawaiian Pizza",
-          price: "22.99",
-          description: "Bacon, ham, pineapple",
-          image: "/images/pizza2.jpg"
-        },
-      ],
-    },
-    sides: [
-      {
-        name: "Cheesy Bread",
-        prices: { medium: "11.99", large: "13.99" },
-        description: '14" or 16"',
-        image: "/images/pizza1.jpg"
-      },
-      {
-        name: "French Fries",
-        price: "3.49",
-        image: "/images/frenchfries.jpg"
-      },
-      {
-        name: "Onion Rings",
-        price: "4.99",
-        image: "/images/onionrings.jpg"
-      },
-      {
-        name: "Mushrooms (12)",
-        price: "6.99",
-        image: "/images/mushroom.jpg"
-      },
-      {
-        name: "Jalapeno Poppers (6)",
-        price: "5.99",
-        image: "/images/pizza1.jpg"
-      },
-      {
-        name: "Mozzarella Sticks (5)",
-        price: "7.99",
-        image: "/images/mozarellasticks.jpg"
-      },
-      {
-        name: "Mini Tacos (12)",
-        price: "6.99",
-        image: "/images/minitacos.jpg"
-      },
-      {
-        name: "MacNCheese Bites",
-        price: "6.99",
-        image: "/images/pizza1.jpg"
-      },
-    ],
-    chicken: [
-      {
-        name: "Chicken Strips (4) w/ff",
-        price: "7.99",
-        image: "/images/chickenstrips.jpg"
-      },
-      {
-        name: "Original Chicken Drummies (6)",
-        price: "7.99",
-        image: "/images/pizza1.jpg"
-      },
-      {
-        name: "Original Chicken Drummies (12)",
-        price: "11.99",
-        image: "/images/pizza2.jpg"
-      },
-      {
-        name: "Flavored Chicken Drummies",
-        price: "+1.50",
-        description: "Hot, BBQ, Garlic Parmesan, or Teriyaki",
-        image: "/images/pizza3.jpg"
-      },
-    ],
-    subs: [
-      {
-        name: "Ham & Cheese Sub",
-        price: "9.99",
-        image: "/images/subs.jpg"
-      },
-      {
-        name: "Italian Sub",
-        price: "9.99",
-        description: "Ham, Salami, Pepperoni & cheese",
-        image: "/images/subs2.jpg"
-      },
-      {
-        name: "Turkey & Cheese Sub",
-        price: "9.99",
-        image: "/images/subs3.jpg"
-      },
-      {
-        name: "Pizza Sub",
-        price: "9.99",
-        description: "Pepperoni, Ham & Cheese",
-        image: "/images/subs4.jpg"
-      },
-    ],
-    deliSalads: [
-      {
-        name: "Pickle Bologna/Salami & Cheese",
-        price: "market",
-        image: "/images/delisalads.jpg"
-      },
-      {
-        name: "Macaroni Salad",
-        price: "market",
-        image: "/images/deli2.jpg"
-      },
-      {
-        name: "Cole Slaw",
-        price: "market",
-        image: "/images/deli3.jpg"
-      },
-      {
-        name: "Chicken Salad",
-        price: "market",
-        image: "/images/deli4.jpg"
-      },
-      {
-        name: "Tropical Fruit Salad",
-        price: "market",
-        image: "/images/deli6.jpg"
-      },
-      {
-        name: "Potato Salad",
-        price: "market",
-        image: "/images/deli5.jpg"
-      },
-    ],
-    burgers: [
-      {
-        name: "Cheeseburger",
-        price: "8.99",
-        image: "/images/burger.jpg"
-      },
-    ],
-    specials: [
-      {
-        name: "Family Meal Deal",
-        price: "29.99",
-        description:
-          "Large 3 topping pizza & 14in cheesy bread plus a Faygo 2 liter",
-      },
-      {
-        name: "Lunch Special",
-        price: "6.49",
-        description: "2 slices of pizza and a 32oz fountain pop",
-      },
-    ],
-  };
-
-  const toppings = [
-    "Ham",
-    "Pepperoni",
-    "Bacon",
-    "Sausage",
-    "Green Olives",
-    "Black Olives",
-    "Mild Peppers",
-    "Green Peppers",
-    "Mushrooms",
-    "Onions",
-    "Pineapple",
-    "Lettuce",
-    "Tomato",
-    "Grilled Chicken",
-    "Jalapeño Peppers",
-  ];
-
-  // Virtual scrolling setup
-  const rowVirtualizer = useVirtualizer({
-    count: Object.keys(menu).length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 500,
-    overscan: 2,
-  });
 
   // Optimize menu data with reordered sections
   const menuSections = useMemo(() => {
@@ -1638,6 +1429,9 @@ export default function PizzaOrder() {
         localStorage.removeItem('items');
         setSelectedToppings({});
 
+        // Scroll to top before navigating
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
         navigate(`/orders/${response._id || response.id}`);
       }
     } catch (error: any) {
@@ -1678,7 +1472,6 @@ export default function PizzaOrder() {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="shadow-lg">
-        <Header />
       </div>
       {isPizzaDiscountDay && (
         <div className="bg-orange-600 text-white text-center py-2 px-4 shadow-md">
@@ -1716,10 +1509,9 @@ export default function PizzaOrder() {
           onRemoveItem={handleRemoveFromCart}
           isPlacingOrder={isPlacingOrder}
           setIsPlacingOrder={setIsPlacingOrder}
-          isPizzaDiscountDay={isPizzaDiscountDay}
+          discountInfo={discountInfo}
         />
       </main>
-      <Footer />
     </div>
   );
 }

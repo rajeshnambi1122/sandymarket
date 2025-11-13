@@ -1,4 +1,3 @@
-import Admin from "@/pages/Admin";
 import { Navigate } from "react-router-dom";
 
 interface AdminRouteProps {
@@ -16,8 +15,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
   try {
     const user = JSON.parse(userStr);
   
-
-    if (user.role !== "admin") {
+    if (user.role !== "admin" && user.role !== "admin1") {
       return <Navigate to="/" replace />;
     }
 

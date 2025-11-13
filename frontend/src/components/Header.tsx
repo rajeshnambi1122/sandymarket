@@ -98,7 +98,7 @@ export default function Header() {
 
           <nav className="hidden md:flex items-center">
             <Link
-              to="/order-pizza"
+              to="/order"
               className="text-sm font-medium hover:text-orange-500 transition-all duration-200 px-4 py-2 rounded-lg hover:bg-orange-50 hover:shadow-sm border border-transparent hover:border-orange-200"
             >
               🍕 Order Food
@@ -165,7 +165,7 @@ export default function Header() {
                 
                 <nav className="flex flex-col gap-3 pt-4">
                   <Link
-                    to="/order-pizza"
+                    to="/order"
                     className="flex items-center gap-3 text-lg font-medium hover:text-orange-500 transition-colors p-3 rounded-lg hover:bg-orange-50"
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -236,7 +236,7 @@ export default function Header() {
                       
                       {cartItems.length > 0 && (
                         <Link 
-                          to="/order-pizza" 
+                          to="/order" 
                           className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                           onClick={() => setIsMenuOpen(false)}
                         >
