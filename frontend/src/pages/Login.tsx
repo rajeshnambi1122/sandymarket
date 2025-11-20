@@ -7,8 +7,10 @@ import { Card } from "@/components/ui/card";
 import { API_URL } from "@/config/api";
 import { Link } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, LogIn } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function Login() {
+  usePageTitle("Login | Sandy's Market");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

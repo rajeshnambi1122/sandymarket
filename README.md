@@ -76,6 +76,7 @@ This is a **professional client project** developed for a US-based business owne
 | ![Railway](https://img.shields.io/badge/Railway-0B0D0E?style=flat&logo=railway&logoColor=white) | Frontend & backend hosting |
 | ![MongoDB Atlas](https://img.shields.io/badge/MongoDB_Atlas-47A248?style=flat&logo=mongodb&logoColor=white) | Cloud database |
 | ![Firebase](https://img.shields.io/badge/Firebase_FCM-FFCA28?style=flat&logo=firebase&logoColor=black) | Push notifications |
+| ![Google Analytics](https://img.shields.io/badge/Google_Analytics-E37400?style=flat&logo=google-analytics&logoColor=white) | User analytics & tracking |
 
 ## 🎯 Features
 
@@ -106,6 +107,7 @@ This is a **professional client project** developed for a US-based business owne
 - ✅ **Input validation** — Comprehensive checks prevent errors
 - 📧 **Email service** — Powered by Resend for reliable delivery
 - 🔔 **FCM integration** — Firebase Cloud Messaging for push notifications
+- 📊 **Analytics tracking** — Google Analytics for user insights and behavior tracking
 
 ## 📁 Project Structure
 
@@ -248,7 +250,8 @@ The business owner needed a system that could:
 - ⬆️ **Increased revenue** — Online ordering captures more sales
 - ⏱️ **80% time saved** — Automated order management and notifications
 - 😊 **Better customer experience** — Customers love the convenience
-- 📊 **Business insights** — Data-driven decisions with order analytics
+- 📊 **Business insights** — Data-driven decisions with Google Analytics and order data
+- 📈 **Traffic tracking** — Monitor visitor behavior and popular menu items
 - 📱 **Work-life balance** — Owner can manage business remotely
 
 ---

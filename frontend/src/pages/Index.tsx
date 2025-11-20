@@ -5,8 +5,10 @@ import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import gasPricesApi, { GasPrice } from "@/api/gasPrices";
 import { useState, useEffect } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const Index = () => {
+  usePageTitle("Sandy's Market | Fuel, Food & Convenience");
   const foodMenu = [
     {
       name: "Cheese Pizza",

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, AlertCircle, Lock, Search, ServerCrash } from "lucide-react";
 import ordersApi from "@/api/orders";
 import { Order } from "@/types/order";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface ErrorState {
   status: number | null;
@@ -16,6 +17,12 @@ export default function OrderSuccess() {
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<ErrorState | null>(null);
+  const pageTitle = order
+    ? "Order Confirmed | Sandy's Market"
+    : error
+      ? "Order Lookup Error | Sandy's Market"
+      : "Order Status | Sandy's Market";
+  usePageTitle(pageTitle);
 
   useEffect(() => {
     // Scroll to top when component mounts

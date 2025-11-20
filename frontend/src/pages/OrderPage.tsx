@@ -22,6 +22,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useInView } from "framer-motion";
 import { motion } from "framer-motion";
 import { menu, toppings } from "@/data/menu";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ===== PIZZA DISCOUNT CONFIGURATION =====
 // Set this to true to enable the 10% pizza discount offer
@@ -1076,6 +1077,7 @@ const CartSummary = React.memo(({
 });
 
 export default function PizzaOrder() {
+  usePageTitle("Order Food | Sandy's Market");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);

@@ -7,8 +7,10 @@ import { Card } from "@/components/ui/card";
 import { API_URL } from "@/config/api";
 import { Link } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, User, Phone, MapPin, UserPlus } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function Register() {
+  usePageTitle("Create Account | Sandy's Market");
   const [formData, setFormData] = useState({
     email: "",
     password: "",

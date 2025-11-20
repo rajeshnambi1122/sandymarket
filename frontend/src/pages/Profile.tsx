@@ -8,8 +8,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function Profile() {
+  usePageTitle("My Profile | Sandy's Market");
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

@@ -15,8 +15,10 @@ import { Loader2, ShoppingBag, Package, TruckIcon, CheckCircle } from "lucide-re
 import { useToast } from "@/components/ui/use-toast";
 import AdminStats from "@/components/AdminStats";
 import { useNavigate } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function Admin() {
+  usePageTitle("Admin Dashboard | Sandy's Market");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
