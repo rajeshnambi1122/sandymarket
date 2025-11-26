@@ -229,7 +229,7 @@ const MenuItem = React.memo(({
                 <div className="flex justify-between items-start gap-2">
                   <h4 className="font-heading font-bold text-base sm:text-lg line-clamp-1 text-gray-800 group-hover:text-orange-600 transition-colors">{item.name}</h4>
                   {item.price !== "market" && !hasSizes && (
-                    <span className="font-bold text-orange-600 text-lg">${item.price}</span>
+                    <span className="font-medium text-orange-600 text-lg">${item.price}</span>
                   )}
                 </div>
                 {item.description && (
@@ -341,10 +341,8 @@ const MenuItem = React.memo(({
                         size="icon"
                         onClick={() => handleQuantityChange(1)}
                         aria-label="Increase quantity"
-                        className={`h-7 w-7 rounded-md hover:bg-white hover:shadow-sm transition-all ${((hasSizes && !selectedSize) || (canHaveToppings && currentToppings.length < requiredToppings && !toppingsSelected))
-                          ? "text-gray-400 cursor-not-allowed"
-                          : "text-gray-500 hover:text-green-600"
-                          }`}
+                        className={`h-7 w-7 rounded-md hover:bg-white hover:shadow-sm transition-all
+                           text-gray-500 hover:text-green-500`}
                       >
                         <PlusCircle className="h-4 w-4" />
                       </Button>
@@ -1243,8 +1241,19 @@ export default function PizzaOrder() {
 
     // Update the cart state
     setCart(prev => {
+      // Helper to compare toppings arrays
+      const areToppingsEqual = (arr1: string[] | undefined, arr2: string[]) => {
+        const t1 = arr1 || [];
+        const t2 = arr2 || [];
+        if (t1.length !== t2.length) return false;
+
+        const sorted1 = [...t1].sort();
+        const sorted2 = [...t2].sort();
+        return sorted1.every((val, index) => val === sorted2[index]);
+      };
+
       // Check if item already exists in cart
-      const existingIndex = prev.findIndex(i => i.name === itemName);
+      const existingIndex = prev.findIndex(i => i.name === itemName && areToppingsEqual(i.toppings, safeToppings));
 
       if (existingIndex >= 0) {
         // Update existing item
@@ -1333,17 +1342,45 @@ export default function PizzaOrder() {
   const handleQuantityChange = useCallback((item: any, delta: number, size?: string, directToppings?: string[]) => {
     if (delta === 0) return; // No change to make
 
-    // Ensure directToppings is always a valid array if provided
-    const safeToppings = directToppings && Array.isArray(directToppings)
-      ? [...directToppings]
-      : item.predefinedToppings && Array.isArray(item.predefinedToppings)
-        ? [...item.predefinedToppings]
-        : [];
+    // Determine the toppings for this operation
+    let operationToppings: string[] = [];
+
+    // 1. Priority: Direct toppings passed from the component
+    if (directToppings && Array.isArray(directToppings)) {
+      operationToppings = [...directToppings];
+    }
+    // 2. Predefined toppings for fixed items
+    else if (item.predefinedToppings && Array.isArray(item.predefinedToppings)) {
+      operationToppings = [...item.predefinedToppings];
+    }
+    // 3. Selected toppings from state for customizable items
+    else if (item.name.includes("Toppings Pizza") && size) {
+      const toppingKey = `${item.name}-${size}`;
+      const toppingsFromState = selectedToppings[toppingKey];
+      if (toppingsFromState && Array.isArray(toppingsFromState)) {
+        operationToppings = [...toppingsFromState];
+      }
+    }
 
     setCart(prevCart => {
       const newCart = [...prevCart];
       const itemKey = size ? `${item.name} (${size})` : item.name;
-      const existingItemIndex = newCart.findIndex(i => i.name === itemKey);
+
+      // Helper to compare toppings arrays
+      const areToppingsEqual = (arr1: string[] | undefined, arr2: string[]) => {
+        const t1 = arr1 || [];
+        const t2 = arr2 || [];
+        if (t1.length !== t2.length) return false;
+
+        const sorted1 = [...t1].sort();
+        const sorted2 = [...t2].sort();
+        return sorted1.every((val, index) => val === sorted2[index]);
+      };
+
+      // Find item with same name AND same toppings
+      const existingItemIndex = newCart.findIndex(i =>
+        i.name === itemKey && areToppingsEqual(i.toppings, operationToppings)
+      );
 
       if (existingItemIndex >= 0) {
         // Item exists in cart, update quantity
@@ -1357,33 +1394,17 @@ export default function PizzaOrder() {
           newCart[existingItemIndex] = {
             ...newCart[existingItemIndex],
             quantity: newQuantity,
-            // If directToppings were provided during update, use them
-            ...(safeToppings.length > 0 ? { toppings: safeToppings } : {})
+            // Ensure toppings are preserved
+            toppings: operationToppings.length > 0 ? operationToppings : newCart[existingItemIndex].toppings
           };
         }
       } else if (delta > 0) {
         // Add new item to cart
-        let itemToppings: string[] = [];
-
-        // IMPORTANT: If direct toppings were provided, use them as priority
-        if (safeToppings.length > 0) {
-          itemToppings = safeToppings; // Already a safe copy
-        }
-        // Otherwise try to get them from the selected toppings state
-        else if (item.name.includes("Toppings Pizza") && size) {
-          const toppingKey = `${item.name}-${size}`;
-          const toppingsFromState = selectedToppings[toppingKey];
-          if (toppingsFromState && Array.isArray(toppingsFromState) && toppingsFromState.length > 0) {
-            itemToppings = [...toppingsFromState]; // Make a copy
-          }
-        }
-
-        // Create the new cart item with GUARANTEED toppings array
         const newItem = {
           name: itemKey,
           quantity: delta,
           price: size ? Number(item.prices[size.toLowerCase()]) : Number(item.price),
-          toppings: itemToppings, // This should now always be a valid array
+          toppings: operationToppings,
           size: size
         };
 
