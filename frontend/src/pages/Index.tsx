@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Fuel, Pizza, Store, Clock, MapPin, Phone, Star, ArrowRight, Truck, ChevronDown, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import gasPricesApi, { GasPrice } from "@/api/gasPrices";
+import gasPricesApi from "@/api/gasPrices";
+import { GasPrice } from "@/types/index";
 import { useState, useEffect } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -78,43 +79,50 @@ const Index = () => {
       <main className="flex-grow">
         {/* Hero Section */}
         <section className="relative h-screen flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0">
+          <div className="absolute inset-0 z-0">
             <img
               src="/images/storeimage-1.png"
               alt="Gas station"
               className="w-full h-full object-cover scale-[1.02] motion-safe:animate-[slowZoom_20s_ease-in-out_infinite_alternate]"
-              style={{transformOrigin: 'center center'}}
+              style={{ transformOrigin: 'center center' }}
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/40" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/30" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
           </div>
           <div className="container mx-auto px-4 relative z-20">
-            <div className="max-w-3xl animate-fade-up">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="h-1 w-10 bg-primary rounded-full"></span>
-                <span className="inline-block px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-full">
+            <div className="max-w-4xl animate-fade-up">
+              <div className="flex items-center gap-3 mb-6 animate-bounce-slow">
+                <span className="h-1 w-12 bg-orange-500 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.5)]"></span>
+                <span className="inline-block px-5 py-2 text-xs font-bold bg-orange-500/20 backdrop-blur-md border border-orange-500/30 text-orange-400 rounded-full tracking-wide uppercase shadow-lg">
                   Welcome to Sandy's Market
                 </span>
               </div>
-              <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white leading-tight">
-                Fuel, Food, <span className="text-primary relative">Convenience
-                  <span className="absolute -bottom-2 left-0 h-1 w-full bg-primary/50 rounded-full"></span>
+              <h1 className="text-4xl md:text-7xl lg:text-8xl font-bold font-heading mb-8 text-white leading-tight drop-shadow-xl">
+                Fuel, Food, <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600 relative">
+                  Convenience
+                  <svg className="absolute -bottom-4 left-0 w-full h-3 text-orange-500 opacity-80" viewBox="0 0 100 10" preserveAspectRatio="none">
+                    <path d="M0 5 L 100 5" stroke="currentColor" strokeWidth="3" fill="none" />
+                  </svg>
                 </span>
               </h1>
-              <p className="text-xl text-gray-200 mb-8 max-w-2xl">
-                Your one-stop destination for premium fuel, delicious food, and everyday essentials
+              <p className="text-lg md:text-2xl text-gray-200 mb-10 max-w-2xl leading-relaxed font-light">
+                Your premium one-stop destination for quality fuel, fresh delicious food, and all your everyday essentials.
               </p>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-5">
                 <Button
                   asChild
-                  size="lg"
-                  className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                  size="sm"
+                  className="bg-primary2 hover:bg-orange-700 text-white rounded-full px-10 py-7 text-lg font-bold shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:shadow-[0_0_30px_rgba(234,88,12,0.6)] hover:-translate-y-1 transition-all duration-300 border border-orange-500/50"
                 >
-                  <Link to="/order" className="flex items-center gap-2">Order Food <ArrowRight size={18} /></Link>
+                  <Link to="/order" className="flex items-center gap-3">
+                    Order Food <ArrowRight size={20} />
+                  </Link>
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="bg-white/10 border-white text-white hover:bg-white hover:text-primary rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                  className="bg-white/5 backdrop-blur-sm border-white/30 text-white hover:bg-white hover:text-orange-600 rounded-full px-10 py-7 text-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                   onClick={scrollToGasPrices}
                 >
                   View Gas Prices
@@ -122,80 +130,81 @@ const Index = () => {
               </div>
             </div>
           </div>
-
         </section>
 
         {/* Why Choose Us Section */}
-        <section className="bg-white pt-16 pb-20" id="why-choose-us">
+        <section className="bg-white pt-24 pb-24 relative" id="why-choose-us">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-orange-200 to-transparent opacity-50"></div>
           <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="h-1 w-6 bg-primary rounded-full"></span>
-                <span className="inline-block px-4 py-1.5 text-sm font-medium bg-primary/10 text-primary rounded-full">Why Choose Us</span>
-                <span className="h-1 w-6 bg-primary rounded-full"></span>
+            <div className="text-center mb-20">
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <span className="h-1 w-8 bg-orange-500 rounded-full"></span>
+                <span className="inline-block px-6 py-2 text-sm font-bold bg-orange-50 text-orange-600 rounded-full border border-orange-100 uppercase tracking-wider">Why Choose Us</span>
+                <span className="h-1 w-8 bg-orange-500 rounded-full"></span>
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Everything You Need in One Place</h2>
-              <p className="text-gray-600 max-w-2xl mx-auto mb-8">We offer premium fuel, fresh food, and daily essentials all under one roof for your convenience</p>
+              <h2 className="text-4xl md:text-5xl font-bold font-heading mb-6 text-gray-900">Everything You Need in One Place</h2>
+              <p className="text-xl text-gray-500 max-w-3xl mx-auto leading-relaxed">We offer premium fuel, fresh food, and daily essentials all under one roof for your ultimate convenience.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <Card className="group p-8 rounded-xl hover:shadow-xl transition-all duration-300 border-none bg-white shadow-md hover:-translate-y-2 animate-fade-up overflow-hidden">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                    <Fuel className="w-8 h-8 text-primary group-hover:text-white transition-colors duration-300" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+              <Card className="group p-8 rounded-[2rem] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100 bg-white hover:-translate-y-2 animate-fade-up overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                <div className="flex flex-col items-center text-center relative z-10">
+                  <div className="w-20 h-20 bg-orange-50 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-orange-500 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-orange-200 group-hover:rotate-3">
+                    <Fuel className="w-10 h-10 text-orange-500 group-hover:text-white transition-colors duration-500" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">Premium Fuel</h3>
-                  <p className="text-gray-600 mb-6">
-                    Top-quality fuel at competitive prices to keep your vehicle running smoothly
+                  <h3 className="text-2xl font-bold font-heading mb-4 text-gray-800 group-hover:text-orange-600 transition-colors">Premium Fuel</h3>
+                  <p className="text-gray-500 mb-8 leading-relaxed text-lg">
+                    Top-quality fuel at competitive prices to keep your vehicle running smoothly on every journey.
                   </p>
-                  <div className="relative overflow-hidden rounded-xl w-full h-48">
+                  <div className="relative overflow-hidden rounded-2xl w-full h-56 shadow-lg group-hover:shadow-xl transition-all duration-500">
                     <img
                       src="/images/storeimage-1.png"
                       alt="Fuel station"
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                   </div>
                 </div>
               </Card>
-              
-              <Card className="group p-8 rounded-xl hover:shadow-xl transition-all duration-300 border-none bg-white shadow-md hover:-translate-y-2 animate-fade-up [animation-delay:200ms] overflow-hidden">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                    <Store className="w-8 h-8 text-primary group-hover:text-white transition-colors duration-300" />
+
+              <Card className="group p-8 rounded-[2rem] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100 bg-white hover:-translate-y-2 animate-fade-up delay-100 overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                <div className="flex flex-col items-center text-center relative z-10">
+                  <div className="w-20 h-20 bg-orange-50 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-orange-500 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-orange-200 group-hover:-rotate-3">
+                    <Pizza className="w-10 h-10 text-orange-500 group-hover:text-white transition-colors duration-500" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">
-                    Market & Essentials
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    Fresh groceries and everyday essentials for your convenience
+                  <h3 className="text-2xl font-bold font-heading mb-4 text-gray-800 group-hover:text-orange-600 transition-colors">Fresh Food</h3>
+                  <p className="text-gray-500 mb-8 leading-relaxed text-lg">
+                    Delicious pizzas, subs, and snacks prepared fresh daily in our kitchen with premium ingredients.
                   </p>
-                  <div className="relative overflow-hidden rounded-xl w-full h-48">
+                  <div className="relative overflow-hidden rounded-2xl w-full h-56 shadow-lg group-hover:shadow-xl transition-all duration-500">
                     <img
                       src="/images/storeimage-3.png"
                       alt="Store interior"
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                   </div>
                 </div>
               </Card>
-              
-              <Card className="group p-8 rounded-xl hover:shadow-xl transition-all duration-300 border-none bg-white shadow-md hover:-translate-y-2 animate-fade-up [animation-delay:400ms] overflow-hidden">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                    <Pizza className="w-8 h-8 text-primary group-hover:text-white transition-colors duration-300" />
+
+              <Card className="group p-8 rounded-[2rem] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100 bg-white hover:-translate-y-2 animate-fade-up delay-200 overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                <div className="flex flex-col items-center text-center relative z-10">
+                  <div className="w-20 h-20 bg-orange-50 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-orange-500 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-orange-200 group-hover:rotate-3">
+                    <Store className="w-10 h-10 text-orange-500 group-hover:text-white transition-colors duration-500" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">Delicious Food</h3>
-                  <p className="text-gray-600 mb-6">
-                    Hot and fresh food made to order with premium ingredients
+                  <h3 className="text-2xl font-bold font-heading mb-4 text-gray-800 group-hover:text-orange-600 transition-colors">Convenience</h3>
+                  <p className="text-gray-500 mb-8 leading-relaxed text-lg">
+                    Wide selection of snacks, beverages, and daily essentials for your journey, available 24/7.
                   </p>
-                  <div className="relative overflow-hidden rounded-xl w-full h-48">
+                  <div className="relative overflow-hidden rounded-2xl w-full h-56 shadow-lg group-hover:shadow-xl transition-all duration-500">
                     <img
                       src="/images/storeimage-2.png"
                       alt="Food"
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                   </div>
                 </div>
               </Card>
@@ -204,47 +213,52 @@ const Index = () => {
         </section>
 
         {/* Food Menu Section */}
-        <section className="py-20 bg-gray-50" id="food-menu">
+        <section className="py-24 bg-gray-50" id="food-menu">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="h-1 w-6 bg-primary rounded-full"></span>
-                <span className="inline-block px-4 py-1.5 text-sm font-medium bg-primary/10 text-primary rounded-full">Our Menu</span>
-                <span className="h-1 w-6 bg-primary rounded-full"></span>
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <span className="h-1 w-8 bg-orange-500 rounded-full"></span>
+                <span className="inline-block px-6 py-2 text-sm font-bold bg-orange-100 text-orange-600 rounded-full border border-orange-200 uppercase tracking-wider">Our Menu</span>
+                <span className="h-1 w-8 bg-orange-500 rounded-full"></span>
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Fresh & Delicious Food</h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">Enjoy our variety of freshly made pizzas, subs, burgers and more - all made with quality ingredients</p>
+              <h2 className="text-4xl md:text-5xl font-bold font-heading mb-6 text-gray-900">Fresh & Delicious Food</h2>
+              <p className="text-xl text-gray-500 max-w-3xl mx-auto leading-relaxed">Enjoy our variety of freshly made pizzas, subs, burgers and more - all made with quality ingredients.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-8">
               {foodMenu.map((item, index) => (
                 <Card
                   key={index}
-                  className="group overflow-hidden rounded-xl hover:shadow-xl transition-all duration-300 border-none bg-white shadow-md hover:-translate-y-2 animate-fade-up"
+                  className="group overflow-hidden rounded-[1.5rem] hover:shadow-[0_20px_40px_rgba(0,0,0,0.15)] transition-all duration-500 border-none bg-white shadow-lg hover:-translate-y-2 animate-fade-up relative"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="relative h-64 w-full overflow-hidden">
-                    <img 
-                      src={item.image} 
-                      alt={item.name} 
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                  {index === 0 && (
+                    <div className="absolute top-4 right-4 z-20 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-pulse">
+                      POPULAR
+                    </div>
+                  )}
+                  <div className="relative h-72 w-full overflow-hidden">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-90 group-hover:opacity-70 transition-opacity duration-300">
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <h3 className="text-xl font-bold mb-1 text-white">{item.name}</h3>
-                        <p className="text-white/80 text-sm mb-2">{item.description}</p>
-                        <div className="flex justify-between items-center">
-                          <span className="bg-primary text-white font-bold rounded-full px-3 py-1 text-sm shadow-lg">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80 group-hover:opacity-70 transition-opacity duration-500">
+                      <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                        <h3 className="text-2xl font-bold mb-2 text-white font-heading tracking-wide">{item.name}</h3>
+                        <p className="text-gray-200 text-sm mb-4 line-clamp-2 opacity-90">{item.description}</p>
+                        <div className="flex justify-between items-center pt-2 border-t border-white/20">
+                          <span className="text-2xl font-bold text-orange-400 drop-shadow-sm">
                             {item.price}
                           </span>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="default"
                             size="sm"
-                            className="border-white text-white bg-primary/80 hover:bg-white hover:text-primary transition-colors"
+                            className="bg-white text-orange-600 hover:bg-orange-500 hover:text-white transition-all duration-300 rounded-full px-5 font-bold shadow-lg"
                             onClick={() => navigate("/order")}
                           >
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-2">
                               Order
-                              <ArrowRight size={14} />
+                              <ArrowRight size={16} />
                             </span>
                           </Button>
                         </div>
@@ -254,15 +268,15 @@ const Index = () => {
                 </Card>
               ))}
             </div>
-            <div className="text-center mt-16">
+            <div className="text-center mt-20">
               <Button
                 size="lg"
-                className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                className="bg-orange-600 hover:bg-orange-700 text-white rounded-full px-10 py-6 text-lg font-bold shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-orange-500"
                 onClick={() => navigate("/order")}
               >
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-3">
                   View Full Menu
-                  <ArrowRight size={18} />
+                  <ArrowRight size={20} />
                 </span>
               </Button>
             </div>
@@ -270,38 +284,47 @@ const Index = () => {
         </section>
 
         {/* Gas Prices Section */}
-        <section id="gas-prices" className="py-20 bg-white relative">
-          <div className="absolute inset-0 bg-[url('/images/02cd446d-f09f-4647-88e4-e7b5508c6209.png')] bg-cover bg-center opacity-5"></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent"></div>
-          <div className="container mx-auto px-4 relative">
+        <section id="gas-prices" className="py-24 relative overflow-hidden">
+          <div className="absolute inset-0 bg-slate-900">
+            <div className="absolute inset-0 bg-[url('/images/02cd446d-f09f-4647-88e4-e7b5508c6209.png')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 opacity-90"></div>
+          </div>
+          <div className="container mx-auto px-4 relative z-10">
             <div className="text-center mb-16">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="h-1 w-6 bg-primary rounded-full"></span>
-                <span className="inline-block px-4 py-1.5 text-sm font-medium bg-primary/10 text-primary rounded-full">Fuel Prices</span>
-                <span className="h-1 w-6 bg-primary rounded-full"></span>
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <span className="h-1 w-8 bg-orange-500 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.5)]"></span>
+                <span className="inline-block px-6 py-2 text-sm font-bold bg-white/10 text-orange-400 rounded-full border border-white/20 backdrop-blur-md uppercase tracking-wider">Fuel Prices</span>
+                <span className="h-1 w-8 bg-orange-500 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.5)]"></span>
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Today's Gas Prices</h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">We offer quality fuel at competitive prices</p>
+              <h2 className="text-4xl md:text-5xl font-bold font-heading mb-6 text-white">Today's Gas Prices</h2>
+              <p className="text-xl text-gray-300 max-w-2xl mx-auto font-light">We offer quality fuel at competitive prices, updated daily for your convenience.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
               {gasPrices.map((item, index) => (
                 <Card
                   key={index}
-                  className="group p-8 text-center rounded-xl hover:shadow-xl transition-all duration-300 border-none bg-white shadow-md hover:-translate-y-2 animate-fade-up overflow-hidden"
+                  className="group p-6 text-center rounded-2xl hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] transition-all duration-500 border border-white/10 bg-white/5 backdrop-blur-md hover:-translate-y-2 animate-fade-up overflow-hidden relative"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="absolute top-0 left-0 h-1 w-0 bg-primary group-hover:w-full transition-all duration-500"></div>
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary group-hover:scale-110 transition-all duration-300">
-                    <Fuel className="w-8 h-8 text-primary group-hover:text-white transition-colors duration-300" />
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600"></div>
+                  <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-orange-500 group-hover:text-white transition-all duration-500 shadow-lg group-hover:shadow-orange-500/50 group-hover:scale-110">
+                    <Fuel className="w-8 h-8 text-orange-400 group-hover:text-white transition-colors duration-500" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">{item.type}</h3>
-                  <p className="text-primary text-3xl font-bold group-hover:scale-110 transition-transform duration-300">{item.price}</p>
-                  <p className="text-xs text-gray-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Updated today</p>
+                  <h3 className="text-xl font-bold mb-2 text-white tracking-wide">{item.type}</h3>
+                  <div className="relative inline-block">
+                    <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 group-hover:from-orange-400 group-hover:to-orange-200 transition-all duration-500 font-mono tracking-tighter">
+                      {item.price}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 mt-4 opacity-60 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <p className="text-xs text-gray-300">Live Price</p>
+                  </div>
                 </Card>
               ))}
             </div>
-            <p className="text-center mt-8 text-gray-600 flex items-center justify-center gap-2">
-              <Clock className="w-4 h-4" /> Prices are updated daily
+            <p className="text-center mt-12 text-gray-400 flex items-center justify-center gap-2 text-sm">
+              <Clock className="w-4 h-4 text-orange-500" /> Prices are subject to change without notice
             </p>
           </div>
         </section>
@@ -403,94 +426,99 @@ const Index = () => {
         */}
 
         {/* Contact & Info Section */}
-        <section className="py-20 bg-white relative overflow-hidden">
+        <section className="py-24 bg-white relative overflow-hidden">
           <div className="absolute inset-0 bg-[url('/images/ce094248-3f2d-4835-9b7c-6f2dc995f3ae.png')] bg-cover bg-center opacity-5"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-orange-50/50 to-transparent"></div>
           <div className="container mx-auto px-4 relative">
             <div className="text-center mb-16">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="h-1 w-6 bg-primary rounded-full"></span>
-                <span className="inline-block px-4 py-1.5 text-sm font-medium bg-primary/10 text-primary rounded-full">Visit Us</span>
-                <span className="h-1 w-6 bg-primary rounded-full"></span>
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <span className="h-1 w-8 bg-orange-500 rounded-full"></span>
+                <span className="inline-block px-6 py-2 text-sm font-bold bg-orange-100 text-orange-600 rounded-full border border-orange-200 uppercase tracking-wider">Visit Us</span>
+                <span className="h-1 w-8 bg-orange-500 rounded-full"></span>
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Come See Us Today</h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">We're conveniently located and ready to serve you</p>
+              <h2 className="text-4xl md:text-5xl font-bold font-heading mb-6 text-gray-900">Come See Us Today</h2>
+              <p className="text-xl text-gray-500 max-w-3xl mx-auto leading-relaxed">We're conveniently located and ready to serve you with a smile, 24 hours a day.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-5xl mx-auto">
-              <Card className="group p-8 rounded-xl hover:shadow-xl transition-all duration-300 border-none bg-white shadow-md hover:-translate-y-2 animate-fade-up relative overflow-hidden">
-                <div className="absolute top-0 left-0 h-1 w-0 bg-primary group-hover:w-full transition-all duration-500"></div>
-                <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="flex flex-col items-center text-center relative">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary group-hover:scale-110 transition-all duration-300">
-                    <MapPin className="w-8 h-8 text-primary group-hover:text-white transition-colors duration-300" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+              <Card className="group p-8 rounded-[2rem] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100 bg-white hover:-translate-y-2 animate-fade-up relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="flex flex-col items-center text-center relative z-10 h-full">
+                  <div className="w-20 h-20 bg-orange-50 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-orange-500 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-orange-200 group-hover:rotate-3">
+                    <MapPin className="w-10 h-10 text-orange-500 group-hover:text-white transition-colors duration-500" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">Our Location</h3>
-                  <p className="text-gray-600 mb-6">
+                  <h3 className="text-2xl font-bold font-heading mb-4 text-gray-800">Our Location</h3>
+                  <p className="text-gray-500 mb-8 text-lg leading-relaxed">
                     1057 Estey Road<br />
                     Beaverton, MI<br />
                     United States
                   </p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-auto border-primary text-primary hover:bg-primary hover:text-white transition-colors group-hover:bg-primary group-hover:text-white"
+                  <Button
+                    variant="outline"
+                    className="mt-auto w-full border-orange-200 text-orange-600 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-all duration-300 rounded-xl py-6 font-bold"
                     onClick={() => window.open("https://maps.google.com/?q=1057+Estey+Road+Beaverton+MI", "_blank")}
                   >
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center justify-center gap-2">
                       Get Directions
-                      <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform duration-300" />
+                      <ArrowRight size={18} className="transform group-hover:translate-x-1 transition-transform duration-300" />
                     </span>
                   </Button>
                 </div>
               </Card>
-              <Card className="group p-8 rounded-xl hover:shadow-xl transition-all duration-300 border-none bg-white shadow-md hover:-translate-y-2 animate-fade-up [animation-delay:200ms] relative overflow-hidden">
-                <div className="absolute top-0 left-0 h-1 w-0 bg-primary group-hover:w-full transition-all duration-500"></div>
-                <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="flex flex-col items-center text-center relative">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary group-hover:scale-110 transition-all duration-300">
-                    <Clock className="w-8 h-8 text-primary group-hover:text-white transition-colors duration-300" />
+
+              <Card className="group p-8 rounded-[2rem] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100 bg-white hover:-translate-y-2 animate-fade-up delay-100 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="flex flex-col items-center text-center relative z-10 h-full">
+                  <div className="w-20 h-20 bg-orange-50 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-orange-500 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-orange-200 group-hover:-rotate-3">
+                    <Clock className="w-10 h-10 text-orange-500 group-hover:text-white transition-colors duration-500" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">Hours</h3>
-                  <div className="w-full">
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Monday - Sunday:</span>
-                      <span className="text-primary font-medium">24 Hours</span>
+                  <h3 className="text-2xl font-bold font-heading mb-4 text-gray-800">Hours</h3>
+                  <div className="w-full mb-8">
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-medium">Monday - Sunday</span>
+                      <span className="text-orange-600 font-bold bg-orange-50 px-3 py-1 rounded-lg">24 Hours</span>
                     </div>
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-600">Every Day:</span>
-                      <span className="text-primary font-medium">Open 24/7</span>
+                    <div className="flex justify-between items-center py-3">
+                      <span className="text-gray-500 font-medium">Every Day</span>
+                      <span className="text-orange-600 font-bold bg-orange-50 px-3 py-1 rounded-lg">Open 24/7</span>
                     </div>
+                  </div>
+                  <div className="mt-auto w-full p-4 bg-green-50 rounded-xl border border-green-100 text-green-700 font-bold flex items-center justify-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    Open Now
                   </div>
                 </div>
               </Card>
-              <Card className="group p-8 rounded-xl hover:shadow-xl transition-all duration-300 border-none bg-white shadow-md hover:-translate-y-2 animate-fade-up [animation-delay:400ms] relative overflow-hidden">
-                <div className="absolute top-0 left-0 h-1 w-0 bg-primary group-hover:w-full transition-all duration-500"></div>
-                <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="flex flex-col items-center text-center relative">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary group-hover:scale-110 transition-all duration-300">
-                    <Phone className="w-8 h-8 text-primary group-hover:text-white transition-colors duration-300" />
+
+              <Card className="group p-8 rounded-[2rem] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100 bg-white hover:-translate-y-2 animate-fade-up delay-200 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="flex flex-col items-center text-center relative z-10 h-full">
+                  <div className="w-20 h-20 bg-orange-50 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-orange-500 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-orange-200 group-hover:rotate-3">
+                    <Phone className="w-10 h-10 text-orange-500 group-hover:text-white transition-colors duration-500" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">Contact</h3>
-                  <div className="flex items-center justify-center mb-2 text-gray-600">
-                    <div className="w-4 h-4 flex items-center justify-center mr-2">
-                      <Phone className="w-4 h-4 text-primary" />
-                    </div>
-                    <span>+1 989-435-9688</span>
+                  <h3 className="text-2xl font-bold font-heading mb-4 text-gray-800">Contact</h3>
+                  <div className="flex flex-col gap-3 mb-8 w-full">
+                    <a href="tel:+19894359688" className="flex items-center justify-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-orange-50 transition-colors group/link">
+                      <Phone className="w-5 h-5 text-gray-400 group-hover/link:text-orange-500 transition-colors" />
+                      <span className="text-gray-700 font-bold group-hover/link:text-orange-700 transition-colors">+1 989-435-9688</span>
+                    </a>
+                    <a href="mailto:sandysmarket-gbs@hotmail.com" className="flex items-center justify-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-orange-50 transition-colors group/link">
+                      <Mail className="w-5 h-5 text-gray-400 group-hover/link:text-orange-500 transition-colors" />
+                      <span className="text-gray-700 font-medium text-sm group-hover/link:text-orange-700 transition-colors truncate">sandysmarket-gbs@hotmail.com</span>
+                    </a>
                   </div>
-                  <div className="flex items-center justify-center mb-6 text-gray-600 whitespace-nowrap">
-                    <div className="w-4 h-4 flex items-center justify-center mr-2">
-                      <Mail className="w-4 h-4 text-primary" />
-                    </div>
-                    <span className="text-gray-600 whitespace-nowrap">sandysmarket-gbs@hotmail.com</span>
-                  </div>
-                  <Button 
-                    className="mt-auto bg-primary hover:bg-primary/90 text-white transition-colors hover:scale-105 transform duration-300"
+                  <Button
+                    className="mt-auto w-full bg-orange-600 hover:bg-orange-700 text-white transition-all hover:scale-105 transform duration-300 rounded-xl py-6 font-bold shadow-lg hover:shadow-orange-500/30"
                     onClick={() => window.open("tel:+19894359688")}
                   >
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center justify-center gap-2">
                       Call Now
-                      <Phone size={16} />
+                      <Phone size={18} />
                     </span>
-                  </Button>                </div>
+                  </Button>
+                </div>
               </Card>
             </div>
           </div>
@@ -513,7 +541,7 @@ const Index = () => {
           <div className="container mx-auto px-4 relative">
             <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 text-white">
               <div className="md:max-w-md">
-                <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Order?</h2>
+                <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">Ready to Order?</h2>
                 <p className="text-white/90 text-lg mb-4">Fresh, delicious pizza is just a click away!</p>
                 <div className="flex gap-4 items-center">
                   <div className="flex -space-x-4">
@@ -530,7 +558,7 @@ const Index = () => {
                   <span className="text-sm text-white/80">Enjoyed by hundreds of customers</span>
                 </div>
               </div>
-              <Button 
+              <Button
                 size="lg"
                 className="bg-white text-primary hover:bg-white/90 rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                 onClick={() => navigate("/order")}

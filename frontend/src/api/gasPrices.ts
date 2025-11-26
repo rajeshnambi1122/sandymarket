@@ -1,10 +1,7 @@
 import axios from "axios";
 import { API_URL } from "@/config/api";
 
-export interface GasPrice {
-  type: string;
-  price: string;
-}
+import { GasPrice } from "@/types/index";
 
 const gasPricesApi = {
   getGasPrices: async (): Promise<GasPrice[]> => {

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { API_URL } from "@/config/api";
 import { Card } from "@/components/ui/card";
 import ordersApi from "@/api/orders";
-import { Order } from "@/types/order";
+import { Order } from "@/types/index";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,7 +33,7 @@ export default function Profile() {
         navigate("/login");
         return;
       }
-      
+
       if (response.ok) {
         const data = await response.json();
         setUser(data);
@@ -88,7 +88,7 @@ export default function Profile() {
           <div className="text-center py-8">
             <h2 className="text-xl font-bold text-red-600 mb-4">Error</h2>
             <p className="text-gray-600">{error}</p>
-            <Button 
+            <Button
               onClick={() => {
                 setError(null);
                 setLoading(true);
@@ -125,7 +125,7 @@ export default function Profile() {
     <div className="min-h-screen flex flex-col">
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">My Profile</h1>
+          <h1 className="text-2xl font-bold font-heading">My Profile</h1>
           <Button
             variant="destructive"
             onClick={logout}
@@ -136,7 +136,7 @@ export default function Profile() {
         </div>
 
         <Card className="p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Personal Information</h2>
+          <h2 className="font-heading text-xl font-semibold mb-4">Personal Information</h2>
           <div className="space-y-2">
             <p>
               <strong>Name:</strong> {user.name}
@@ -154,9 +154,9 @@ export default function Profile() {
         </Card>
 
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">Order History</h2>
-          <Button 
-            onClick={fetchUserOrders} 
+          <h2 className="font-heading text-xl font-bold">Order History</h2>
+          <Button
+            onClick={fetchUserOrders}
             variant="outline"
             size="sm"
             disabled={loading}
@@ -165,7 +165,7 @@ export default function Profile() {
             {loading ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
-        
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
             <LoadingSpinner size={32} className="mb-4" />
@@ -177,7 +177,7 @@ export default function Profile() {
               <Card key={order._id || order.id} className="p-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-semibold">Order #{order._id || order.id}</p>
+                    <p className="font-heading font-semibold">Order #{order._id || order.id}</p>
                     <p className="text-sm text-gray-600">
                       Status: {order.status}
                     </p>
@@ -209,7 +209,7 @@ export default function Profile() {
             <p className="text-sm text-gray-500 mb-6">
               Ready to order some delicious food? Start browsing our menu!
             </p>
-            <Button 
+            <Button
               onClick={() => navigate('/order')}
               className="bg-orange-600 hover:bg-orange-700 text-white"
             >

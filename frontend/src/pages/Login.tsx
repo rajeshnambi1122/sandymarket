@@ -46,6 +46,7 @@ export default function Login() {
         toast({
           title: "Success",
           description: "Logged in successfully",
+          variant: "success",
         });
 
         // Redirect based on role
@@ -79,10 +80,10 @@ export default function Login() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 mb-4 shadow-lg">
               <LogIn className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+            <h1 className="text-3xl font-bold font-heading text-gray-900 mb-2">Welcome Back</h1>
             <p className="text-gray-600 text-sm">Sign in to continue to your account</p>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -102,7 +103,7 @@ export default function Login() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Password
@@ -129,21 +130,21 @@ export default function Login() {
                 </button>
               </div>
             </div>
-            
-            <Button 
-              type="submit" 
+
+            <Button
+              type="submit"
               className="w-full h-12 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
             >
               <LogIn className="mr-2 w-5 h-5" />
               Sign In
             </Button>
           </form>
-          
+
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-center text-sm text-gray-600">
               Don't have an account?{" "}
-              <Link 
-                to="/register" 
+              <Link
+                to="/register"
                 className="font-semibold text-orange-600 hover:text-orange-700 hover:underline transition-colors"
               >
                 Register Now

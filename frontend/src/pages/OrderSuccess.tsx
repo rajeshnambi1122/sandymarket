@@ -4,13 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, AlertCircle, Lock, Search, ServerCrash } from "lucide-react";
 import ordersApi from "@/api/orders";
-import { Order } from "@/types/order";
+import { Order, ErrorState } from "@/types/index";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
-interface ErrorState {
-  status: number | null;
-  message: string;
-}
+
 
 export default function OrderSuccess() {
   const { id } = useParams();
@@ -27,7 +24,7 @@ export default function OrderSuccess() {
   useEffect(() => {
     // Scroll to top when component mounts
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
+
     if (id) {
       fetchOrder(id);
     }
@@ -36,8 +33,8 @@ export default function OrderSuccess() {
   const fetchOrder = async (orderId: string) => {
     try {
       const orderData = await ordersApi.getOrderById(orderId);
-  
-      
+
+
       // Log toppings information for each item
       if (orderData && orderData.items) {
         orderData.items.forEach((item, index) => {
@@ -49,16 +46,16 @@ export default function OrderSuccess() {
           });
         });
       }
-      
+
       setOrder(orderData);
       setError(null);
     } catch (error: any) {
       console.error("Failed to fetch order:", error);
-      
+
       // Extract status code and message from the error
       const status = error.status || error.response?.status || null;
       const message = error.message || error.response?.data?.message || "An unknown error occurred";
-      
+
       setError({ status, message });
       setOrder(null);
     }
@@ -92,7 +89,7 @@ export default function OrderSuccess() {
               <Card className="max-w-2xl mx-auto p-6">
                 <div className="text-center">
                   <Lock className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
-                  <h1 className="text-2xl font-bold text-yellow-600 mb-2">Authentication Required</h1>
+                  <h1 className="text-2xl font-bold font-heading text-yellow-600 mb-2">Authentication Required</h1>
                   <p className="text-gray-600 mt-2">You need to be logged in to view this order.</p>
                   <p className="text-gray-500 text-sm mt-1">{error.message}</p>
                   <div className="flex gap-2 justify-center mt-6">
@@ -117,7 +114,7 @@ export default function OrderSuccess() {
               <Card className="max-w-2xl mx-auto p-6">
                 <div className="text-center">
                   <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
-                  <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
+                  <h1 className="text-2xl font-bold font-heading text-red-600 mb-2">Access Denied</h1>
                   <p className="text-gray-600 mt-2">You can only access your own orders.</p>
                   <p className="text-gray-500 text-sm mt-1">{error.message}</p>
                   <p className="text-gray-400 text-xs mt-3">
@@ -145,7 +142,7 @@ export default function OrderSuccess() {
               <Card className="max-w-2xl mx-auto p-6">
                 <div className="text-center">
                   <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h1 className="text-2xl font-bold text-gray-700 mb-2">Order Not Found</h1>
+                  <h1 className="text-2xl font-bold font-heading text-gray-700 mb-2">Order Not Found</h1>
                   <p className="text-gray-600 mt-2">The order you're looking for doesn't exist.</p>
                   <p className="text-gray-500 text-sm mt-1">{error.message}</p>
                   <p className="text-gray-400 text-xs mt-3">
@@ -173,7 +170,7 @@ export default function OrderSuccess() {
               <Card className="max-w-2xl mx-auto p-6">
                 <div className="text-center">
                   <ServerCrash className="w-16 h-16 text-orange-600 mx-auto mb-4" />
-                  <h1 className="text-2xl font-bold text-orange-600 mb-2">Server Error</h1>
+                  <h1 className="text-2xl font-bold font-heading text-orange-600 mb-2">Server Error</h1>
                   <p className="text-gray-600 mt-2">Something went wrong on our end.</p>
                   <p className="text-gray-500 text-sm mt-1">{error.message}</p>
                   <p className="text-gray-400 text-xs mt-3">
@@ -201,7 +198,7 @@ export default function OrderSuccess() {
               <Card className="max-w-2xl mx-auto p-6">
                 <div className="text-center">
                   <AlertCircle className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                  <h1 className="text-2xl font-bold text-gray-700 mb-2">Error Loading Order</h1>
+                  <h1 className="text-2xl font-bold font-heading text-gray-700 mb-2">Error Loading Order</h1>
                   <p className="text-gray-600 mt-2">Unable to load order details.</p>
                   <p className="text-gray-500 text-sm mt-1">{error.message}</p>
                   {error.status && (
@@ -243,7 +240,7 @@ export default function OrderSuccess() {
         <Card className="max-w-md mx-auto p-0 overflow-hidden">
           <div className="bg-green-50 border-b border-green-200 p-4 text-center">
             <CheckCircle className="w-10 h-10 text-green-600 mx-auto mb-2" />
-            <h1 className="text-xl font-bold text-green-700">Order Successful!</h1>
+            <h1 className="text-xl font-bold font-heading text-green-700">Order Successful!</h1>
             <p className="text-gray-600 text-sm">Thank you for your order</p>
           </div>
 

@@ -18,6 +18,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        heading: ["Outfit", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -27,6 +30,10 @@ export default {
         primary: {
           DEFAULT: "#F97316",
           foreground: "hsl(var(--primary-foreground))",
+        },
+        primary2: {
+          DEFAULT: "#ea580c",
+          foreground: "hsl(var(--primary2-foreground))",
         },
         secondary: {
           DEFAULT: "#F2FCE2",

@@ -3,8 +3,8 @@ import { Facebook, Instagram, Twitter, Mail } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-12">
+    <footer className="  bg-slate-900  text-white">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 opacity-90container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <h3 className="text-lg font-semibold mb-4">About Us</h3>

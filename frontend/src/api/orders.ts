@@ -6,7 +6,7 @@ import {
   CreateOrderDTO,
   OrderResponse,
   OrdersResponse,
-} from "@/types/order";
+} from "@/types/index";
 
 class ApiError extends Error {
   constructor(message: string, public status?: number, public code?: string) {
@@ -61,11 +61,11 @@ const ordersApi = {
 
   createOrder: async (orderData: CreateOrderDTO): Promise<Order> => {
     try {
-    
-      
+
+
       // Deep inspect the items array to ensure toppings are included
       if (orderData.items && Array.isArray(orderData.items)) {
-    
+
         orderData.items.forEach((item, idx) => {
           const hasToppings = item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0;
           console.log(`API: Item ${idx} - ${item.name}:`, {
@@ -79,17 +79,17 @@ const ordersApi = {
       } else {
         console.warn("API: No items array found in order data or it's not an array");
       }
-      
+
       // Add user ID to the order data if available
       let enhancedOrderData = { ...orderData };
-      
+
       try {
         const userStr = localStorage.getItem('user');
         if (userStr) {
           const userData = JSON.parse(userStr);
           // Include the user ID in the order data
           if (userData && userData.id) {
-      
+
             enhancedOrderData.userId = userData.id;
           }
         }
@@ -97,9 +97,9 @@ const ordersApi = {
         console.error("Error getting user data from localStorage:", userDataError);
         // Continue with original order data if there's an error
       }
-      
-  
-      
+
+
+
       const response = await axios.post<OrderResponse>(
         `${API_URL}/orders`,
         enhancedOrderData,
@@ -110,8 +110,8 @@ const ordersApi = {
           }
         }
       );
-      
-  
+
+
       if (response.data && response.data.data) {
         return response.data.data;
       } else {
@@ -131,29 +131,29 @@ const ordersApi = {
         console.error("No token found in localStorage");
         throw new Error("Authentication required");
       }
-    
-      
+
+
       // Get user data from localStorage
       const userStr = localStorage.getItem('user');
       if (!userStr) {
         console.error("No user data found in localStorage");
         throw new Error("User data not found");
       }
-      
+
       const user = JSON.parse(userStr);
-  
-      
+
+
       // Decode token to check payload
       try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         const payload = JSON.parse(window.atob(base64));
-        
+
       } catch (decodeError) {
         console.error("Error decoding token:", decodeError);
       }
 
-  
+
       const response = await axios.get<OrdersResponse>(
         `${API_URL}/orders/my-orders`,
         {
@@ -163,19 +163,19 @@ const ordersApi = {
           },
         }
       );
-      
-      
-      
+
+
+
       if (!response.data.success) {
         console.error("API returned error:", response.data.message);
         throw new Error(response.data.message || "Failed to fetch orders");
       }
-      
+
       if (!Array.isArray(response.data.data)) {
         console.error("Invalid orders data format:", response.data.data);
         return [];
       }
-      
+
       return response.data.data;
     } catch (error) {
       console.error("Error in getUserOrders:", error);
@@ -184,7 +184,7 @@ const ordersApi = {
         const status = error.response?.status;
         const data = error.response?.data;
         console.error(`Axios error (${status}):`, data);
-        
+
         // If unauthorized, clear token
         if (status === 401) {
           localStorage.removeItem('token');
@@ -203,10 +203,10 @@ const ordersApi = {
           headers: getAuthHeader(),
         }
       );
-      
+
       console.log("API: Raw order response:", response.data);
       console.log("API: Order items received:", response.data.data.items);
-      
+
       // Check for toppings in each item
       if (response.data.data && response.data.data.items) {
         response.data.data.items.forEach((item: any, index: number) => {
@@ -220,7 +220,7 @@ const ordersApi = {
           });
         });
       }
-      
+
       return response.data.data;
     } catch (error) {
       console.error("API: Error getting order by ID:", error);

@@ -13,16 +13,23 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { MinusCircle, PlusCircle, CheckCircle2, X } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import ordersApi from "@/api/orders";
-
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useInView } from "framer-motion";
 import { motion } from "framer-motion";
 import { menu, toppings } from "@/data/menu";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import ordersApi from "@/api/orders";
+import {
+  PlusCircle,
+  MinusCircle,
+  CheckCircle2,
+  X,
+  ShoppingBag,
+  ChevronUp,
+  Loader2
+} from "lucide-react";
+import { useInView } from "framer-motion";
 
 // ===== PIZZA DISCOUNT CONFIGURATION =====
 // Set this to true to enable the 10% pizza discount offer
@@ -48,23 +55,17 @@ const orderSchema = z.object({
   path: ["deliveryAddress"],
 });
 
-interface CartItem {
-  name: string;
-  quantity: number;
-  price: number;
-  size?: string;
-  toppings?: string[];
-}
+import { CartItem } from "@/types/index";
 
 // Fix the MenuItem component to handle toppings directly
-const MenuItem = React.memo(({ 
-  item, 
+const MenuItem = React.memo(({
+  item,
   onQuantityChange,
   toppings,
   selectedToppings,
-  onToppingChange 
-}: { 
-  item: any; 
+  onToppingChange
+}: {
+  item: any;
   onQuantityChange: (item: any, delta: number, size?: string, directToppings?: string[]) => void;
   toppings?: string[];
   selectedToppings?: Record<string, string[]>;
@@ -76,13 +77,13 @@ const MenuItem = React.memo(({
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [toppingsSelected, setToppingsSelected] = useState(false);
   const { toast } = useToast();
-  
+
   // Check if this pizza has multiple sizes
   const hasSizes = item.prices && (item.prices.medium || item.prices.large);
-  
+
   // Check if this pizza can have toppings
   const canHaveToppings = item.name.includes("Toppings Pizza") && selectedSize && toppings && onToppingChange;
-  
+
   // Get the currently selected toppings for this pizza
   const itemKey = canHaveToppings ? `${item.name}-${selectedSize}` : '';
   const currentToppings = (selectedToppings && itemKey) ? (selectedToppings[itemKey] || []) : [];
@@ -108,8 +109,8 @@ const MenuItem = React.memo(({
   }, [currentToppings.length, hasEnoughToppings]);
 
   // Calculate price based on selected size
-  const price = selectedSize && item.prices ? 
-    Number(item.prices[selectedSize.toLowerCase()]) : 
+  const price = selectedSize && item.prices ?
+    Number(item.prices[selectedSize.toLowerCase()]) :
     Number(item.price || 0);
 
   const handleSizeChange = (size: string) => {
@@ -127,10 +128,10 @@ const MenuItem = React.memo(({
   // Direct method to add item to cart with toppings
   const addItemToCartWithToppings = (selectedToppings: string[], quantity: number) => {
     if (!selectedSize) return;
-    
+
     // Call the parent's quantity change function with toppings
     onQuantityChange(item, quantity, selectedSize, selectedToppings);
-    
+
     // Update local quantity
     setQuantity(prev => prev + quantity);
   };
@@ -145,7 +146,7 @@ const MenuItem = React.memo(({
       });
       return;
     }
-    
+
     // For pizza items that need toppings
     if (delta > 0 && canHaveToppings && requiredToppings > 0) {
       // If we already have enough toppings, add directly to cart
@@ -153,21 +154,21 @@ const MenuItem = React.memo(({
         // Update local quantity
         const newQuantity = Math.max(0, quantity + delta);
         setQuantity(newQuantity);
-        
+
         // Call parent's onQuantityChange to update the cart
         onQuantityChange(item, delta, selectedSize, currentToppings);
         return;
       }
-      
+
       // Otherwise show the toppings selector
       setShowToppings(true);
       return;
     }
-    
+
     // For regular items without toppings, update quantity directly
     const newQuantity = Math.max(0, quantity + delta);
     setQuantity(newQuantity);
-    
+
     // Call parent's onQuantityChange to update the cart
     onQuantityChange(item, delta, selectedSize);
   };
@@ -190,15 +191,15 @@ const MenuItem = React.memo(({
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
       >
-        <Card className="p-3 sm:p-4 hover:shadow-lg transition-shadow duration-200 shadow-md border border-gray-100">
-          <div className="flex gap-3 sm:gap-4">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 relative">
-              <img 
-                src={item.image} 
+        <Card className="p-3 sm:p-4 hover:shadow-xl transition-all duration-300 shadow-lg border border-orange-100/50 rounded-2xl bg-white group h-full hover:-translate-y-1">
+          <div className="flex gap-4 sm:gap-5 h-full">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 relative rounded-xl overflow-hidden shadow-sm">
+              <img
+                src={item.image}
                 alt={item.name}
-                width="96"
-                height="96"
-                className="w-full h-full object-cover rounded-lg"
+                width="112"
+                height="112"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 loading="lazy"
                 decoding="async"
                 onError={(e) => {
@@ -210,35 +211,42 @@ const MenuItem = React.memo(({
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg"
+                  className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center"
                 >
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-white"
+                    className="text-white hover:bg-white/20 hover:text-white rounded-full w-10 h-10"
                     onClick={() => handleQuantityChange(1)}
                   >
-                    <PlusCircle className="h-6 w-6" />
+                    <PlusCircle className="h-8 w-8" />
                   </Button>
                 </motion.div>
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-bold text-sm sm:text-base line-clamp-1">{item.name}</h4>
-              {item.description && (
-                <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{item.description}</p>
-              )}
-              
-              {/* Price display */}
-              {item.price === "market" ? (
-                <p className="mt-1 sm:mt-2 text-sm sm:text-base">Market Price</p>
-              ) : hasSizes ? (
-                <div className="mt-1 sm:mt-2">
-                  <div className="flex flex-col xs:flex-row gap-2 mb-2">
+            <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+              <div>
+                <div className="flex justify-between items-start gap-2">
+                  <h4 className="font-heading font-bold text-base sm:text-lg line-clamp-1 text-gray-800 group-hover:text-orange-600 transition-colors">{item.name}</h4>
+                  {item.price !== "market" && !hasSizes && (
+                    <span className="font-bold text-orange-600 text-lg">${item.price}</span>
+                  )}
+                </div>
+                {item.description && (
+                  <p className="text-xs sm:text-sm text-gray-500 line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
+                )}
+              </div>
+
+              <div className="mt-3">
+                {/* Price display for market/sizes */}
+                {item.price === "market" ? (
+                  <p className="text-sm font-medium text-orange-600">Market Price</p>
+                ) : hasSizes && (
+                  <div className="flex flex-wrap gap-2 mb-2">
                     <Button
                       variant={selectedSize === "medium" ? "default" : "outline"}
                       size="sm"
-                      className="text-xs px-2 py-0 h-7 w-full xs:w-auto"
+                      className={`text-xs px-3 h-8 rounded-lg transition-all ${selectedSize === "medium" ? "bg-orange-500 hover:bg-orange-600 text-white shadow-md" : "border-orange-200 text-gray-600 hover:border-orange-300 hover:bg-orange-50"}`}
                       onClick={() => handleSizeChange("medium")}
                     >
                       Medium - ${item.prices.medium}
@@ -246,108 +254,109 @@ const MenuItem = React.memo(({
                     <Button
                       variant={selectedSize === "large" ? "default" : "outline"}
                       size="sm"
-                      className="text-xs px-2 py-0 h-7 w-full xs:w-auto"
+                      className={`text-xs px-3 h-8 rounded-lg transition-all ${selectedSize === "large" ? "bg-orange-500 hover:bg-orange-600 text-white shadow-md" : "border-orange-200 text-gray-600 hover:border-orange-300 hover:bg-orange-50"}`}
                       onClick={() => handleSizeChange("large")}
                     >
                       Large - ${item.prices.large}
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <p className="mt-1 sm:mt-2 text-sm sm:text-base">${item.price}</p>
-              )}
-              
-              {/* Toppings status indicator */}
-              {canHaveToppings && (
-                <div className="mt-1 flex items-center">
-                  <div className="text-xs text-primary-700 font-medium mr-1">
-                    {currentToppings.length === 0 ? (
-                      <span className="text-amber-600">
-                        * Select {requiredToppings} topping{requiredToppings > 1 ? 's' : ''}
-                      </span>
-                    ) : currentToppings.length < requiredToppings ? (
-                      <span className="text-amber-600">
-                        * Need {requiredToppings - currentToppings.length} more
-                      </span>
-                    ) : (
-                      <span className="text-green-600">✓ Toppings selected</span>
-                    )}
+                )}
+
+                {/* Toppings status indicator */}
+                {canHaveToppings && (
+                  <div className="mb-2 flex items-center">
+                    <div className="text-xs font-medium px-2 py-1 rounded-md bg-orange-50 border border-orange-100 inline-block">
+                      {currentToppings.length === 0 ? (
+                        <span className="text-orange-600 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                          Select {requiredToppings} toppings
+                        </span>
+                      ) : currentToppings.length < requiredToppings ? (
+                        <span className="text-orange-600">
+                          Need {requiredToppings - currentToppings.length} more
+                        </span>
+                      ) : (
+                        <span className="text-green-600 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Toppings selected
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              {/* Selected toppings display */}
-              {canHaveToppings && currentToppings.length > 0 && (
-                <p className="text-xs text-gray-600 mt-1 line-clamp-1">
-                  Toppings: {currentToppings.join(', ')}
-                </p>
-              )}
-              
-              {/* Predefined toppings display */}
-              {item.predefinedToppings && item.predefinedToppings.length > 0 && (
-                <p className="text-xs text-green-600 mt-1 line-clamp-1">
-                  Includes: {item.predefinedToppings.join(', ')}
-                </p>
-              )}
-              
-              {/* Quantity controls */}
-              {item.price !== "market" && (
-                <div className="flex flex-col gap-2 mt-1 sm:mt-2">
-                  <div className="flex justify-between items-center">
-                    {selectedSize && (
-                      <div className="text-xs sm:text-sm font-medium">
-                        {selectedSize === "medium" ? "Medium" : "Large"}
-                      </div>
-                    )}
-                    
-                    {canHaveToppings && (
-                      <Button 
-                        variant={currentToppings.length < requiredToppings ? "default" : "outline"}
-                        size="sm" 
-                        className="text-xs h-7 px-2 whitespace-nowrap touch-manipulation"
-                        onClick={() => {
-                          setShowToppings(true);
-                          setToppingsSelected(false); // Reset the selection flag when manually editing
-                        }}
+                )}
+
+                {/* Selected toppings display */}
+                {canHaveToppings && currentToppings.length > 0 && (
+                  <p className="text-xs text-gray-500 mb-2 line-clamp-1 italic">
+                    <span className="font-medium not-italic text-gray-700">Selected:</span> {currentToppings.join(', ')}
+                  </p>
+                )}
+
+                {/* Predefined toppings display */}
+                {item.predefinedToppings && item.predefinedToppings.length > 0 && (
+                  <p className="text-xs text-gray-500 mb-2 line-clamp-1">
+                    <span className="font-medium text-gray-700">Includes:</span> {item.predefinedToppings.join(', ')}
+                  </p>
+                )}
+
+                {/* Quantity controls */}
+                {item.price !== "market" && (
+                  <div className="flex flex-wrap justify-between items-end gap-2">
+                    <div className="flex items-center">
+                      {selectedSize && (
+                        <span className="text-xs font-medium text-gray-500 mr-2 bg-gray-100 px-2 py-1 rounded-md">
+                          {selectedSize === "medium" ? "Medium" : "Large"}
+                        </span>
+                      )}
+
+                      {canHaveToppings && (
+                        <Button
+                          variant={currentToppings.length < requiredToppings ? "default" : "outline"}
+                          size="sm"
+                          className={`text-xs h-8 px-3 rounded-lg shadow-sm transition-all ${currentToppings.length < requiredToppings ? "bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200" : "border-gray-200 text-gray-600"}`}
+                          onClick={() => {
+                            setShowToppings(true);
+                            setToppingsSelected(false);
+                          }}
+                        >
+                          {currentToppings.length === 0 ? "Add Toppings" : "Edit Toppings"}
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 border border-gray-100">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleQuantityChange(-1)}
+                        aria-label="Decrease quantity"
+                        className="h-7 w-7 rounded-md hover:bg-white hover:shadow-sm text-gray-500 hover:text-red-500 transition-all"
+                        disabled={quantity <= 0}
                       >
-                        {currentToppings.length === 0 ? "Add Toppings" : "Edit Toppings"}
+                        <MinusCircle className="h-4 w-4" />
                       </Button>
-                    )}
+                      <span className="w-6 text-center font-bold text-gray-700 text-sm">{quantity}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleQuantityChange(1)}
+                        aria-label="Increase quantity"
+                        className={`h-7 w-7 rounded-md hover:bg-white hover:shadow-sm transition-all ${((hasSizes && !selectedSize) || (canHaveToppings && currentToppings.length < requiredToppings && !toppingsSelected))
+                          ? "text-gray-400 cursor-not-allowed"
+                          : "text-gray-500 hover:text-green-600"
+                          }`}
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleQuantityChange(-1)}
-                      aria-label="Decrease quantity"
-                      className="hover:bg-red-100 h-8 w-8 sm:h-9 sm:w-9 touch-manipulation"
-                      disabled={quantity <= 0}
-                    >
-                      <MinusCircle className="h-4 w-4" />
-                    </Button>
-                    <span className="w-8 text-center">{quantity}</span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleQuantityChange(1)}
-                      aria-label="Increase quantity"
-                      className={`h-9 w-9 sm:h-10 sm:w-10 touch-manipulation ${
-                        ((hasSizes && !selectedSize) || (canHaveToppings && currentToppings.length < requiredToppings && !toppingsSelected))
-                          ? "hover:bg-amber-100 border-amber-300"
-                          : "hover:bg-green-100"
-                      }`}
-                    >
-                      <PlusCircle className="h-5 w-5 sm:h-6 sm:w-6" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </Card>
       </motion.div>
-      
+
       {/* Toppings selector */}
       {item.name.includes("Toppings Pizza") && selectedSize && toppings && onToppingChange && (
         <ToppingSelector
@@ -377,9 +386,9 @@ const MenuItem = React.memo(({
 });
 
 // Completely revamp the ToppingSelector component to fix selection issues
-const ToppingSelector = React.memo(({ 
-  pizzaName, 
-  size, 
+const ToppingSelector = React.memo(({
+  pizzaName,
+  size,
   toppings,
   selectedToppings,
   onToppingChange,
@@ -388,7 +397,7 @@ const ToppingSelector = React.memo(({
   requiredToppings,
   item,
   addToCartDirectly
-}: { 
+}: {
   pizzaName: string;
   size: string;
   toppings: string[];
@@ -403,21 +412,21 @@ const ToppingSelector = React.memo(({
   const [localToppings, setLocalToppings] = useState<string[]>([]);
   const [quantity, setQuantity] = useState(1);
   const { toast } = useToast();
-  
+
   // Initialize local state when modal opens
   useEffect(() => {
     if (isOpen) {
       setLocalToppings([...selectedToppings]);
     }
   }, [isOpen, selectedToppings]);
-  
+
   if (!isOpen) return null;
 
   // Handle topping toggle with local state
   const handleToggleTopping = (topping: string) => {
     setLocalToppings(prev => {
       const isSelected = prev.includes(topping);
-      
+
       if (isSelected) {
         // Remove topping
         const newToppings = prev.filter(t => t !== topping);
@@ -434,186 +443,219 @@ const ToppingSelector = React.memo(({
           });
           return newToppings;
         }
-        
+
         // Add the new topping if under the limit
         const newToppings = [...prev, topping];
         return newToppings;
       }
     });
   };
-  
+
   // Handle quantity change
   const handleQuantityChange = (delta: number) => {
     setQuantity(Math.max(1, quantity + delta));
   };
-  
+
   // Apply changes when done
   const handleDone = () => {
     // Process changes for the toppings state
+    const toppingsToRemove = selectedToppings.filter(t => !localToppings.includes(t));
+    const toppingsToAdd = localToppings.filter(t => !selectedToppings.includes(t));
+
     for (const topping of toppingsToRemove) {
       onToppingChange(pizzaName, size, topping);
     }
-    
+
     for (const topping of toppingsToAdd) {
       onToppingChange(pizzaName, size, topping);
     }
-    
+
     // Add to cart if we have the necessary properties
     if (item && addToCartDirectly && localToppings.length >= requiredToppings) {
       try {
         // Create a direct copy of the toppings array to pass
         const toppingsCopy = [...localToppings];
-        
+
         // Add directly to cart with proper parameters
         addToCartDirectly(item, quantity, size, toppingsCopy);
       } catch (error) {
         // Silent error handling in production
       }
     }
-    
+
     onClose();
   };
 
-  // Calculate which toppings need to change
-  const toppingsToRemove = selectedToppings.filter(t => !localToppings.includes(t));
-  const toppingsToAdd = localToppings.filter(t => !selectedToppings.includes(t));
+  const remainingToppings = Math.max(0, requiredToppings - localToppings.length);
+  const isComplete = localToppings.length >= requiredToppings;
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4"
-      onClick={onClose}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
     >
-      <div 
-        className="bg-white rounded-lg shadow-lg p-3 sm:p-4 max-h-[90vh] overflow-auto w-full max-w-md"
+      {/* Backdrop with blur */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal Content */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden relative z-10 flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-3 sticky top-0 bg-white z-10 pb-2 border-b">
-          <h3 className="font-bold text-base sm:text-lg line-clamp-1">
-            {pizzaName} ({size}) - Select Toppings
-          </h3>
-          <button 
-            className="p-1 rounded-full hover:bg-gray-100"
+        {/* Header */}
+        <div className="bg-gradient-to-r from-orange-600 to-orange-500 p-5 text-white flex justify-between items-start shrink-0">
+          <div>
+            <h3 className="font-heading font-bold text-xl leading-tight">
+              Customize Your Pizza
+            </h3>
+            <p className="text-orange-100 text-sm mt-1">
+              {pizzaName} ({size})
+            </p>
+          </div>
+          <button
+            className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors text-white"
             onClick={onClose}
             type="button"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        
-        <p className="text-xs sm:text-sm text-gray-600 mb-3">
-          {localToppings.length < requiredToppings ? (
-            <span className="text-orange-600 font-medium">
-              Please select exactly {requiredToppings} topping{requiredToppings !== 1 ? 's' : ''} 
-              ({localToppings.length}/{requiredToppings} selected)
+
+        {/* Progress / Status Bar */}
+        <div className="bg-orange-50 px-5 py-3 border-b border-orange-100 shrink-0">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-gray-700">
+              {isComplete ? "Selection Complete" : `Select ${requiredToppings} Toppings`}
             </span>
-          ) : (
-            <span className="text-green-600 font-medium">
-              ✓ All {requiredToppings} required toppings selected!
-              {requiredToppings === localToppings.length && 
-                ` (Maximum ${requiredToppings} allowed)`}
+            <span className={`text-sm font-bold ${isComplete ? 'text-green-600' : 'text-orange-600'}`}>
+              {localToppings.length}/{requiredToppings}
             </span>
-          )}
-        </p>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {toppings.map((topping) => {
-            const isSelected = localToppings.includes(topping);
-            return (
-              <button 
-                key={topping} 
-                type="button"
-                className={`
-                  p-3 border rounded-md flex items-center gap-2 cursor-pointer touch-manipulation
-                  text-left transition-colors duration-150
-                  ${isSelected ? 'bg-green-50 border-green-600' : 'hover:bg-gray-100'}
-                `}
-                onClick={() => handleToggleTopping(topping)}
-              >
-                <div className="relative flex-shrink-0">
-                  <div className={`h-5 w-5 border rounded-full ${isSelected ? 'border-green-600' : 'border-gray-300'}`}>
-                    {isSelected && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <span className="text-sm sm:text-base">{topping}</span>
-              </button>
-            );
-          })}
-        </div>
-        
-        {localToppings.length >= requiredToppings && (
-          <div className="mt-4 pt-2 border-t">
-            <p className="text-sm font-medium mb-2">Quantity:</p>
-            <div className="flex items-center gap-2 mb-3">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleQuantityChange(-1)}
-                className="h-8 w-8"
-                disabled={quantity <= 1}
-              >
-                <MinusCircle className="h-4 w-4" />
-              </Button>
-              <span className="w-8 text-center">{quantity}</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleQuantityChange(1)}
-                className="h-8 w-8"
-              >
-                <PlusCircle className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
-        )}
-        
-        <div className="mt-4 flex justify-between sticky bottom-0 pt-2 border-t bg-white">
-          <span className="text-xs text-gray-500 self-center">
-            {localToppings.length} selected
-          </span>
-          <div className="flex gap-2">
-            <button 
-              type="button"
-              className="px-3 py-1 border rounded text-sm hover:bg-gray-100"
+          {/* Progress Bar */}
+          <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+            <motion.div
+              className={`h-full ${isComplete ? 'bg-green-500' : 'bg-orange-500'}`}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(100, (localToppings.length / requiredToppings) * 100)}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            {!isComplete
+              ? `Please choose ${remainingToppings} more topping${remainingToppings !== 1 ? 's' : ''}`
+              : "You're all set! Click 'Add to Cart' to continue."}
+          </p>
+        </div>
+
+        {/* Toppings List (Scrollable) */}
+        <div className="p-5 overflow-y-auto custom-scrollbar">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {toppings.map((topping) => {
+              const isSelected = localToppings.includes(topping);
+              return (
+                <motion.button
+                  key={topping}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  className={`
+                    relative p-3 rounded-xl border-2 text-left transition-all duration-200 flex items-center justify-between group
+                    ${isSelected
+                      ? 'border-orange-500 bg-orange-50 shadow-sm'
+                      : 'border-gray-100 bg-white hover:border-orange-200 hover:bg-gray-50'}
+                  `}
+                  onClick={() => handleToggleTopping(topping)}
+                >
+                  <span className={`font-medium ${isSelected ? 'text-orange-800' : 'text-gray-700'}`}>
+                    {topping}
+                  </span>
+                  <div className={`
+                    w-6 h-6 rounded-full flex items-center justify-center border transition-colors
+                    ${isSelected
+                      ? 'bg-orange-500 border-orange-500 text-white'
+                      : 'bg-white border-gray-300 group-hover:border-orange-300'}
+                  `}>
+                    {isSelected && <CheckCircle2 className="h-4 w-4" />}
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 border-t border-gray-100 bg-white shrink-0 flex flex-col gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          {isComplete && (
+            <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl">
+              <span className="font-medium text-gray-700">Quantity</span>
+              <div className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 p-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleQuantityChange(-1)}
+                  className="h-8 w-8 rounded-md hover:bg-gray-100"
+                  disabled={quantity <= 1}
+                >
+                  <MinusCircle className="h-4 w-4 text-gray-600" />
+                </Button>
+                <span className="w-8 text-center font-bold text-gray-800">{quantity}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleQuantityChange(1)}
+                  className="h-8 w-8 rounded-md hover:bg-gray-100"
+                >
+                  <PlusCircle className="h-4 w-4 text-gray-600" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1 py-6 text-base rounded-xl border-gray-200 hover:bg-gray-50 hover:text-gray-900"
               onClick={onClose}
             >
               Cancel
-            </button>
-            <button 
-              type="button"
-              className={`px-3 py-1 rounded text-sm text-white 
-                ${localToppings.length >= requiredToppings 
-                  ? 'bg-green-600 hover:bg-green-700' 
-                  : 'bg-gray-400 cursor-not-allowed'
-                }`}
+            </Button>
+            <Button
+              className={`flex-1 py-6 text-base font-bold rounded-xl shadow-lg transition-all
+                ${isComplete
+                  ? 'bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white transform hover:-translate-y-0.5'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'}
+              `}
               onClick={handleDone}
-              disabled={localToppings.length !== requiredToppings}
+              disabled={!isComplete}
             >
-              {localToppings.length === requiredToppings 
-                ? "Add to Cart" 
-                : `Select Exactly ${requiredToppings - localToppings.length} More`}
-            </button>
+              {isComplete ? `Add to Cart - $${((item?.prices?.[size.toLowerCase()] || 0) * quantity).toFixed(2)}` : 'Select Toppings'}
+            </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 });
 
 // Update MenuSection component to pass the correct function signature
-const MenuSection = React.memo(({ 
-  category, 
-  title, 
+const MenuSection = React.memo(({
+  category,
+  title,
   items,
   onQuantityChange,
   toppings,
   selectedToppings,
   onToppingChange,
   color
-}: { 
+}: {
   category: string;
   title: string;
   items: any;
@@ -634,14 +676,14 @@ const MenuSection = React.memo(({
       transition={{ duration: 0.3 }}
       className="py-4 first:pt-0"
     >
-      <h2 className={`text-2xl font-bold mb-6 ${color || 'text-green-600'} border-b-2 pb-2 inline-block`}>{title}</h2>
+      <h2 className={`text-2xl font-bold font-heading mb-6 ${color || 'text-green-600'} border-b-2 pb-2 inline-block`}>{title}</h2>
       {isInView ? (
         <div className="grid gap-4 md:grid-cols-2">
           {Array.isArray(items) ? (
             items.map((item: any) => (
-              <MenuItem 
-                key={item.name} 
-                item={item} 
+              <MenuItem
+                key={item.name}
+                item={item}
                 onQuantityChange={onQuantityChange}
                 toppings={toppings}
                 selectedToppings={selectedToppings}
@@ -651,10 +693,10 @@ const MenuSection = React.memo(({
           ) : (
             <>
               <div>
-                <h3 className="text-lg font-bold mb-4 text-green-600">Regular Pizzas</h3>
+                <h3 className="text-lg font-bold font-heading mb-4 text-green-600">Regular Pizzas</h3>
                 <div className="grid gap-4">
                   {items.regular.map((item: any) => (
-                    <MenuItem 
+                    <MenuItem
                       key={item.name}
                       item={item}
                       onQuantityChange={onQuantityChange}
@@ -666,11 +708,11 @@ const MenuSection = React.memo(({
                 </div>
               </div>
               <div>
-                <h3 className="text-lg font-bold mb-4 text-orange-600">Specialty Pizzas</h3>
+                <h3 className="text-lg font-bold font-heading mb-4 text-orange-600">Specialty Pizzas</h3>
                 <div className="grid gap-4">
                   {items.specialty.map((item: any) => (
-                    <MenuItem 
-                      key={item.name} 
+                    <MenuItem
+                      key={item.name}
                       item={item}
                       onQuantityChange={onQuantityChange}
                       toppings={toppings}
@@ -693,16 +735,16 @@ const MenuSection = React.memo(({
 });
 
 // Make toppings visible in cart with debug information
-const CartSummary = React.memo(({ 
-  cart, 
-  cartTotal, 
-  isSubmitting, 
+const CartSummary = React.memo(({
+  cart,
+  cartTotal,
+  isSubmitting,
   onCheckout,
   onRemoveItem,
   isPlacingOrder,
   setIsPlacingOrder,
   discountInfo
-}: { 
+}: {
   cart: CartItem[];
   cartTotal: number;
   isSubmitting: boolean;
@@ -763,7 +805,7 @@ const CartSummary = React.memo(({
   const handleSubmitForm = (data: z.infer<typeof orderSchema>) => {
     // Set form data in cart items
     form.setValue('items', cart);
-    
+
     // Instead of calling onCheckout directly, pass the form data
     setIsPlacingOrder(true);
     onCheckout({
@@ -774,7 +816,7 @@ const CartSummary = React.memo(({
       deliveryType: data.deliveryType,
       deliveryAddress: data.deliveryAddress
     });
-    
+
     setShowCheckoutForm(false);
   };
 
@@ -797,25 +839,37 @@ const CartSummary = React.memo(({
       transition={{ duration: 0.3 }}
       className="fixed bottom-0 left-0 right-0 md:bottom-4 md:right-4 md:left-auto md:w-96 z-40"
     >
-      <Card className="rounded-t-lg md:rounded-lg shadow-xl border border-orange-200">
-        <div 
-          className="p-3 sm:p-4 cursor-pointer md:cursor-default flex justify-between items-center bg-orange-600 text-white rounded-t-lg"
+      <Card className="rounded-t-2xl md:rounded-2xl shadow-2xl border border-orange-100/50 overflow-hidden bg-white/95 backdrop-blur-sm">
+        <div
+          className="p-3 cursor-pointer md:cursor-default flex justify-between items-center bg-gradient-to-r from-orange-600 to-orange-500 text-white"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-2">
-            <h3 className="font-bold">Cart {isAnyItemInCart ? `(${cart.length})` : ''}</h3>
-            {isAnyItemInCart && (
-              <span className="text-sm font-semibold bg-white text-orange-600 px-2 py-0.5 rounded-full">${cartTotal.toFixed(2)}</span>
-            )}
+            <div className="bg-white/20 p-1.5 rounded-full">
+              <ShoppingBag className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-heading font-bold text-base leading-none">Your Order</h3>
+              <p className="text-[10px] text-orange-100 font-medium mt-0.5">
+                {cart.length} item{cart.length !== 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
-          <div className="md:hidden">
-            {isExpanded ? <X className="h-5 w-5" /> : <PlusCircle className="h-5 w-5" />}
+          <div className="flex items-center gap-2">
+            {isAnyItemInCart && (
+              <span className="font-bold text-base bg-white/20 px-2 py-0.5 rounded-lg backdrop-blur-sm">
+                ${cartTotal.toFixed(2)}
+              </span>
+            )}
+            <div className="md:hidden bg-white/10 p-1 rounded-full">
+              {isExpanded ? <X className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </div>
           </div>
         </div>
         <motion.div
           initial={false}
-          animate={{ 
-            height: isExpanded || !isAnyItemInCart ? "auto" : (window.innerWidth >= 768 ? "auto" : 0) 
+          animate={{
+            height: isExpanded || !isAnyItemInCart ? "auto" : (window.innerWidth >= 768 ? "auto" : 0)
           }}
           transition={{ duration: 0.3 }}
           className="overflow-hidden bg-gray-50"
@@ -833,9 +887,9 @@ const CartSummary = React.memo(({
                               <span className="font-bold">{item.quantity}x {item.name}</span>
                               <div className="flex items-center">
                                 <span className="mr-2 font-semibold">${(item.price * item.quantity).toFixed(2)}</span>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   className="h-6 w-6 text-gray-500 hover:text-red-500"
                                   onClick={() => onRemoveItem(index)}
                                 >
@@ -843,7 +897,7 @@ const CartSummary = React.memo(({
                                 </Button>
                               </div>
                             </div>
-                            
+
                             {/* Item details with debugging info */}
                             <div className="space-y-2 text-xs">
                               {item.size && (
@@ -851,17 +905,17 @@ const CartSummary = React.memo(({
                                   <span className="text-gray-500">Size:</span> <span className="font-medium">{item.size}</span>
                                 </div>
                               )}
-                              
+
                               {/* Only show toppings section for relevant items */}
                               {(item.name.includes("Toppings Pizza") || (item.toppings && item.toppings.length > 0)) && (
                                 <div className="border-t border-dashed pt-2 mt-1">
                                   <div className="font-medium text-green-600 mb-1 flex justify-between">
-                                    <span>Toppings:</span> 
+                                    <span>Toppings:</span>
                                     <span className="bg-gray-100 px-1 rounded text-xs">
                                       {item.toppings ? `${item.toppings.length} selected` : "none"}
                                     </span>
                                   </div>
-                                  
+
                                   {item.toppings && item.toppings.length > 0 ? (
                                     <div className="pl-2 grid grid-cols-2 gap-x-1 border-l-2 border-green-600 bg-green-50 p-2 rounded">
                                       {item.toppings.map((topping, i) => (
@@ -893,8 +947,8 @@ const CartSummary = React.memo(({
                           <span className="text-orange-600 text-lg">${cartTotal.toFixed(2)}</span>
                         </div>
                       </div>
-                      <Button 
-                        className="mt-3 w-full h-12 text-base font-bold shadow-md bg-orange-600 hover:bg-orange-700" 
+                      <Button
+                        className="mt-3 w-full h-12 text-base font-bold shadow-md bg-orange-600 hover:bg-orange-700"
                         onClick={handlePlaceOrderClick}
                         disabled={isPlacingOrder}
                       >
@@ -910,7 +964,7 @@ const CartSummary = React.memo(({
                     <Form {...form}>
                       <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-4 pt-2">
                         <div className="text-lg font-bold text-orange-600 mb-2">Customer Information</div>
-                        
+
                         <FormField
                           control={form.control}
                           name="customerName"
@@ -923,7 +977,7 @@ const CartSummary = React.memo(({
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name="phone"
@@ -936,7 +990,7 @@ const CartSummary = React.memo(({
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name="email"
@@ -944,9 +998,9 @@ const CartSummary = React.memo(({
                             <FormItem>
                               <FormLabel>Email</FormLabel>
                               <FormControl>
-                                <Input 
-                                  placeholder="Email address" 
-                                  {...field} 
+                                <Input
+                                  placeholder="Email address"
+                                  {...field}
                                   disabled={!!userEmail}
                                   className={userEmail ? "bg-gray-100 cursor-not-allowed" : ""}
                                 />
@@ -1016,7 +1070,7 @@ const CartSummary = React.memo(({
                             )}
                           />
                         )}
-                        
+
                         <FormField
                           control={form.control}
                           name="cookingInstructions"
@@ -1034,24 +1088,24 @@ const CartSummary = React.memo(({
                           )}
                         />
 
-                        
+
                         <div className="mt-3 font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200">
                           <span>Total:</span>
                           <span className="text-orange-600 text-lg">${cartTotal.toFixed(2)}</span>
                         </div>
-                        
+
                         <div className="flex gap-2">
-                          <Button 
+                          <Button
                             type="button"
                             variant="outline"
-                            className="flex-1" 
+                            className="flex-1"
                             onClick={() => setShowCheckoutForm(false)}
                           >
                             Back
                           </Button>
-                          <Button 
+                          <Button
                             type="submit"
-                            className="flex-1 bg-orange-600 hover:bg-orange-700" 
+                            className="flex-1 bg-orange-600 hover:bg-orange-700"
                             disabled={isSubmitting}
                           >
                             {isSubmitting ? (
@@ -1091,11 +1145,11 @@ export default function PizzaOrder() {
   // Check if today is Monday-Friday for pizza discount
   const isPizzaDiscountDay = useMemo(() => {
     if (PIZZA_DISCOUNT_ENABLED === "false") return false; // Check if discount is enabled
-    
+
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
     return dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
-    
+
   }, []);
 
   // Initialize cart state with localStorage value to prevent clearing
@@ -1112,7 +1166,7 @@ export default function PizzaOrder() {
   };
 
   const [cart, setCart] = useState<CartItem[]>(getInitialCart);
-  
+
   // Save cart to localStorage whenever it changes (but skip initial render)
   const isInitialRender = useRef(true);
   useEffect(() => {
@@ -1120,17 +1174,17 @@ export default function PizzaOrder() {
       isInitialRender.current = false;
       return;
     }
-    
+
     localStorage.setItem('items', JSON.stringify(cart));
     // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent('cartUpdated'));
   }, [cart]);
-  
+
   // Single source of truth for pizza discount calculation
   const discountInfo = useMemo(() => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     console.log("isPizzaDiscountDay", isPizzaDiscountDay);
-    
+
     // Calculate pizza discount if applicable
     if (isPizzaDiscountDay && cart.some(item => item.name.toLowerCase().includes('pizza'))) {
       const pizzaSubtotal = cart
@@ -1138,7 +1192,7 @@ export default function PizzaOrder() {
         .reduce((sum, item) => sum + item.price * item.quantity, 0);
       const discountAmount = pizzaSubtotal * 0.1;
       const total = subtotal - discountAmount;
-      
+
       return {
         subtotal,
         pizzaSubtotal,
@@ -1147,7 +1201,7 @@ export default function PizzaOrder() {
         hasDiscount: true
       };
     }
-    
+
     return {
       subtotal,
       pizzaSubtotal: 0,
@@ -1162,22 +1216,22 @@ export default function PizzaOrder() {
 
   // Add direct function to add items to cart with toppings
   const addToCartWithToppings = useCallback((
-    item: any, 
-    quantity: number, 
-    size: string, 
+    item: any,
+    quantity: number,
+    size: string,
     toppings: string[]
   ) => {
     // Ensure toppings is always a valid array
     const safeToppings = Array.isArray(toppings) ? [...toppings] : [];
-    
+
     // Generate the item name with size
     const itemName = size ? `${item.name} (${size})` : item.name;
-    
+
     // Calculate the price
-    const price = size 
-      ? Number(item.prices[size.toLowerCase()]) 
+    const price = size
+      ? Number(item.prices[size.toLowerCase()])
       : Number(item.price || 0);
-    
+
     // Create a new cart item with toppings
     const newCartItem: CartItem = {
       name: itemName,
@@ -1186,12 +1240,12 @@ export default function PizzaOrder() {
       size: size,
       toppings: safeToppings // Use validated toppings array
     };
-    
+
     // Update the cart state
     setCart(prev => {
       // Check if item already exists in cart
       const existingIndex = prev.findIndex(i => i.name === itemName);
-      
+
       if (existingIndex >= 0) {
         // Update existing item
         const updatedCart = [...prev];
@@ -1221,7 +1275,7 @@ export default function PizzaOrder() {
         else if (category === 'subs') color = 'text-green-600';
         else if (category === 'deliSalads') color = 'text-orange-600';
         else if (category === 'specials') color = 'text-green-600';
-        
+
         return {
           category,
           title: category.charAt(0).toUpperCase() + category.slice(1),
@@ -1247,19 +1301,19 @@ export default function PizzaOrder() {
     if (!pizzaName || !size || !topping) {
       return;
     }
-    
+
     const itemKey = `${pizzaName}-${size}`;
-    
+
     setSelectedToppings(prev => {
       // Deep copy the previous state
       const newState = { ...prev };
-      
+
       // Get current toppings or initialize empty array
       const currentToppings = newState[itemKey] ? [...newState[itemKey]] : [];
-      
+
       // Check if topping is already selected
       const toppingIndex = currentToppings.indexOf(topping);
-      
+
       if (toppingIndex >= 0) {
         // Remove topping if already selected
         currentToppings.splice(toppingIndex, 1);
@@ -1267,10 +1321,10 @@ export default function PizzaOrder() {
         // Add topping if not selected
         currentToppings.push(topping);
       }
-      
+
       // Update the state with new toppings array
       newState[itemKey] = currentToppings;
-      
+
       return newState;
     });
   }, []);
@@ -1278,23 +1332,23 @@ export default function PizzaOrder() {
   // Fix the handleQuantityChange function to properly store toppings
   const handleQuantityChange = useCallback((item: any, delta: number, size?: string, directToppings?: string[]) => {
     if (delta === 0) return; // No change to make
-    
+
     // Ensure directToppings is always a valid array if provided
-    const safeToppings = directToppings && Array.isArray(directToppings) 
-      ? [...directToppings] 
+    const safeToppings = directToppings && Array.isArray(directToppings)
+      ? [...directToppings]
       : item.predefinedToppings && Array.isArray(item.predefinedToppings)
         ? [...item.predefinedToppings]
         : [];
-    
+
     setCart(prevCart => {
       const newCart = [...prevCart];
       const itemKey = size ? `${item.name} (${size})` : item.name;
       const existingItemIndex = newCart.findIndex(i => i.name === itemKey);
-      
+
       if (existingItemIndex >= 0) {
         // Item exists in cart, update quantity
         const newQuantity = Math.max(0, newCart[existingItemIndex].quantity + delta);
-        
+
         if (newQuantity === 0) {
           // Remove item if quantity becomes 0
           newCart.splice(existingItemIndex, 1);
@@ -1310,11 +1364,11 @@ export default function PizzaOrder() {
       } else if (delta > 0) {
         // Add new item to cart
         let itemToppings: string[] = [];
-        
+
         // IMPORTANT: If direct toppings were provided, use them as priority
         if (safeToppings.length > 0) {
           itemToppings = safeToppings; // Already a safe copy
-        } 
+        }
         // Otherwise try to get them from the selected toppings state
         else if (item.name.includes("Toppings Pizza") && size) {
           const toppingKey = `${item.name}-${size}`;
@@ -1323,7 +1377,7 @@ export default function PizzaOrder() {
             itemToppings = [...toppingsFromState]; // Make a copy
           }
         }
-        
+
         // Create the new cart item with GUARANTEED toppings array
         const newItem = {
           name: itemKey,
@@ -1332,10 +1386,10 @@ export default function PizzaOrder() {
           toppings: itemToppings, // This should now always be a valid array
           size: size
         };
-        
+
         newCart.push(newItem);
       }
-      
+
       // Always return a new array to trigger re-render
       return [...newCart];
     });
@@ -1351,9 +1405,9 @@ export default function PizzaOrder() {
   }, []);
 
   // Add a new function to handle the customer data submission
-  const handleCustomerSubmit = async (customerData: { 
-    customerName: string; 
-    phone: string; 
+  const handleCustomerSubmit = async (customerData: {
+    customerName: string;
+    phone: string;
     email: string;
     cookingInstructions?: string;
     deliveryType?: "pickup" | "door-delivery";
@@ -1390,7 +1444,7 @@ export default function PizzaOrder() {
       const orderItems = cart.map((item) => {
         // Make sure toppings is always an array
         const safeToppings = Array.isArray(item.toppings) ? [...item.toppings] : [];
-        
+
         return {
           name: item.name,
           quantity: item.quantity,
@@ -1399,7 +1453,7 @@ export default function PizzaOrder() {
           toppings: safeToppings // Use our safe array
         };
       });
-      
+
       const orderData = {
         customerName: customerData.customerName,
         phone: customerData.phone,
@@ -1417,6 +1471,7 @@ export default function PizzaOrder() {
         toast({
           title: "Order Placed Successfully!",
           description: "Your order has been received and is being processed.",
+          variant: "success",
         });
 
         // Reset form and cart
@@ -1433,7 +1488,7 @@ export default function PizzaOrder() {
 
         // Scroll to top before navigating
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        
+
         navigate(`/orders/${response._id || response.id}`);
       }
     } catch (error: any) {
@@ -1472,24 +1527,24 @@ export default function PizzaOrder() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
       <div className="shadow-lg">
       </div>
       {isPizzaDiscountDay && (
         <div className="bg-orange-600 text-white text-center py-2 px-4 shadow-md">
-          <p className="text-sm sm:text-base font-medium">
+          <p className="text-xs sm:text-base font-medium">
             🍕 Limited Time Offer: 10% OFF All Pizzas (Monday-Friday Only!)
           </p>
         </div>
       )}
-      <main className="flex-grow container mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-12 md:pb-8">
+      <main className="flex-grow container mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-32 md:pb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3 sm:gap-1">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Sandy's Market Menu</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-heading">Sandy's Market Menu</h1>
         </div>
 
         <div className="space-y-0">
           {menuSections.map((section) => (
-            <MenuSection 
+            <MenuSection
               key={section.category}
               category={section.category}
               title={section.title}
@@ -1503,7 +1558,7 @@ export default function PizzaOrder() {
           ))}
         </div>
 
-        <CartSummary 
+        <CartSummary
           cart={cart}
           cartTotal={cartTotal}
           isSubmitting={isSubmitting}

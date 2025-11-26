@@ -4,12 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ShoppingCart, User, Shield } from "lucide-react";
 
-interface UserData {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+import { UserData } from "@/types/index";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,7 +12,7 @@ export default function Header() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [cartItems, setCartItems] = useState<any[]>([]);
   const navigate = useNavigate();
-  
+
   const cartTotal = cartItems.reduce(
     (total: number, item: any) => total + item.price * item.quantity,
     0
@@ -35,7 +30,7 @@ export default function Header() {
         console.error("Error parsing user data:", error);
       }
     }
-    
+
     // Load cart items from localStorage
     const loadCartFromStorage = () => {
       const cartStr = localStorage.getItem("items");
@@ -50,25 +45,25 @@ export default function Header() {
         setCartItems([]);
       }
     };
-    
+
     loadCartFromStorage();
-    
+
     // Listen for storage changes to sync cart across tabs/components
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "items") {
         loadCartFromStorage();
       }
     };
-    
+
     window.addEventListener("storage", handleStorageChange);
-    
+
     // Also listen for custom cart update events
     const handleCartUpdate = () => {
       loadCartFromStorage();
     };
-    
+
     window.addEventListener("cartUpdated", handleCartUpdate);
-    
+
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("cartUpdated", handleCartUpdate);
@@ -84,16 +79,16 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-orange-200 bg-white/95 backdrop-blur-sm shadow-lg">
-      <div className="container mx-auto px-4 flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full border-b border-primary bg-white/95 backdrop-blur-sm shadow-lg">
+      <div className="container mx-auto px-3 flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-3">
-            <img 
-              src="/images/favi.png" 
-              alt="Sandy's Market Logo" 
+            <img
+              src="/images/favi.png"
+              alt="Sandy's Market Logo"
               className="h-10 w-auto rounded-full"
             />
-            <h1 className="text-lg font-bold text-orange-600">Sandy's Market</h1>
+            <h1 className="text-md md:text-lg font-bold text-primary2">Sandy's Market</h1>
           </Link>
 
           <nav className="hidden md:flex items-center">
@@ -121,9 +116,9 @@ export default function Header() {
           </div>
 
           {/* User Menu */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="hover:bg-orange-50 transition-all duration-200 w-10 h-10 rounded-full border border-transparent hover:border-orange-200 hover:shadow-sm group"
             onClick={handleProfileClick}
             title={isAdmin ? "Admin Dashboard" : "User Profile"}
@@ -162,28 +157,7 @@ export default function Header() {
                   <ShoppingCart className="h-6 w-6 text-orange-600" />
                   <h2 className="text-xl font-bold text-gray-800">Your Order</h2>
                 </div>
-                
-                <nav className="flex flex-col gap-3 pt-4">
-                  <Link
-                    to="/order"
-                    className="flex items-center gap-3 text-lg font-medium hover:text-orange-500 transition-colors p-3 rounded-lg hover:bg-orange-50"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <span className="text-orange-600">🍕</span>
-                    Order Food
-                  </Link>
-                  {isAdmin && (
-                    <Link
-                      to="/admin"
-                      className="flex items-center gap-3 text-lg font-medium hover:text-orange-500 transition-colors p-3 rounded-lg hover:bg-orange-50"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Shield className="h-5 w-5 text-orange-600" />
-                      Admin Dashboard
-                    </Link>
-                  )}
-                </nav>
-                
+
                 <div className="flex-1 mt-6">
                   <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-4">
                     <div className="flex justify-between items-center mb-4">
@@ -192,7 +166,7 @@ export default function Header() {
                         {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}
                       </span>
                     </div>
-                    
+
                     {cartItems.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
                         <ShoppingCart className="h-12 w-12 mx-auto mb-3 text-gray-300" />
@@ -223,21 +197,21 @@ export default function Header() {
                         ))}
                       </div>
                     )}
-                    
+
                     <div className="border-t border-orange-200 pt-4 mt-4">
                       <div className="flex justify-between items-center mb-4">
                         <span className="text-lg font-bold text-gray-800">
                           Total:
                         </span>
-                        <span className="text-xl font-bold text-orange-600">
+                        <span className="text-xl font-bold text-primary">
                           ${cartTotal.toFixed(2)}
                         </span>
                       </div>
-                      
+
                       {cartItems.length > 0 && (
-                        <Link 
-                          to="/order" 
-                          className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                        <Link
+                          to="/order"
+                          className="w-full bg-primary hover:bg-primary2 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                           onClick={() => setIsMenuOpen(false)}
                         >
                           <ShoppingCart className="h-4 w-4" />

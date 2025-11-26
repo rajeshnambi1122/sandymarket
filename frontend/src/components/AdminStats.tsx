@@ -1,31 +1,20 @@
-import { Order } from "@/types/order";
+import { Order, StatsCardProps, AdminStatsProps } from "@/types/index";
 import { Card } from "@/components/ui/card";
 import { ShoppingBag, DollarSign, TrendingUp, Users, Package, BarChart } from "lucide-react";
 
-interface StatsCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  className?: string;
-}
-
 const StatsCard = ({ title, value, icon, className = "" }: StatsCardProps) => (
-  <Card className={`p-3 md:p-4 hover:shadow-lg transition-shadow duration-300 ${className}`}>
-    <div className="flex items-start">
-      <div className="mr-2 md:mr-3 bg-orange-100 p-2 md:p-3 rounded-full shrink-0">
-        {icon}
-      </div>
+  <Card className={`p-4 md:p-5 hover:shadow-xl transition-all duration-300 shadow-lg border border-orange-100/50 rounded-2xl bg-white hover:-translate-y-1 group ${className}`}>
+    <div className="flex items-start justify-between">
       <div className="min-w-0 flex-grow">
-        <h3 className="text-xs md:text-sm font-medium text-gray-500">{title}</h3>
-        <p className="text-sm md:text-xl font-bold text-gray-900 mt-0.5 md:mt-1 break-words">{value}</p>
+        <h3 className="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">{title}</h3>
+        <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1 break-words font-heading">{value}</p>
+      </div>
+      <div className="ml-3 bg-orange-50 p-3 rounded-xl shrink-0 group-hover:bg-orange-100 transition-colors">
+        {icon}
       </div>
     </div>
   </Card>
 );
-
-interface AdminStatsProps {
-  orders: Order[];
-}
 
 export default function AdminStats({ orders }: AdminStatsProps) {
   // Calculate total revenue
@@ -40,8 +29,8 @@ export default function AdminStats({ orders }: AdminStatsProps) {
   };
 
   // Calculate average order value
-  const averageOrderValue = orders.length > 0 
-    ? totalRevenue / orders.length 
+  const averageOrderValue = orders.length > 0
+    ? totalRevenue / orders.length
     : 0;
 
   // Count orders by status
@@ -97,17 +86,17 @@ export default function AdminStats({ orders }: AdminStatsProps) {
 
   // Calculate delivery performance (% of orders delivered on time)
   const deliveredOrders = orders.filter(order => order.status === "delivered").length;
-  const completionRate = orders.length > 0 
-    ? Math.round((deliveredOrders / orders.length) * 100) 
+  const completionRate = orders.length > 0
+    ? Math.round((deliveredOrders / orders.length) * 100)
     : 0;
 
   return (
     <div>
       <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6 text-gray-800">Dashboard Overview</h2>
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-        <StatsCard 
-          title="Total Orders" 
-          value={orders.length} 
+        <StatsCard
+          title="Total Orders"
+          value={orders.length}
           icon={<ShoppingBag className="h-5 w-5 md:h-6 md:w-6 text-orange-600" />}
         />
         <StatsCard
@@ -139,12 +128,11 @@ export default function AdminStats({ orders }: AdminStatsProps) {
             {Object.entries(ordersByStatus).map(([status, count]) => (
               <div key={status} className="flex justify-between items-center">
                 <div className="flex items-center">
-                  <div className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full mr-2 ${
-                    status === 'pending' ? 'bg-yellow-400' : 
-                    status === 'preparing' ? 'bg-blue-400' : 
-                    status === 'ready' ? 'bg-purple-400' : 
-                    status === 'delivered' ? 'bg-green-400' : 'bg-gray-400'
-                  }`}></div>
+                  <div className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full mr-2 ${status === 'pending' ? 'bg-yellow-400' :
+                    status === 'preparing' ? 'bg-blue-400' :
+                      status === 'ready' ? 'bg-purple-400' :
+                        status === 'delivered' ? 'bg-green-400' : 'bg-gray-400'
+                    }`}></div>
                   <span className="capitalize text-gray-700">{status}</span>
                 </div>
                 <span className="font-medium">{count}</span>
@@ -232,7 +220,7 @@ export default function AdminStats({ orders }: AdminStatsProps) {
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-4">No revenue data available</p>
+              <p className="text-gray-500 text-center py-4">No data available</p>
             )}
           </div>
         </Card>
@@ -240,30 +228,20 @@ export default function AdminStats({ orders }: AdminStatsProps) {
         <Card className="p-4 md:p-5 hover:shadow-lg transition-shadow duration-300">
           <div className="flex items-center mb-3 md:mb-4">
             <div className="p-1.5 md:p-2 bg-orange-100 rounded-md mr-2 md:mr-3">
-              <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
+              <BarChart className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
             </div>
-            <h3 className="text-xs md:text-sm font-medium text-gray-700">Last 7 Days Revenue</h3>
+            <h3 className="text-xs md:text-sm font-medium text-gray-700">Revenue Trend (Last 7 Days)</h3>
           </div>
           <div className="space-y-2 md:space-y-3 text-xs md:text-sm">
-            {Object.entries(revenueByDay).length > 0 ? (
-              Object.entries(revenueByDay)
-                .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime())
-                .slice(0, 7)
-                .map(([date, amount]) => {
-                  const formattedDate = new Date(date).toLocaleDateString();
-                  return (
-                    <div key={date} className="flex justify-between items-center">
-                      <span className="text-gray-700">{formattedDate}</span>
-                      <span className="font-medium text-orange-600">{formatCurrency(amount)}</span>
-                    </div>
-                  );
-                })
-            ) : (
-              <p className="text-gray-500 text-center py-4">No recent revenue data available</p>
-            )}
+            {Object.entries(revenueByDay).map(([day, amount]) => (
+              <div key={day} className="flex justify-between items-center">
+                <span className="text-gray-700">{day}</span>
+                <span className="font-medium text-orange-600">{formatCurrency(amount)}</span>
+              </div>
+            ))}
           </div>
         </Card>
       </div>
     </div>
   );
-} 
+}

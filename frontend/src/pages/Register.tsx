@@ -84,10 +84,10 @@ export default function Register() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 mb-4 shadow-lg">
               <UserPlus className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
+            <h1 className="text-3xl font-bold font-heading text-gray-900 mb-2">Create Account</h1>
             <p className="text-gray-600 text-sm">Sign up to get started with Sandy's Market</p>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -107,7 +107,7 @@ export default function Register() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Email Address
@@ -127,7 +127,7 @@ export default function Register() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Password
@@ -155,7 +155,7 @@ export default function Register() {
                 </button>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Phone Number
@@ -174,7 +174,7 @@ export default function Register() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Address
@@ -193,21 +193,21 @@ export default function Register() {
                 />
               </div>
             </div>
-            
-            <Button 
-              type="submit" 
+
+            <Button
+              type="submit"
               className="w-full h-12 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
             >
               <UserPlus className="mr-2 w-5 h-5" />
               Create Account
             </Button>
           </form>
-          
+
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-center text-sm text-gray-600">
               Already have an account?{" "}
-              <Link 
-                to="/login" 
+              <Link
+                to="/login"
                 className="font-semibold text-orange-600 hover:text-orange-700 hover:underline transition-colors"
               >
                 Sign In
