@@ -41,7 +41,7 @@ export const sendNotification = async (
       return;
     }
 
-    console.log(`📱 SENDING NOTIFICATIONS: Attempting to send to ${fcmTokens.length} device(s)`);
+    console.log(` SENDING NOTIFICATIONS: Attempting to send to ${fcmTokens.length} device(s)`);
     
     // Log detailed information about recipients
     console.log('📋 NOTIFICATION RECIPIENTS:');

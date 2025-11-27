@@ -11,7 +11,6 @@ const router = express.Router();
 router.post("/register", async (req, res) => {
   try {
     
-    
     const { email, password, name, phone, address } = req.body;
 
     // Basic validation
@@ -246,11 +245,6 @@ router.get("/me", auth, async (req: AuthRequest, res: Response) => {
 // Update FCM token
 router.post("/fcm-token", auth, async (req: AuthRequest, res: Response) => {
   try {
-    console.log('FCM token update request:', {
-      userId: req.user?.userId,
-      token: req.body.token ? `${req.body.token.substring(0, 20)}...` : 'missing'
-    });
-
     if (!req.user?.userId) {
       console.log('FCM token update failed: User not authenticated');
       return res.status(401).json({ 
@@ -284,11 +278,6 @@ router.post("/fcm-token", auth, async (req: AuthRequest, res: Response) => {
         message: "User not found"
       });
     }
-
-    console.log('FCM token updated successfully:', {
-      userId: updatedUser._id,
-      hasToken: !!updatedUser.fcmToken
-    });
 
     return res.json({
       success: true,
