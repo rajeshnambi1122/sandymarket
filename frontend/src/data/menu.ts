@@ -201,11 +201,13 @@ export const menu = {
       price: "29.99",
       description:
         "Large 3 topping pizza & 14in cheesy bread plus a Faygo 2 liter",
+      image: "/images/familymeal.png"
     },
     {
       name: "Lunch Special",
       price: "6.49",
       description: "2 slices of pizza and a 32oz fountain pop",
+      image: "/images/lunchspcl.png",
     },
   ],
 };

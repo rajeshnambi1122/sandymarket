@@ -39,6 +39,8 @@ export default function Login() {
             id: data.user.id,
             name: data.user.name,
             email: data.user.email,
+            phone: data.user.phone,
+            address: data.user.address,
             role: data.user.role,
           })
         );

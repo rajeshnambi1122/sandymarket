@@ -772,15 +772,26 @@ const CartSummary = React.memo(({
 
   const deliveryType = form.watch("deliveryType");
 
-  // Load user email from localStorage and lock it
+  // Load user details from localStorage
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
         const userData = JSON.parse(userStr);
-        if (userData && userData.email) {
-          setUserEmail(userData.email);
-          form.setValue('email', userData.email);
+        if (userData) {
+          if (userData.email) {
+            setUserEmail(userData.email);
+            form.setValue('email', userData.email);
+          }
+          if (userData.name) {
+            form.setValue('customerName', userData.name);
+          }
+          if (userData.phone) {
+            form.setValue('phone', userData.phone);
+          }
+          if (userData.address) {
+            form.setValue('deliveryAddress', userData.address);
+          }
         }
       } catch (error) {
         console.error('Error parsing user data:', error);

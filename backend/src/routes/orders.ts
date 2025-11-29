@@ -21,28 +21,28 @@ router.get("/", adminAuth, async (_req: AuthRequest, res: Response) => {
 // Get user's orders
 router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
   try {
-    
-    
+
+
     // Validate user ID
     if (!req.user?.userId) {
-  
-      return res.status(401).json({ 
-        success: false, 
+
+      return res.status(401).json({
+        success: false,
         message: "User ID not found in request",
-        data: [] 
+        data: []
       });
     }
-    
+
     if (!mongoose.Types.ObjectId.isValid(req.user?.userId)) {
-  
+
       return res.status(400).json({
         success: false,
         message: "Invalid user ID format",
         data: []
       });
     }
-    
-  
+
+
     const user = await mongoose.model('User').findById(req.user?.userId);
     if (!user) {
 
@@ -52,16 +52,16 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
         data: []
       });
     }
-    
 
-    
+
+
     // First try to find orders directly linked to user
 
-    const linkedOrders = await Order.find({ 
-      user: new mongoose.Types.ObjectId(req.user?.userId) 
+    const linkedOrders = await Order.find({
+      user: new mongoose.Types.ObjectId(req.user?.userId)
     }).sort({ createdAt: -1 });
 
-    
+
     // Then find orders with matching email but not linked
 
     const unlinkedOrders = await Order.find({
@@ -69,7 +69,7 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
       user: { $exists: false }
     }).sort({ createdAt: -1 });
 
-    
+
     // Link any unlinked orders to the user
     if (unlinkedOrders.length > 0) {
 
@@ -83,16 +83,16 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
         }
       }
     }
-    
+
     // Combine all orders
-    const allOrders = [...linkedOrders, ...unlinkedOrders].sort((a, b) => 
+    const allOrders = [...linkedOrders, ...unlinkedOrders].sort((a, b) =>
       b.createdAt.getTime() - a.createdAt.getTime()
     );
-    
+
     // Log final order count and data
 
 
-    
+
     // Return response with detailed stats
     const response = {
       success: true,
@@ -109,10 +109,10 @@ router.get("/my-orders", auth, async (req: AuthRequest, res: Response) => {
         userEmail: user.email
       }
     };
-    
+
 
     return res.json(response);
-    
+
   } catch (error: any) {
     console.error("❌ Error in my-orders endpoint:", error);
     return res.status(500).json({
@@ -146,9 +146,9 @@ router.get("/:id", auth, async (req: AuthRequest, res: Response) => {
 
     // Check if user is admin first
     const isAdmin = req.user.role === 'admin' || req.user.role === 'admin1';
-    
+
     const order = await Order.findById(req.params.id);
-    
+
     // If order not found
     if (!order) {
       // Admins see "Order not found"
@@ -164,12 +164,12 @@ router.get("/:id", auth, async (req: AuthRequest, res: Response) => {
         message: "Access denied. You can only view your own orders.",
       });
     }
-    
+
     // Admins can view any order
     if (isAdmin) {
       return res.json({ success: true, data: order });
     }
-    
+
     // For regular users, check if order email matches their email
     try {
       const user = await mongoose.model('User').findById(req.user.userId);
@@ -184,7 +184,7 @@ router.get("/:id", auth, async (req: AuthRequest, res: Response) => {
       if (order.email && order.email.toLowerCase() === user.email.toLowerCase()) {
         return res.json({ success: true, data: order });
       }
-      
+
       // Email doesn't match - return access denied (don't leak that order exists)
       return res.status(403).json({
         success: false,
@@ -234,7 +234,7 @@ router.post("/", auth, async (req: AuthRequest, res) => {
     // Enhanced user ID determination with logging
     let orderUserId = null;
     let userIdSource = 'none';
-    
+
     // Priority 1: Use userId from request body if provided
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
       try {
@@ -247,7 +247,7 @@ router.post("/", auth, async (req: AuthRequest, res) => {
         console.error("Error checking user from request body:", error);
       }
     }
-    
+
     // Priority 2: Use userId from auth token if authenticated
     if (!orderUserId && req.user?.userId && mongoose.Types.ObjectId.isValid(req.user?.userId)) {
       try {
@@ -260,14 +260,14 @@ router.post("/", auth, async (req: AuthRequest, res) => {
         console.error("Error checking user from auth token:", error);
       }
     }
-    
+
     // Priority 3: Try to find user by email
     if (!orderUserId && email) {
       try {
-        const user = await mongoose.model('User').findOne({ 
-          email: email.toLowerCase() 
+        const user = await mongoose.model('User').findOne({
+          email: email.toLowerCase()
         });
-        
+
         if (user) {
           orderUserId = user._id;
           userIdSource = 'email';
@@ -289,7 +289,7 @@ router.post("/", auth, async (req: AuthRequest, res) => {
       } else if (item.name.includes('Topping')) {
         console.warn(`Order creation: Item ${item.name} has invalid toppings format:`, item.toppings);
       }
-      
+
       return {
         name: item.name,
         quantity: item.quantity,
@@ -298,7 +298,7 @@ router.post("/", auth, async (req: AuthRequest, res) => {
         toppings: safeToppings // Always use the safe array
       };
     });
-    
+
     const order = new Order({
       customerName,
       phone,
@@ -336,34 +336,30 @@ router.post("/", auth, async (req: AuthRequest, res) => {
       toppings: item.toppings || [],
       size: item.size || undefined
     }));
-    
 
-    
-    // Send email confirmation
-    try {
-      await sendOrderConfirmationEmail({
-        id: savedOrder._id.toString(),
-        customerName: savedOrder.customerName,
-        customerEmail: savedOrder.email,
-        phone: savedOrder.phone,
-        items: orderItemsForEmail,
-        totalAmount: savedOrder.totalAmount,
-        cookingInstructions: typeof savedOrder.cookingInstructions === 'string' ? savedOrder.cookingInstructions : undefined,
-        deliveryType: savedOrder.deliveryType || 'pickup',
-        address: savedOrder.address || 'Pickup at store'
-      });
-    } catch (error) {
-      console.error('Failed to send confirmation email:', error);
-    }
 
-    // Send notification to admin
-    await sendNewOrderNotification(
+
+    // Send email confirmation (non-blocking)
+    sendOrderConfirmationEmail({
+      id: savedOrder._id.toString(),
+      customerName: savedOrder.customerName,
+      customerEmail: savedOrder.email,
+      phone: savedOrder.phone,
+      items: orderItemsForEmail,
+      totalAmount: savedOrder.totalAmount,
+      cookingInstructions: typeof savedOrder.cookingInstructions === 'string' ? savedOrder.cookingInstructions : undefined,
+      deliveryType: savedOrder.deliveryType || 'pickup',
+      address: savedOrder.address || 'Pickup at store'
+    }).catch(error => console.error('Failed to send confirmation email:', error));
+
+    // Send notification to admin (non-blocking)
+    sendNewOrderNotification(
       savedOrder._id.toString(),
       savedOrder.customerName
-    );
+    ).catch(error => console.error('Failed to send new order notification:', error));
 
-    return res.status(201).json({ 
-      success: true, 
+    return res.status(201).json({
+      success: true,
       data: {
         ...savedOrder.toObject(),
         userIdSource

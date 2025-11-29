@@ -71,14 +71,14 @@ export default function Admin() {
         processedOrders = [];
       }
 
-      // Ensure each order has a consistent _id field
+      // Ensure each order has a consistent _id field as a string
       const normalizedOrders = processedOrders.map(order => {
-        // If _id is missing but id exists, use id for _id
-        if (!order._id && order.id) {
-
-          return { ...order, _id: order.id };
-        }
-        return order;
+        const id = order._id || order.id;
+        return {
+          ...order,
+          _id: String(id),
+          id: String(order.id || id)
+        };
       });
 
 
