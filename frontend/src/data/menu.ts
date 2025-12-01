@@ -159,32 +159,32 @@ export const menu = {
   deliSalads: [
     {
       name: "Pickle Bologna/Salami & Cheese",
-      price: "market",
+      price: "5.99",
       image: "/images/delisalads.jpg"
     },
     {
       name: "Macaroni Salad",
-      price: "market",
+      price: "5.99",
       image: "/images/deli2.jpg"
     },
     {
       name: "Cole Slaw",
-      price: "market",
+      price: "5.99",
       image: "/images/deli3.jpg"
     },
     {
       name: "Chicken Salad",
-      price: "market",
+      price: "5.99",
       image: "/images/deli4.jpg"
     },
     {
       name: "Tropical Fruit Salad",
-      price: "market",
+      price: "5.99",
       image: "/images/deli6.jpg"
     },
     {
       name: "Potato Salad",
-      price: "market",
+      price: "5.99",
       image: "/images/deli5.jpg"
     },
   ],
