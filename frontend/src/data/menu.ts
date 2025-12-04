@@ -3,25 +3,25 @@ export const menu = {
     regular: [
       {
         name: "1 Toppings Pizza",
-        prices: { medium: "13.99", large: "16.99" },
+        prices: { medium: "14.99", large: "17.99" },
         description: "Choose one topping from our selection",
         image: "/images/pizza1.jpg"
       },
       {
         name: "2 Toppings Pizza",
-        prices: { medium: "14.99", large: "17.99" },
+        prices: { medium: "15.99", large: "18.99" },
         description: "Choose two toppings from our selection",
         image: "/images/pizza2.jpg"
       },
       {
         name: "3 Toppings Pizza",
-        prices: { medium: "15.99", large: "18.99" },
+        prices: { medium: "16.99", large: "19.99" },
         description: "Choose three toppings from our selection",
         image: "/images/pizza3.jpg"
       },
       {
         name: "Supreme Pizza",
-        prices: { medium: "20.99", large: "22.99" },
+        prices: { medium: "20.99", large: "25.99" },
         description: "Pepperoni, sausage, onions, peppers, olives",
         image: "/images/pizza4.jpg",
         predefinedToppings: ["Pepperoni", "Sausage", "Onions", "Green Peppers", "Black Olives"]
@@ -30,13 +30,13 @@ export const menu = {
     specialty: [
       {
         name: "Chicken Bacon Ranch",
-        price: "22.99",
+        price: "23.99",
         description: "Grilled chicken, bacon, and ranch",
         image: "/images/pizza1.jpg"
       },
       {
         name: "BLT Pizza",
-        price: "22.99",
+        price: "23.99",
         description: "Bacon, lettuce & tomato",
         image: "/images/pizza2.jpg"
       },
@@ -48,19 +48,19 @@ export const menu = {
       },
       {
         name: "Breakfast Pizza",
-        price: "22.99",
+        price: "23.99",
         description: "Bacon, ham, sausage & eggs",
         image: "/images/pizza4.jpg"
       },
       {
         name: "BBQ Chicken",
-        price: "22.99",
+        price: "23.99",
         description: "Chicken with BBQ sauce",
         image: "/images/pizza1.jpg"
       },
       {
         name: "Hawaiian Pizza",
-        price: "22.99",
+        price: "23.99",
         description: "Bacon, ham, pineapple",
         image: "/images/pizza2.jpg"
       },
@@ -75,7 +75,7 @@ export const menu = {
     },
     {
       name: "French Fries",
-      price: "3.49",
+      price: "3.99",
       image: "/images/frenchfries.jpg"
     },
     {
@@ -122,12 +122,12 @@ export const menu = {
     },
     {
       name: "Original Chicken Drummies (12)",
-      price: "11.99",
+      price: "12.99",
       image: "/images/pizza2.jpg"
     },
     {
       name: "Flavored Chicken Drummies",
-      price: "1.50",
+      price: "13.99",
       description: "Hot, BBQ, Garlic Parmesan, or Teriyaki",
       image: "/images/pizza3.jpg"
     },
@@ -191,7 +191,7 @@ export const menu = {
   burgers: [
     {
       name: "Cheeseburger",
-      price: "8.99",
+      price: "7.99",
       image: "/images/burger.jpg"
     },
   ],
