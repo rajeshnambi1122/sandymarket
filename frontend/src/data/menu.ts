@@ -3,64 +3,77 @@ export const menu = {
     regular: [
       {
         name: "1 Toppings Pizza",
-        prices: { medium: "14.99", large: "17.99" },
+        prices: { medium: "12.99", large: "15.99" },
         description: "Choose one topping from our selection",
         image: "/images/pizza1.jpg"
       },
       {
         name: "2 Toppings Pizza",
-        prices: { medium: "15.99", large: "18.99" },
+        prices: { medium: "13.99", large: "16.99" },
         description: "Choose two toppings from our selection",
         image: "/images/pizza2.jpg"
       },
       {
         name: "3 Toppings Pizza",
-        prices: { medium: "16.99", large: "19.99" },
+        prices: { medium: "14.99", large: "17.99" },
         description: "Choose three toppings from our selection",
         image: "/images/pizza3.jpg"
-      },
-      {
-        name: "Supreme Pizza",
-        prices: { medium: "20.99", large: "25.99" },
-        description: "Pepperoni, sausage, onions, peppers, olives",
-        image: "/images/pizza4.jpg",
-        predefinedToppings: ["Pepperoni", "Sausage", "Onions", "Green Peppers", "Black Olives"]
       },
     ],
     specialty: [
       {
+        name: "Supreme Pizza",
+        price: "21.99",
+        description: "Pepperoni, sausage, onions, peppers, olives",
+        image: "/images/pizza4.jpg",
+        predefinedToppings: ["Pepperoni","Ham","Bacon","Mushroom", "Sausage", "Onions", "Green Peppers", "Black Olives"]
+      },
+      {
+        name: "Deluxe Pizza",
+        price: "21.99",
+        description: "Pepperoni, sausage, onions, peppers, olives",
+        image: "/images/pizza4.jpg",
+        predefinedToppings: ["Pepperoni", "Sausage", "Onions", "Green Peppers", "Black Olives"]
+      },
+      {
         name: "Chicken Bacon Ranch",
-        price: "23.99",
+        price: "21.99",
         description: "Grilled chicken, bacon, and ranch",
         image: "/images/pizza1.jpg"
       },
       {
         name: "BLT Pizza",
-        price: "23.99",
+        prices: { medium: "17.99", large: "21.99" },
         description: "Bacon, lettuce & tomato",
         image: "/images/pizza2.jpg"
       },
       {
+        name: "Philly Steak Pizza",
+        prices: { medium: "17.99", large: "21.99" },
+        description: "Steak, peppers, onions, and cheese",
+        image: "/images/pizza3.jpg"
+      },
+      {
         name: "The Big Pig Pizza",
-        price: "22.99",
+        price: "21.99",
         description: "All meat pizza",
         image: "/images/pizza3.jpg"
       },
       {
         name: "Breakfast Pizza",
-        price: "23.99",
+        price: "21.99",
         description: "Bacon, ham, sausage & eggs",
         image: "/images/pizza4.jpg"
       },
       {
         name: "BBQ Chicken",
-        price: "23.99",
+        price: "21.99",
         description: "Chicken with BBQ sauce",
         image: "/images/pizza1.jpg"
       },
       {
         name: "Hawaiian Pizza",
-        price: "23.99",
+        price: "21.99",
         description: "Bacon, ham, pineapple",
         image: "/images/pizza2.jpg"
       },
@@ -69,7 +82,7 @@ export const menu = {
   sides: [
     {
       name: "Cheesy Bread",
-      prices: { medium: "11.99", large: "13.99" },
+      prices: { medium: "10.99", large: "12.99" },
       description: '14" or 16"',
       image: "/images/pizza1.jpg"
     },
@@ -192,6 +205,7 @@ export const menu = {
     {
       name: "Cheeseburger",
       price: "7.99",
+      description: "(Fries + $1.99 & Bacon + $1.99)",
       image: "/images/burger.jpg"
     },
   ],
