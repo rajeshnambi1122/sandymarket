@@ -29,6 +29,7 @@ import {
   ChevronUp,
   Loader2
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useInView } from "framer-motion";
 
 // ===== PIZZA DISCOUNT CONFIGURATION =====
@@ -76,10 +77,14 @@ const MenuItem = React.memo(({
   const [showToppings, setShowToppings] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [toppingsSelected, setToppingsSelected] = useState(false);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const { toast } = useToast();
 
   // Check if this pizza has multiple sizes
   const hasSizes = item.prices && (item.prices.medium || item.prices.large);
+
+  // Check if this item has add-ons (for burgers, etc.)
+  const hasAddOns = item.addOns && typeof item.addOns === 'object';
 
   // Check if this pizza can have toppings
   const canHaveToppings = item.name.includes("Toppings Pizza") && selectedSize && toppings && onToppingChange;
@@ -108,10 +113,17 @@ const MenuItem = React.memo(({
     }
   }, [currentToppings.length, hasEnoughToppings]);
 
-  // Calculate price based on selected size
-  const price = selectedSize && item.prices ?
+  // Calculate price based on selected size and add-ons
+  const basePrice = selectedSize && item.prices ?
     Number(item.prices[selectedSize.toLowerCase()]) :
     Number(item.price || 0);
+  
+  // Calculate add-on prices
+  const addOnPrice = hasAddOns ? selectedAddOns.reduce((sum, addOn) => {
+    return sum + Number(item.addOns[addOn] || 0);
+  }, 0) : 0;
+  
+  const price = basePrice + addOnPrice;
 
   const handleSizeChange = (size: string) => {
     setSelectedSize(size);
@@ -165,12 +177,32 @@ const MenuItem = React.memo(({
       return;
     }
 
+    // For items with add-ons, pass them as toppings to backend
+    if (hasAddOns && selectedAddOns.length > 0) {
+      const newQuantity = Math.max(0, quantity + delta);
+      setQuantity(newQuantity);
+      // Pass add-ons as toppings to backend
+      onQuantityChange(item, delta, selectedSize, selectedAddOns);
+      return;
+    }
+
     // For regular items without toppings, update quantity directly
     const newQuantity = Math.max(0, quantity + delta);
     setQuantity(newQuantity);
 
     // Call parent's onQuantityChange to update the cart
     onQuantityChange(item, delta, selectedSize);
+  };
+
+  // Handle add-on toggle
+  const handleAddOnToggle = (addOnName: string) => {
+    setSelectedAddOns(prev => {
+      if (prev.includes(addOnName)) {
+        return prev.filter(name => name !== addOnName);
+      } else {
+        return [...prev, addOnName];
+      }
+    });
   };
 
   // Replace the ToppingSelector component with a wrapper that tracks completion
@@ -229,7 +261,9 @@ const MenuItem = React.memo(({
                 <div className="flex justify-between items-start gap-2">
                   <h4 className="font-heading font-bold text-base sm:text-lg line-clamp-1 text-gray-800 group-hover:text-orange-600 transition-colors">{item.name}</h4>
                   {item.price !== "market" && !hasSizes && (
-                    <span className="font-medium text-orange-600 text-lg">${item.price}</span>
+                    <span className="font-medium text-orange-600 text-lg">
+                      ${hasAddOns && selectedAddOns.length > 0 ? price.toFixed(2) : basePrice.toFixed(2)}
+                    </span>
                   )}
                 </div>
                 {item.description && (
@@ -297,6 +331,37 @@ const MenuItem = React.memo(({
                   <p className="text-xs text-gray-500 mb-2 line-clamp-1">
                     <span className="font-medium text-gray-700">Includes:</span> {item.predefinedToppings.join(', ')}
                   </p>
+                )}
+
+                {/* Add-ons selection */}
+                {hasAddOns && (
+                  <div className="mb-3 space-y-2">
+                    <p className="text-xs font-medium text-gray-700 mb-1">Add-ons:</p>
+                    <div className="space-y-1.5">
+                      {Object.entries(item.addOns).map(([addOnName, addOnPrice]) => (
+                        <div key={addOnName} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`${item.name}-${addOnName}`}
+                            checked={selectedAddOns.includes(addOnName)}
+                            onCheckedChange={() => handleAddOnToggle(addOnName)}
+                            className="h-4 w-4"
+                          />
+                          <label
+                            htmlFor={`${item.name}-${addOnName}`}
+                            className="text-xs text-gray-700 cursor-pointer flex-1 flex items-center justify-between"
+                          >
+                            <span>{addOnName}</span>
+                            <span className="text-orange-600 font-medium ml-2">+${String(addOnPrice)}</span>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedAddOns.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        <span className="font-medium text-gray-700">Total:</span> ${basePrice.toFixed(2)} + ${addOnPrice.toFixed(2)} = <span className="font-semibold text-orange-600">${price.toFixed(2)}</span>
+                      </p>
+                    )}
+                  </div>
                 )}
 
                 {/* Quantity controls */}
@@ -1375,7 +1440,29 @@ export default function PizzaOrder() {
 
     setCart(prevCart => {
       const newCart = [...prevCart];
-      const itemKey = size ? `${item.name} (${size})` : item.name;
+      
+      // Handle add-ons: if item has add-ons and directToppings are add-ons, include them in name
+      let itemName = item.name;
+      let addOnsForName: string[] = [];
+      let toppingsForCart: string[] = [];
+      
+      if (item.addOns && directToppings && directToppings.length > 0) {
+        // Check which directToppings are actually add-ons
+        const addOnNames = Object.keys(item.addOns);
+        addOnsForName = directToppings.filter(topping => addOnNames.includes(topping));
+        // Only non-add-on toppings go to toppings array
+        toppingsForCart = directToppings.filter(topping => !addOnNames.includes(topping));
+        
+        // Build item name with add-ons: "Cheeseburger + Fries + Bacon"
+        if (addOnsForName.length > 0) {
+          itemName = `${item.name} + ${addOnsForName.join(' + ')}`;
+        }
+      } else {
+        // For regular items, use operationToppings as before
+        toppingsForCart = operationToppings;
+      }
+      
+      const itemKey = size ? `${itemName} (${size})` : itemName;
 
       // Helper to compare toppings arrays
       const areToppingsEqual = (arr1: string[] | undefined, arr2: string[]) => {
@@ -1388,9 +1475,9 @@ export default function PizzaOrder() {
         return sorted1.every((val, index) => val === sorted2[index]);
       };
 
-      // Find item with same name AND same toppings
+      // Find item with same name AND same toppings (excluding add-ons which are in name)
       const existingItemIndex = newCart.findIndex(i =>
-        i.name === itemKey && areToppingsEqual(i.toppings, operationToppings)
+        i.name === itemKey && areToppingsEqual(i.toppings, toppingsForCart)
       );
 
       if (existingItemIndex >= 0) {
@@ -1401,21 +1488,42 @@ export default function PizzaOrder() {
           // Remove item if quantity becomes 0
           newCart.splice(existingItemIndex, 1);
         } else {
+          // Recalculate price if add-ons changed
+          const basePrice = size ? Number(item.prices[size.toLowerCase()]) : Number(item.price || 0);
+          let addOnPrice = 0;
+          if (item.addOns && addOnsForName.length > 0) {
+            addOnPrice = addOnsForName.reduce((sum, addOnName) => {
+              return sum + Number(item.addOns[addOnName] || 0);
+            }, 0);
+          }
+          
           // Update quantity
           newCart[existingItemIndex] = {
             ...newCart[existingItemIndex],
             quantity: newQuantity,
-            // Ensure toppings are preserved
-            toppings: operationToppings.length > 0 ? operationToppings : newCart[existingItemIndex].toppings
+            price: basePrice + addOnPrice,
+            // Only store non-add-on toppings
+            toppings: toppingsForCart.length > 0 ? toppingsForCart : newCart[existingItemIndex].toppings
           };
         }
       } else if (delta > 0) {
+        // Calculate base price
+        const basePrice = size ? Number(item.prices[size.toLowerCase()]) : Number(item.price || 0);
+        
+        // Calculate add-on prices if item has add-ons and they're selected
+        let addOnPrice = 0;
+        if (item.addOns && addOnsForName.length > 0) {
+          addOnPrice = addOnsForName.reduce((sum, addOnName) => {
+            return sum + Number(item.addOns[addOnName] || 0);
+          }, 0);
+        }
+        
         // Add new item to cart
         const newItem = {
           name: itemKey,
           quantity: delta,
-          price: size ? Number(item.prices[size.toLowerCase()]) : Number(item.price),
-          toppings: operationToppings,
+          price: basePrice + addOnPrice,
+          toppings: toppingsForCart, // Only non-add-on toppings
           size: size
         };
 

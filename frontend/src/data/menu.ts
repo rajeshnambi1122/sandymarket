@@ -205,8 +205,11 @@ export const menu = {
     {
       name: "Cheeseburger",
       price: "7.99",
-      description: "(Fries + $1.99 & Bacon + $1.99)",
-      image: "/images/burger.jpg"
+      image: "/images/burger.jpg",
+      addOns: {
+        "Fries": "1.99",
+        "Bacon": "1.99"
+      }
     },
   ],
   specials: [
@@ -242,5 +245,6 @@ export const toppings = [
   "Tomato",
   "Grilled Chicken",
   "Jalapeño Peppers",
+  "Fries",
 ];
 
