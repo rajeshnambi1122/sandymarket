@@ -82,19 +82,24 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-primary bg-white/95 backdrop-blur-sm shadow-lg">
       <div className="container mx-auto px-3 flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3" aria-label="Sandy's Market Home">
             <img
               src="/images/favi.png"
               alt="Sandy's Market Logo"
+              width="40"
+              height="40"
               className="h-10 w-auto rounded-full"
+              loading="eager"
+              decoding="async"
             />
             <h1 className="text-md md:text-lg font-bold text-primary2">Sandy's Market</h1>
           </Link>
 
-          <nav className="hidden md:flex items-center">
+          <nav className="hidden md:flex items-center" aria-label="Main navigation">
             <Link
               to="/order"
               className="text-sm font-medium hover:text-orange-500 transition-all duration-200 px-4 py-2 rounded-lg hover:bg-orange-50 hover:shadow-sm border border-transparent hover:border-orange-200"
+              aria-label="Order Food"
             >
               🍕 Order Food
             </Link>
@@ -213,8 +218,9 @@ export default function Header() {
                           to="/order"
                           className="w-full bg-primary hover:bg-primary2 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                           onClick={() => setIsMenuOpen(false)}
+                          aria-label="Go to cart"
                         >
-                          <ShoppingCart className="h-4 w-4" />
+                          <ShoppingCart className="h-4 w-4" aria-hidden="true" />
                           Go to Cart
                         </Link>
                       )}

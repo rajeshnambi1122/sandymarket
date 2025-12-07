@@ -98,4 +98,20 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Font display optimization */
+  @font-face {
+    font-family: 'Inter';
+    font-display: swap;
+  }
+  
+  @font-face {
+    font-family: 'Outfit';
+    font-display: swap;
+  }
+  
+  @font-face {
+    font-family: 'Playfair Display';
+    font-display: swap;
+  }
 }

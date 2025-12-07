@@ -83,8 +83,13 @@ const Index = () => {
             <img
               src="/images/storeimage-1.png"
               alt="Gas station"
+              width="1920"
+              height="1080"
               className="w-full h-full object-cover scale-[1.02] motion-safe:animate-[slowZoom_20s_ease-in-out_infinite_alternate]"
               style={{ transformOrigin: 'center center' }}
+              fetchPriority="high"
+              loading="eager"
+              decoding="async"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/30" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
@@ -115,8 +120,8 @@ const Index = () => {
                   size="sm"
                   className="bg-primary2 hover:bg-orange-700 text-white rounded-full px-10 py-7 text-lg font-bold shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:shadow-[0_0_30px_rgba(234,88,12,0.6)] hover:-translate-y-1 transition-all duration-300 border border-orange-500/50"
                 >
-                  <Link to="/order" className="flex items-center gap-3">
-                    Order Food <ArrowRight size={20} />
+                  <Link to="/order" className="flex items-center gap-3" aria-label="Order Food">
+                    Order Food <ArrowRight size={20} aria-hidden="true" />
                   </Link>
                 </Button>
                 <Button
@@ -160,7 +165,11 @@ const Index = () => {
                     <img
                       src="/images/storeimage-1.png"
                       alt="Fuel station"
+                      width="560"
+                      height="224"
                       className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                   </div>
@@ -181,7 +190,11 @@ const Index = () => {
                     <img
                       src="/images/storeimage-3.png"
                       alt="Store interior"
+                      width="560"
+                      height="224"
                       className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                   </div>
@@ -202,7 +215,11 @@ const Index = () => {
                     <img
                       src="/images/storeimage-2.png"
                       alt="Food"
+                      width="560"
+                      height="224"
                       className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                   </div>
@@ -240,7 +257,11 @@ const Index = () => {
                     <img
                       src={item.image}
                       alt={item.name}
+                      width="400"
+                      height="288"
                       className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80 group-hover:opacity-70 transition-opacity duration-500">
                       <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
@@ -250,15 +271,16 @@ const Index = () => {
                           <span className="text-2xl font-bold text-orange-400 drop-shadow-sm">
                             {item.price}
                           </span>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="bg-white text-orange-600 hover:bg-orange-500 hover:text-white transition-all duration-300 rounded-full px-5 font-bold shadow-lg"
-                            onClick={() => navigate("/order")}
-                          >
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="bg-white text-orange-600 hover:bg-orange-500 hover:text-white transition-all duration-300 rounded-full px-5 font-bold shadow-lg"
+                    onClick={() => navigate("/order")}
+                    aria-label={`Order ${item.name}`}
+                  >
                             <span className="flex items-center gap-2">
                               Order
-                              <ArrowRight size={16} />
+                              <ArrowRight size={16} aria-hidden="true" />
                             </span>
                           </Button>
                         </div>
@@ -276,7 +298,7 @@ const Index = () => {
               >
                 <span className="flex items-center gap-3">
                   View Full Menu
-                  <ArrowRight size={20} />
+                  <ArrowRight size={20} aria-hidden="true" />
                 </span>
               </Button>
             </div>
@@ -297,7 +319,7 @@ const Index = () => {
                 <span className="h-1 w-8 bg-orange-500 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.5)]"></span>
               </div>
               <h2 className="text-4xl md:text-5xl font-bold font-heading mb-6 text-white">Today's Gas Prices</h2>
-              <p className="text-xl text-gray-300 max-w-2xl mx-auto font-light">We offer quality fuel at competitive prices, updated daily for your convenience.</p>
+              <p className="text-xl text-gray-200 max-w-2xl mx-auto font-light">We offer quality fuel at competitive prices, updated daily for your convenience.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
               {gasPrices.map((item, index) => (
@@ -318,13 +340,13 @@ const Index = () => {
                   </div>
                   <div className="flex items-center justify-center gap-2 mt-4 opacity-60 group-hover:opacity-100 transition-opacity duration-500">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <p className="text-xs text-gray-300">Live Price</p>
+                    <p className="text-xs text-gray-200">Live Price</p>
                   </div>
                 </Card>
               ))}
             </div>
-            <p className="text-center mt-12 text-gray-400 flex items-center justify-center gap-2 text-sm">
-              <Clock className="w-4 h-4 text-orange-500" /> Prices are subject to change without notice
+            <p className="text-center mt-12 text-gray-300 flex items-center justify-center gap-2 text-sm">
+              <Clock className="w-4 h-4 text-orange-500" aria-hidden="true" /> Prices are subject to change without notice
             </p>
           </div>
         </section>
@@ -460,7 +482,7 @@ const Index = () => {
                   >
                     <span className="flex items-center justify-center gap-2">
                       Get Directions
-                      <ArrowRight size={18} className="transform group-hover:translate-x-1 transition-transform duration-300" />
+                      <ArrowRight size={18} className="transform group-hover:translate-x-1 transition-transform duration-300" aria-hidden="true" />
                     </span>
                   </Button>
                 </div>
@@ -500,12 +522,12 @@ const Index = () => {
                   </div>
                   <h3 className="text-2xl font-bold font-heading mb-4 text-gray-800">Contact</h3>
                   <div className="flex flex-col gap-3 mb-8 w-full">
-                    <a href="tel:+19894359688" className="flex items-center justify-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-orange-50 transition-colors group/link">
-                      <Phone className="w-5 h-5 text-gray-400 group-hover/link:text-orange-500 transition-colors" />
+                    <a href="tel:+19894359688" className="flex items-center justify-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-orange-50 transition-colors group/link" aria-label="Call Sandy's Market">
+                      <Phone className="w-5 h-5 text-gray-400 group-hover/link:text-orange-500 transition-colors" aria-hidden="true" />
                       <span className="text-gray-700 font-bold group-hover/link:text-orange-700 transition-colors">+1 989-435-9688</span>
                     </a>
-                    <a href="mailto:sandysmarket-gbs@hotmail.com" className="flex items-center justify-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-orange-50 transition-colors group/link">
-                      <Mail className="w-5 h-5 text-gray-400 group-hover/link:text-orange-500 transition-colors" />
+                    <a href="mailto:sandysmarket-gbs@hotmail.com" className="flex items-center justify-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-orange-50 transition-colors group/link" aria-label="Email Sandy's Market">
+                      <Mail className="w-5 h-5 text-gray-400 group-hover/link:text-orange-500 transition-colors" aria-hidden="true" />
                       <span className="text-gray-700 font-medium text-sm group-hover/link:text-orange-700 transition-colors truncate">sandysmarket-gbs@hotmail.com</span>
                     </a>
                   </div>
@@ -515,7 +537,7 @@ const Index = () => {
                   >
                     <span className="flex items-center justify-center gap-2">
                       Call Now
-                      <Phone size={18} />
+                      <Phone size={18} aria-hidden="true" />
                     </span>
                   </Button>
                 </div>
@@ -565,7 +587,7 @@ const Index = () => {
               >
                 <span className="flex items-center gap-2">
                   Order Now
-                  <ArrowRight size={18} />
+                  <ArrowRight size={18} aria-hidden="true" />
                 </span>
               </Button>
             </div>
