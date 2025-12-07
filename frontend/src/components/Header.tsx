@@ -83,15 +83,18 @@ export default function Header() {
       <div className="container mx-auto px-3 flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-3" aria-label="Sandy's Market Home">
-            <img
-              src="/images/favi.png"
-              alt="Sandy's Market Logo"
-              width="40"
-              height="40"
-              className="h-10 w-auto rounded-full"
-              loading="eager"
-              decoding="async"
-            />
+            <picture>
+              <source srcSet="/images/favi.webp" type="image/webp" />
+              <img
+                src="/images/favi.png"
+                alt="Sandy's Market Logo"
+                width="40"
+                height="40"
+                className="h-10 w-auto rounded-full"
+                loading="eager"
+                decoding="async"
+              />
+            </picture>
             <h1 className="text-md md:text-lg font-bold text-primary2">Sandy's Market</h1>
           </Link>
 

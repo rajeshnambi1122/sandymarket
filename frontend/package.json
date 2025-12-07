@@ -9,7 +9,10 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "vite preview --host"
+    "start": "vite preview --host",
+    "upload-images": "node scripts/upload-images.js",
+    "upload-images:no-optimize": "node scripts/upload-images.js --no-optimize",
+    "optimize-images": "node scripts/optimize-images-local.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -69,6 +72,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.946.0",
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^22.5.5",

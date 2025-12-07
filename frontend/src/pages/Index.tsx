@@ -80,17 +80,20 @@ const Index = () => {
         {/* Hero Section */}
         <section className="relative h-screen flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
-            <img
-              src="/images/storeimage-1.png"
-              alt="Gas station"
-              width="1920"
-              height="1080"
-              className="w-full h-full object-cover scale-[1.02] motion-safe:animate-[slowZoom_20s_ease-in-out_infinite_alternate]"
-              style={{ transformOrigin: 'center center' }}
-              fetchPriority="high"
-              loading="eager"
-              decoding="async"
-            />
+            <picture>
+              <source srcSet="/images/storeimage-1.webp" type="image/webp" />
+              <img
+                src="/images/storeimage-1.png"
+                alt="Gas station"
+                width="1920"
+                height="1080"
+                className="w-full h-full object-cover scale-[1.02] motion-safe:animate-[slowZoom_20s_ease-in-out_infinite_alternate]"
+                style={{ transformOrigin: 'center center' }}
+                fetchPriority="high"
+                loading="eager"
+                decoding="async"
+              />
+            </picture>
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/30" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
           </div>
@@ -162,15 +165,18 @@ const Index = () => {
                     Top-quality fuel at competitive prices to keep your vehicle running smoothly on every journey.
                   </p>
                   <div className="relative overflow-hidden rounded-2xl w-full h-56 shadow-lg group-hover:shadow-xl transition-all duration-500">
-                    <img
-                      src="/images/storeimage-1.png"
-                      alt="Fuel station"
-                      width="560"
-                      height="224"
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <picture>
+                      <source srcSet="/images/storeimage-1.webp" type="image/webp" />
+                      <img
+                        src="/images/storeimage-1.png"
+                        alt="Fuel station"
+                        width="560"
+                        height="224"
+                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                   </div>
                 </div>
@@ -187,15 +193,18 @@ const Index = () => {
                     Delicious pizzas, subs, and snacks prepared fresh daily in our kitchen with premium ingredients.
                   </p>
                   <div className="relative overflow-hidden rounded-2xl w-full h-56 shadow-lg group-hover:shadow-xl transition-all duration-500">
-                    <img
-                      src="/images/storeimage-3.png"
-                      alt="Store interior"
-                      width="560"
-                      height="224"
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <picture>
+                      <source srcSet="/images/storeimage-3.webp" type="image/webp" />
+                      <img
+                        src="/images/storeimage-3.png"
+                        alt="Store interior"
+                        width="560"
+                        height="224"
+                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                   </div>
                 </div>
@@ -212,15 +221,18 @@ const Index = () => {
                     Wide selection of snacks, beverages, and daily essentials for your journey, available 24/7.
                   </p>
                   <div className="relative overflow-hidden rounded-2xl w-full h-56 shadow-lg group-hover:shadow-xl transition-all duration-500">
-                    <img
-                      src="/images/storeimage-2.png"
-                      alt="Food"
-                      width="560"
-                      height="224"
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <picture>
+                      <source srcSet="/images/storeimage-2.webp" type="image/webp" />
+                      <img
+                        src="/images/storeimage-2.png"
+                        alt="Food"
+                        width="560"
+                        height="224"
+                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                   </div>
                 </div>
@@ -254,15 +266,18 @@ const Index = () => {
                     </div>
                   )}
                   <div className="relative h-72 w-full overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      width="400"
-                      height="288"
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <picture>
+                      <source srcSet={item.image.replace(/\.(jpg|png)$/i, '.webp')} type="image/webp" />
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        width="400"
+                        height="288"
+                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80 group-hover:opacity-70 transition-opacity duration-500">
                       <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
                         <h3 className="text-2xl font-bold mb-2 text-white font-heading tracking-wide">{item.name}</h3>
