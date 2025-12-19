@@ -21,6 +21,12 @@ export interface Order {
     userId?: string; // For creating orders with explicit user ID
     cookingInstructions?: string; // Optional cooking instructions
     deliveryType?: "pickup" | "door-delivery"; // Delivery method
+    coupon?: {
+        isApplied: boolean;
+        code?: string;
+        discountAmount?: number;
+        discountPercentage?: number;
+    };
 }
 
 export type OrderStatus = Order["status"];

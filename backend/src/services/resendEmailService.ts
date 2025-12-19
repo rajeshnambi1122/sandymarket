@@ -15,12 +15,12 @@ const FROM_EMAIL = "Sandy's Market <orders@sandysmarket.net>";
  */
 const parseAndValidateEmails = (emailString: string): string[] => {
   if (!emailString) return [];
-  
+
   const emails = emailString
     .split(',')
     .map(email => email.trim())
     .filter(email => email && email.includes('@'));
-  
+
   // Validate email format for Resend
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emails.filter(email => emailRegex.test(email));
@@ -33,14 +33,14 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
   try {
     const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
     console.log('storeEmails', storeEmails);
-    
+
     if (storeEmails.length === 0) {
       throw new Error('No valid store email addresses found in STORE_EMAILS environment variable');
     }
-    
+
     console.log('📧 SENDING STORE NOTIFICATION:', `Attempting to send to ${storeEmails.length} store email(s)`);
     console.log('📋 STORE EMAIL RECIPIENTS:', storeEmails.map((email, index) => `  ${index + 1}. ${email}`).join('\n'));
-    
+
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: storeEmails,
@@ -68,9 +68,9 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
                 background-color: #ffffff !important;
               }
               .header { 
-                background-color: #2E7D32 !important; 
+                background: linear-gradient(135deg, #2E7D32, #4CAF50) !important;
                 color: white !important; 
-                padding: 20px; 
+                padding: 30px 20px; 
                 text-align: center; 
                 border-radius: 5px 5px 0 0; 
               }
@@ -92,26 +92,30 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
               }
               .order-details { 
                 background-color: #f9f9f9 !important; 
-                padding: 15px; 
-                margin: 15px 0; 
-                border-radius: 5px;
+                padding: 20px; 
+                margin: 20px 0; 
+                border-radius: 8px;
+                border-left: 4px solid #2E7D32;
                 color: #333 !important;
               }
               .order-table {
                 width: 100%;
                 border-collapse: collapse;
-                margin: 15px 0;
+                margin: 20px 0;
                 background-color: #ffffff !important;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
               }
               .order-table th {
-                background-color: #f5f5f5 !important;
-                padding: 12px;
+                background-color: #f0f0f0 !important;
+                padding: 15px;
                 text-align: left;
                 border-bottom: 2px solid #ddd;
                 font-weight: bold;
               }
               .order-table td {
-                padding: 12px;
+                padding: 15px;
                 border-bottom: 1px solid #ddd;
                 vertical-align: top;
               }
@@ -138,10 +142,13 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
                 border-radius: 5px;
                 border-left: 4px solid #ff9800 !important;
               }
-              .total-row {
-                background-color: #f0f0f0 !important;
-                font-weight: bold;
-                font-size: 16px;
+              .total-section { 
+                background-color: #f0f8ff !important;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 8px;
+                text-align: right;
+                border: 2px solid #2E7D32;
               }
               .support-section {
                 text-align: center;
@@ -150,6 +157,40 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
                 background-color: #f5f5f5 !important;
                 border-radius: 5px;
                 border: 1px solid #ddd;
+              }
+              @media only screen and (max-width: 600px) {
+                .container {
+                  padding: 10px !important;
+                  width: 100% !important;
+                }
+                .content {
+                  padding: 15px 10px !important;
+                }
+                .order-table, .order-table tbody, .order-table tr, .order-table td {
+                  display: block !important;
+                  width: 100% !important;
+                }
+                .order-table thead {
+                  display: none !important;
+                }
+                .order-table tr {
+                  margin-bottom: 15px !important;
+                  border: 1px solid #ddd !important;
+                  border-radius: 5px !important;
+                  padding: 10px !important;
+                }
+                .order-table td {
+                  text-align: left !important;
+                  padding: 5px 0 !important;
+                  border: none !important;
+                }
+                .order-table td::before {
+                  content: attr(data-label);
+                  font-weight: bold;
+                  display: block;
+                  margin-bottom: 5px;
+                  color: #666;
+                }
               }
             </style>
           </head>
@@ -202,36 +243,40 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
                   <tbody>
                     ${orderDetails.items.map(item => `
                       <tr>
-                        <td>
+                        <td data-label="Item Details">
                           <strong>${item.name}</strong>
                           ${item.size ? `<br><small style="color: #666;">Size: ${item.size}</small>` : ''}
-                          ${(item.name.toLowerCase().includes('pizza') && item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) ? 
-                            `<div class="toppings-info">
+                          ${(item.name.toLowerCase().includes('pizza') && item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) ?
+          `<div class="toppings-info">
                               <strong style="color: #2e7d32;">🍅 TOPPINGS:</strong> ${item.toppings.join(', ')}
-                             </div>` 
-                            : (item.name.toLowerCase().includes('topping') ? 
-                               `<div class="warning-info">
+                             </div>`
+          : (item.name.toLowerCase().includes('topping') ?
+            `<div class="warning-info">
                                   <strong style="color: #c62828;">⚠️ WARNING:</strong> No toppings selected!
                                 </div>`
-                               : '')}
+            : '')}
                         </td>
-                        <td style="text-align: center; font-weight: bold; font-size: 16px;">${item.quantity}</td>
-                        <td style="text-align: right;">$${item.price.toFixed(2)}</td>
-                        <td style="text-align: right; font-weight: bold;">$${(item.price * item.quantity).toFixed(2)}</td>
+                        <td data-label="Qty" style="text-align: center; font-weight: bold; font-size: 16px;">${item.quantity}</td>
+                        <td data-label="Price" style="text-align: right;">$${item.price.toFixed(2)}</td>
+                        <td data-label="Total" style="text-align: right; font-weight: bold;">$${(item.price * item.quantity).toFixed(2)}</td>
                       </tr>
                     `).join('')}
                   </tbody>
-                  <tfoot>
-                    <tr class="total-row">
-                      <td colspan="3" style="text-align: right; padding: 15px;">
-                        <strong style="font-size: 18px;">TOTAL AMOUNT:</strong>
-                      </td>
-                      <td style="text-align: right; padding: 15px;">
-                        <strong style="font-size: 18px; color: #2E7D32;">$${orderDetails.totalAmount.toFixed(2)}</strong>
-                      </td>
-                    </tr>
-                  </tfoot>
                 </table>
+
+                <div class="total-section">
+                  <p style="margin: 5px 0; font-size: 16px; color: #666;">
+                    Subtotal: $${orderDetails.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+                  </p>
+                  ${(orderDetails.coupon && orderDetails.coupon.isApplied) ? `
+                  <p style="margin: 5px 0; font-size: 16px; color: #2E7D32;">
+                    Discount (${orderDetails.coupon.code}${orderDetails.coupon.discountPercentage ? ` - ${orderDetails.coupon.discountPercentage}%` : ''}): -$${(orderDetails.coupon.discountAmount || 0).toFixed(2)}
+                  </p>
+                  ` : ''}
+                  <h3 style="margin: 10px 0 0 0; font-size: 24px; color: #2E7D32; border-top: 1px solid #ccc; padding-top: 10px;">
+                    Total: $${orderDetails.totalAmount.toFixed(2)}
+                  </h3>
+                </div>
 
                 <div style="background-color: #e3f2fd; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #2196f3;">
                   <h3 style="margin-top: 0; color: #1976d2;">📝 Next Steps:</h3>
@@ -421,6 +466,52 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                 font-weight: bold;
                 display: inline-block;
               }
+              @media only screen and (max-width: 600px) {
+                .container {
+                  width: 100% !important;
+                }
+                .content {
+                  padding: 15px 10px !important;
+                }
+                .header {
+                  padding: 20px 15px !important;
+                }
+                .items-table, .items-table tbody, .items-table tr, .items-table td {
+                  display: block !important;
+                  width: 100% !important;
+                }
+                .items-table thead {
+                  display: none !important;
+                }
+                .items-table tr {
+                  margin-bottom: 15px !important;
+                  border: 1px solid #eee !important;
+                  border-radius: 8px !important;
+                  padding: 15px !important;
+                  background-color: #f9f9f9 !important;
+                }
+                .items-table td {
+                  text-align: left !important;
+                  padding: 5px 0 !important;
+                  border: none !important;
+                }
+                /* Hide Qty/Total in main list, show in flex layout */
+                .items-table td:nth-child(2), .items-table td:nth-child(3) {
+                   display: inline-block !important;
+                   width: auto !important;
+                   margin-right: 15px !important;
+                   background-color: #fff !important;
+                   padding: 4px 8px !important;
+                   border-radius: 4px !important;
+                   border: 1px solid #ddd !important;
+                   margin-top: 10px !important;
+                }
+                .cta-button {
+                  display: block !important;
+                  width: 100% !important;
+                  box-sizing: border-box !important;
+                }
+              }
             </style>
           </head>
           <body>
@@ -471,15 +562,15 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                         <td>
                           <strong style="font-size: 16px;">${item.name}</strong>
                           ${item.size ? `<br><span style="color: #666; font-size: 14px;">Size: ${item.size}</span>` : ''}
-                          ${(item.name.toLowerCase().includes('pizza') && item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) ? 
-                            `<div class="toppings-display">
+                          ${(item.name.toLowerCase().includes('pizza') && item.toppings && Array.isArray(item.toppings) && item.toppings.length > 0) ?
+          `<div class="toppings-display">
                               <strong style="color: #2e7d32;">🍅 Toppings:</strong> ${item.toppings.join(', ')}
-                             </div>` 
-                            : (item.name.toLowerCase().includes('topping') ? 
-                               `<div class="warning-display">
+                             </div>`
+          : (item.name.toLowerCase().includes('topping') ?
+            `<div class="warning-display">
                                   <strong style="color: #c62828;">⚠️ Note:</strong> No toppings selected
                                 </div>`
-                               : '')}
+            : '')}
                         </td>
                         <td style="text-align: center; font-weight: bold; font-size: 16px;">${item.quantity}</td>
                         <td style="text-align: right; font-weight: bold; font-size: 16px;">$${(item.price * item.quantity).toFixed(2)}</td>
@@ -489,7 +580,15 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                 </table>
 
                 <div class="total-section">
-                  <h3 style="margin: 0; font-size: 24px; color: #2E7D32;">
+                  <p style="margin: 5px 0; font-size: 16px; color: #666;">
+                    Subtotal: $${orderDetails.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+                  </p>
+                  ${(orderDetails.coupon && orderDetails.coupon.isApplied) ? `
+                  <p style="margin: 5px 0; font-size: 16px; color: #2E7D32;">
+                    Discount (${orderDetails.coupon.code}${orderDetails.coupon.discountPercentage ? ` - ${orderDetails.coupon.discountPercentage}%` : ''}): -$${(orderDetails.coupon.discountAmount || 0).toFixed(2)}
+                  </p>
+                  ` : ''}
+                  <h3 style="margin: 10px 0 0 0; font-size: 24px; color: #2E7D32; border-top: 1px solid #ccc; padding-top: 10px;">
                     Total: $${orderDetails.totalAmount.toFixed(2)}
                   </h3>
                 </div>

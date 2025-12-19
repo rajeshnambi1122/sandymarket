@@ -42,6 +42,24 @@ const orderSchema = new mongoose.Schema({
       }
     },
   ],
+  coupon: {
+    isApplied: {
+      type: Boolean,
+      default: false
+    },
+    code: {
+      type: String,
+      required: false
+    },
+    discountAmount: {
+      type: Number,
+      default: 0
+    },
+    discountPercentage: {
+      type: Number,
+      required: false
+    }
+  },
   totalAmount: {
     type: Number,
     required: true,
@@ -67,12 +85,36 @@ const orderSchema = new mongoose.Schema({
     default: Date.now,
     index: true
   },
+}, {
+  toJSON: {
+    transform: function (_doc, ret) {
+      // Explicitly order keys
+      const ordered = {
+        _id: ret._id,
+        customerName: ret.customerName,
+        phone: ret.phone,
+        email: ret.email,
+        address: ret.address,
+        deliveryType: ret.deliveryType,
+        items: ret.items,
+        coupon: ret.coupon,
+        totalAmount: ret.totalAmount,
+        status: ret.status,
+        user: ret.user,
+        cookingInstructions: ret.cookingInstructions,
+        createdAt: ret.createdAt,
+        __v: ret.__v,
+        id: ret.id
+      };
+      return ordered;
+    }
+  }
 });
 
 orderSchema.index({ email: 1, user: 1 });
 
 // Custom ID generator to start from 1000
-orderSchema.pre('save', async function(next) {
+orderSchema.pre('save', async function (next) {
   if (this.isNew) {
     try {
       // Find the highest order ID
@@ -89,7 +131,7 @@ orderSchema.pre('save', async function(next) {
   if (this.email) {
     this.email = this.email.toLowerCase();
   }
-  
+
   // Ensure toppings is always an array
   if (this.items && this.items.length > 0) {
     this.items.forEach(item => {
@@ -98,7 +140,7 @@ orderSchema.pre('save', async function(next) {
       }
     });
   }
-  
+
   next();
 });
 

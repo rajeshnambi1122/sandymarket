@@ -189,7 +189,12 @@ export default function Profile() {
                         </p>
                       ))}
                     </div>
-                    <p className="font-bold mt-2">
+                    {order.coupon && order.coupon.isApplied && (
+                      <p className="text-sm text-green-600 mt-1">
+                        Discount ({order.coupon.code}{order.coupon.discountPercentage ? ` - ${order.coupon.discountPercentage}%` : ''}): -${typeof order.coupon.discountAmount === 'number' ? order.coupon.discountAmount.toFixed(2) : order.coupon.discountAmount}
+                      </p>
+                    )}
+                    <p className="font-bold mt-1">
                       Total: ${typeof order.totalAmount === 'number' ? order.totalAmount.toFixed(2) : order.totalAmount}
                     </p>
                     {order.createdAt && (

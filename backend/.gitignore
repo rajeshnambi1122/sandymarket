@@ -13,4 +13,8 @@ logs
 # Test/development files
 sendTestNotification.js
 testResend.ts
+extract-phone-numbers.js
+extract-phone-numbers.ts
+split-csv.js
+
 

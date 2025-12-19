@@ -296,8 +296,14 @@ export default function OrderSuccess() {
             <div className="mt-4">
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
-                <span>${order.totalAmount.toFixed(2)}</span>
+                <span>${order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
               </div>
+              {order.coupon && order.coupon.isApplied && (
+                <div className="flex justify-between text-green-600 mt-1">
+                  <span>Discount ({order.coupon.code}{order.coupon.discountPercentage ? ` - ${order.coupon.discountPercentage}%` : ''})</span>
+                  <span>-${(order.coupon.discountAmount || 0).toFixed(2)}</span>
+                </div>
+              )}
               <div className="my-2"><ZigZagDivider /></div>
               <div className="flex justify-between text-base font-extrabold">
                 <span>Total</span>

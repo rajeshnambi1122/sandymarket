@@ -434,9 +434,23 @@ export default function Admin() {
                                       ))}
                                     </ul>
                                   </div>
-                                  <div className="mt-4 flex justify-end items-center gap-3">
-                                    <h4 className="text-sm font-medium text-gray-500">Total Amount:</h4>
-                                    <p className="text-xl md:text-2xl font-bold text-orange-600 font-heading">{formatCurrency(order.totalAmount)}</p>
+                                  <div className="mt-4 flex flex-col items-end gap-1">
+                                    {order.coupon && order.coupon.isApplied && (
+                                      <>
+                                        <div className="flex items-center gap-3 text-xs md:text-sm text-gray-500">
+                                          <span>Subtotal:</span>
+                                          <span>{formatCurrency(order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0))}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs md:text-sm text-green-600 font-medium">
+                                          <span>Discount ({order.coupon.code}{order.coupon.discountPercentage ? ` - ${order.coupon.discountPercentage}%` : ''}):</span>
+                                          <span>-{formatCurrency(order.coupon.discountAmount || 0)}</span>
+                                        </div>
+                                      </>
+                                    )}
+                                    <div className="flex items-center gap-3 mt-1">
+                                      <h4 className="text-sm font-medium text-gray-500">Total Amount:</h4>
+                                      <p className="text-xl md:text-2xl font-bold text-orange-600 font-heading">{formatCurrency(order.totalAmount)}</p>
+                                    </div>
                                   </div>
                                 </div>
                               </div>

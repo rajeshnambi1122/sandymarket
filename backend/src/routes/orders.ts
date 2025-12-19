@@ -231,6 +231,29 @@ router.post("/", auth, async (req: AuthRequest, res) => {
       0
     );
 
+    // Calculate coupon discount if code is provided
+    let finalTotalAmount = totalAmount;
+    let discountAmount = 0;
+    let isCouponApplied = false;
+    let activeCouponPercentage = 0;
+    const { couponCode } = req.body;
+
+    if (couponCode && process.env.COUPON_CODE && couponCode.toUpperCase() === process.env.COUPON_CODE.toUpperCase()) {
+      const couponPercentage = Number(process.env.COUPON_PERCENTAGE) || 0;
+
+      // Calculate pizza subtotal for discount
+      const pizzaSubtotal = items
+        .filter((item: OrderItem) => item.name.toLowerCase().includes('pizza'))
+        .reduce((sum: number, item: OrderItem) => sum + item.price * item.quantity, 0);
+
+      if (pizzaSubtotal > 0) {
+        discountAmount = (pizzaSubtotal * couponPercentage) / 100;
+        finalTotalAmount = totalAmount - discountAmount;
+        isCouponApplied = true;
+        activeCouponPercentage = couponPercentage;
+      }
+    }
+
     // Enhanced user ID determination with logging
     let orderUserId = null;
     let userIdSource = 'none';
@@ -306,10 +329,16 @@ router.post("/", auth, async (req: AuthRequest, res) => {
       address: address || "Pickup",
       deliveryType: deliveryType || "pickup",
       items: processedItems, // Use the processed items with safe toppings
-      totalAmount: Math.round(totalAmount * 100) / 100,
+      totalAmount: Math.round(finalTotalAmount * 100) / 100,
       status: "pending",
       user: orderUserId,
       cookingInstructions: cookingInstructions || '',
+      coupon: {
+        isApplied: isCouponApplied,
+        code: isCouponApplied ? process.env.COUPON_CODE : undefined,
+        discountAmount: Math.round(discountAmount * 100) / 100,
+        discountPercentage: isCouponApplied ? activeCouponPercentage : undefined
+      },
       createdAt: new Date()
     });
 
@@ -347,6 +376,12 @@ router.post("/", auth, async (req: AuthRequest, res) => {
       phone: savedOrder.phone,
       items: orderItemsForEmail,
       totalAmount: savedOrder.totalAmount,
+      coupon: savedOrder.coupon ? {
+        isApplied: savedOrder.coupon.isApplied,
+        code: savedOrder.coupon.code || undefined,
+        discountAmount: savedOrder.coupon.discountAmount,
+        discountPercentage: savedOrder.coupon.discountPercentage || undefined
+      } : undefined,
       cookingInstructions: typeof savedOrder.cookingInstructions === 'string' ? savedOrder.cookingInstructions : undefined,
       deliveryType: savedOrder.deliveryType || 'pickup',
       address: savedOrder.address || 'Pickup at store'

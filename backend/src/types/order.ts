@@ -14,6 +14,12 @@ export interface OrderDetails {
   totalAmount: number;
   items: OrderItem[];
   cookingInstructions?: string;
-  deliveryType?: "pickup" | "door-delivery"; 
-  address?: string; 
-} 
+  deliveryType?: "pickup" | "door-delivery";
+  address?: string;
+  coupon?: {
+    isApplied: boolean;
+    code?: string;
+    discountAmount?: number;
+    discountPercentage?: number;
+  };
+}

@@ -117,12 +117,12 @@ const MenuItem = React.memo(({
   const basePrice = selectedSize && item.prices ?
     Number(item.prices[selectedSize.toLowerCase()]) :
     Number(item.price || 0);
-  
+
   // Calculate add-on prices
   const addOnPrice = hasAddOns ? selectedAddOns.reduce((sum, addOn) => {
     return sum + Number(item.addOns[addOn] || 0);
   }, 0) : 0;
-  
+
   const price = basePrice + addOnPrice;
 
   const handleSizeChange = (size: string) => {
@@ -811,7 +811,7 @@ const CartSummary = React.memo(({
   cart: CartItem[];
   cartTotal: number;
   isSubmitting: boolean;
-  onCheckout: (customerData: { customerName: string; phone: string; email: string; cookingInstructions?: string; deliveryType?: string; deliveryAddress?: string }) => void;
+  onCheckout: (customerData: { customerName: string; phone: string; email: string; cookingInstructions?: string; deliveryType?: string; deliveryAddress?: string; couponCode?: string }) => void;
   onRemoveItem: (index: number) => void;
   isPlacingOrder: boolean;
   setIsPlacingOrder: React.Dispatch<React.SetStateAction<boolean>>;
@@ -820,6 +820,10 @@ const CartSummary = React.memo(({
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; percentage?: number } | null>(null);
+  const [couponError, setCouponError] = useState("");
+
   const isAnyItemInCart = cart.length > 0;
   const { toast } = useToast();
   const form = useForm<z.infer<typeof orderSchema>>({
@@ -864,6 +868,44 @@ const CartSummary = React.memo(({
     }
   }, [form]);
 
+  const handleApplyCoupon = () => {
+    setCouponError("");
+    if (!couponCode.trim()) {
+      setCouponError("Please enter a code");
+      return;
+    }
+
+    const validCode = import.meta.env.VITE_COUPON_CODE;
+    const discountPercent = Number(import.meta.env.VITE_COUPON_PERCENTAGE) || 0;
+
+    if (couponCode.toUpperCase() === validCode.toUpperCase()) {
+      if (discountInfo.pizzaSubtotal > 0) {
+        const discount = (discountInfo.pizzaSubtotal * discountPercent) / 100;
+        setAppliedCoupon({ code: validCode, discount, percentage: discountPercent });
+        toast({
+          title: "Coupon Applied!",
+          description: `You saved $${discount.toFixed(2)}`,
+          className: "bg-green-50 border-green-200 text-green-800"
+        });
+      } else {
+        setCouponError("Coupon applies to pizzas only");
+      }
+    } else {
+      setCouponError("Invalid coupon code");
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError("");
+  };
+
+  // Calculate final total with coupon
+  const finalTotal = appliedCoupon
+    ? cartTotal - appliedCoupon.discount
+    : cartTotal;
+
   const handlePlaceOrderClick = () => {
     if (cart.length === 0) {
       toast({
@@ -875,6 +917,8 @@ const CartSummary = React.memo(({
     }
     setShowCheckoutForm(true);
   };
+
+
 
   const handleSubmitForm = (data: z.infer<typeof orderSchema>) => {
     // Set form data in cart items
@@ -888,7 +932,9 @@ const CartSummary = React.memo(({
       email: data.email,
       cookingInstructions: data.cookingInstructions,
       deliveryType: data.deliveryType,
-      deliveryAddress: data.deliveryAddress
+      deliveryAddress: data.deliveryAddress,
+      // @ts-ignore - Adding dynamic property for coupon
+      couponCode: appliedCoupon?.code
     });
 
     setShowCheckoutForm(false);
@@ -932,7 +978,11 @@ const CartSummary = React.memo(({
           <div className="flex items-center gap-2">
             {isAnyItemInCart && (
               <span className="font-bold text-base bg-white/20 px-2 py-0.5 rounded-lg backdrop-blur-sm">
-                ${cartTotal.toFixed(2)}
+                {isAnyItemInCart && (
+                  <span className="font-bold text-base bg-white/20 px-2 py-0.5 rounded-lg backdrop-blur-sm">
+                    ${finalTotal.toFixed(2)}
+                  </span>
+                )}
               </span>
             )}
             <div className="md:hidden bg-white/10 p-1 rounded-full">
@@ -1011,14 +1061,46 @@ const CartSummary = React.memo(({
                       })}
                       <div className="mt-3 space-y-1">
                         {discountInfo.hasDiscount && (
-                          <div className="text-sm text-green-700 font-medium flex justify-between items-center">
+                          <div className="text-sm text-green-700 font-medium flex justify-between items-center px-1">
                             <span>🍕 Pizza Discount (10%):</span>
-                            <span>${discountInfo.discountAmount.toFixed(2)}</span>
+                            <span>-${discountInfo.discountAmount.toFixed(2)}</span>
                           </div>
                         )}
-                        <div className="font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200">
+
+                        {/* Coupon Section */}
+                        {!appliedCoupon ? (
+                          <div className="flex gap-2 items-start mt-2">
+                            <div className="flex-1">
+                              <Input
+                                placeholder="Coupon Code"
+                                value={couponCode}
+                                onChange={(e) => setCouponCode(e.target.value)}
+                                className="h-9 text-sm focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                              />
+                              {couponError && <span className="text-xs text-red-500 ml-1">{couponError}</span>}
+                            </div>
+                            <Button
+                              onClick={handleApplyCoupon}
+                              size="sm"
+                              variant="outline"
+                              className="h-9 border-orange-200 text-orange-700 hover:bg-orange-50 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                            >
+                              Apply
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-green-700 font-medium flex justify-between items-center bg-green-50 p-2 rounded border border-green-200 mt-2">
+                            <div className="flex items-center gap-2">
+                              <span>🎟️ Coupon ({appliedCoupon.code}{appliedCoupon.percentage ? ` - ${appliedCoupon.percentage}%` : ''}):</span>
+                              <button onClick={removeCoupon} className="text-xs text-red-500 hover:underline">Remove</button>
+                            </div>
+                            <span>-${appliedCoupon.discount.toFixed(2)}</span>
+                          </div>
+                        )}
+
+                        <div className="font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200 mt-3">
                           <span>Total:</span>
-                          <span className="text-orange-600 text-lg">${cartTotal.toFixed(2)}</span>
+                          <span className="text-orange-600 text-lg">${finalTotal.toFixed(2)}</span>
                         </div>
                       </div>
                       <Button
@@ -1165,7 +1247,7 @@ const CartSummary = React.memo(({
 
                         <div className="mt-3 font-bold flex justify-between items-center p-3 bg-orange-50 rounded-md shadow-md border border-orange-200">
                           <span>Total:</span>
-                          <span className="text-orange-600 text-lg">${cartTotal.toFixed(2)}</span>
+                          <span className="text-orange-600 text-lg">${finalTotal.toFixed(2)}</span>
                         </div>
 
                         <div className="flex gap-2">
@@ -1257,13 +1339,14 @@ export default function PizzaOrder() {
   // Single source of truth for pizza discount calculation
   const discountInfo = useMemo(() => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    console.log("isPizzaDiscountDay", isPizzaDiscountDay);
 
-    // Calculate pizza discount if applicable
-    if (isPizzaDiscountDay && cart.some(item => item.name.toLowerCase().includes('pizza'))) {
-      const pizzaSubtotal = cart
-        .filter(item => item.name.toLowerCase().includes('pizza'))
-        .reduce((sum, item) => sum + item.price * item.quantity, 0);
+    // Always calculate pizza subtotal for coupons
+    const pizzaSubtotal = cart
+      .filter(item => item.name.toLowerCase().includes('pizza'))
+      .reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    // Calculate automatic pizza discount if applicable (Monday-Friday)
+    if (isPizzaDiscountDay && pizzaSubtotal > 0) {
       const discountAmount = pizzaSubtotal * 0.1;
       const total = subtotal - discountAmount;
 
@@ -1278,7 +1361,7 @@ export default function PizzaOrder() {
 
     return {
       subtotal,
-      pizzaSubtotal: 0,
+      pizzaSubtotal, // Return the actual pizza subtotal
       discountAmount: 0,
       total: subtotal,
       hasDiscount: false
@@ -1440,19 +1523,19 @@ export default function PizzaOrder() {
 
     setCart(prevCart => {
       const newCart = [...prevCart];
-      
+
       // Handle add-ons: if item has add-ons and directToppings are add-ons, include them in name
       let itemName = item.name;
       let addOnsForName: string[] = [];
       let toppingsForCart: string[] = [];
-      
+
       if (item.addOns && directToppings && directToppings.length > 0) {
         // Check which directToppings are actually add-ons
         const addOnNames = Object.keys(item.addOns);
         addOnsForName = directToppings.filter(topping => addOnNames.includes(topping));
         // Only non-add-on toppings go to toppings array
         toppingsForCart = directToppings.filter(topping => !addOnNames.includes(topping));
-        
+
         // Build item name with add-ons: "Cheeseburger + Fries + Bacon"
         if (addOnsForName.length > 0) {
           itemName = `${item.name} + ${addOnsForName.join(' + ')}`;
@@ -1461,7 +1544,7 @@ export default function PizzaOrder() {
         // For regular items, use operationToppings as before
         toppingsForCart = operationToppings;
       }
-      
+
       const itemKey = size ? `${itemName} (${size})` : itemName;
 
       // Helper to compare toppings arrays
@@ -1496,7 +1579,7 @@ export default function PizzaOrder() {
               return sum + Number(item.addOns[addOnName] || 0);
             }, 0);
           }
-          
+
           // Update quantity
           newCart[existingItemIndex] = {
             ...newCart[existingItemIndex],
@@ -1509,7 +1592,7 @@ export default function PizzaOrder() {
       } else if (delta > 0) {
         // Calculate base price
         const basePrice = size ? Number(item.prices[size.toLowerCase()]) : Number(item.price || 0);
-        
+
         // Calculate add-on prices if item has add-ons and they're selected
         let addOnPrice = 0;
         if (item.addOns && addOnsForName.length > 0) {
@@ -1517,7 +1600,7 @@ export default function PizzaOrder() {
             return sum + Number(item.addOns[addOnName] || 0);
           }, 0);
         }
-        
+
         // Add new item to cart
         const newItem = {
           name: itemKey,
@@ -1552,6 +1635,7 @@ export default function PizzaOrder() {
     cookingInstructions?: string;
     deliveryType?: "pickup" | "door-delivery";
     deliveryAddress?: string;
+    couponCode?: string;
   }) => {
     try {
       setIsSubmitting(true);
@@ -1598,11 +1682,12 @@ export default function PizzaOrder() {
         customerName: customerData.customerName,
         phone: customerData.phone,
         email: customerData.email,
-        address: customerData.deliveryType === "door-delivery" ? customerData.deliveryAddress || "" : "Pickup",
-        deliveryType: (customerData.deliveryType || "pickup") as "pickup" | "door-delivery",
         items: orderItems,
         totalAmount: cartTotal,
-        cookingInstructions: customerData.cookingInstructions || ""
+        deliveryType: customerData.deliveryType || "pickup",
+        address: customerData.deliveryType === "door-delivery" ? customerData.deliveryAddress || "" : "",
+        cookingInstructions: customerData.cookingInstructions || "",
+        couponCode: customerData.couponCode
       };
 
       const response = await ordersApi.createOrder(orderData);
