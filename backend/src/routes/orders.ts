@@ -209,7 +209,7 @@ router.get("/:id", auth, async (req: AuthRequest, res: Response) => {
 // Create new order (for customers)
 router.post("/", auth, async (req: AuthRequest, res) => {
   try {
-    const { customerName, phone, email, items, address, userId, cookingInstructions, deliveryType } = req.body;
+    const { customerName, phone, email, items, address, userId, customItems, cookingInstructions, deliveryType } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({
@@ -332,6 +332,7 @@ router.post("/", auth, async (req: AuthRequest, res) => {
       totalAmount: Math.round(finalTotalAmount * 100) / 100,
       status: "pending",
       user: orderUserId,
+      customItems: customItems || '',
       cookingInstructions: cookingInstructions || '',
       coupon: {
         isApplied: isCouponApplied,
@@ -382,6 +383,7 @@ router.post("/", auth, async (req: AuthRequest, res) => {
         discountAmount: savedOrder.coupon.discountAmount,
         discountPercentage: savedOrder.coupon.discountPercentage || undefined
       } : undefined,
+      customItems: typeof savedOrder.customItems === 'string' ? savedOrder.customItems : undefined,
       cookingInstructions: typeof savedOrder.cookingInstructions === 'string' ? savedOrder.cookingInstructions : undefined,
       deliveryType: savedOrder.deliveryType || 'pickup',
       address: savedOrder.address || 'Pickup at store'

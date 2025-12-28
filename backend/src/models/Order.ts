@@ -76,6 +76,10 @@ const orderSchema = new mongoose.Schema({
     required: false,
     index: true
   },
+  customItems: {
+    type: String,
+    required: false
+  },
   cookingInstructions: {
     type: String,
     required: false
@@ -101,6 +105,7 @@ const orderSchema = new mongoose.Schema({
         totalAmount: ret.totalAmount,
         status: ret.status,
         user: ret.user,
+        customItems: ret.customItems,
         cookingInstructions: ret.cookingInstructions,
         createdAt: ret.createdAt,
         __v: ret.__v,

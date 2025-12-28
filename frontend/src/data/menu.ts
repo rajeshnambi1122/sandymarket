@@ -3,19 +3,19 @@ export const menu = {
     regular: [
       {
         name: "1 Toppings Pizza",
-        prices: { medium: "12.99", large: "15.99" },
+        prices: { medium: "13.99", large: "16.99" },
         description: "Choose one topping from our selection",
         image: "/images/pizza1.jpg"
       },
       {
         name: "2 Toppings Pizza",
-        prices: { medium: "13.99", large: "16.99" },
+        prices: { medium: "14.99", large: "17.99" },
         description: "Choose two toppings from our selection",
         image: "/images/pizza2.jpg"
       },
       {
         name: "3 Toppings Pizza",
-        prices: { medium: "14.99", large: "17.99" },
+        prices: { medium: "14.99", large: "18.99" },
         description: "Choose three toppings from our selection",
         image: "/images/pizza3.jpg"
       },
@@ -82,13 +82,13 @@ export const menu = {
   sides: [
     {
       name: "Cheesy Bread",
-      prices: { medium: "10.99", large: "12.99" },
+      prices: { medium: "11.99", large: "13.99" },
       description: '14" or 16"',
       image: "/images/pizza1.jpg"
     },
     {
       name: "French Fries",
-      price: "3.99",
+      price: "4.99",
       image: "/images/frenchfries.jpg"
     },
     {
@@ -148,23 +148,23 @@ export const menu = {
   subs: [
     {
       name: "Ham & Cheese Sub",
-      price: "9.99",
+      price: "10.99",
       image: "/images/subs.jpg"
     },
     {
       name: "Italian Sub",
-      price: "9.99",
+      price: "10.99",
       description: "Ham, Salami, Pepperoni & cheese",
       image: "/images/subs2.jpg"
     },
     {
       name: "Turkey & Cheese Sub",
-      price: "9.99",
+      price: "10.99",
       image: "/images/subs3.jpg"
     },
     {
       name: "Pizza Sub",
-      price: "9.99",
+      price: "10.99",
       description: "Pepperoni, Ham & Cheese",
       image: "/images/subs4.jpg"
     },
@@ -204,7 +204,7 @@ export const menu = {
   burgers: [
     {
       name: "Cheeseburger",
-      price: "7.99",
+      price: "8.99",
       image: "/images/burger.jpg",
       addOns: {
         "Fries": "1.99",

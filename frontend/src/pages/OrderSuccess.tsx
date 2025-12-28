@@ -320,6 +320,11 @@ export default function OrderSuccess() {
               <div className="text-gray-700 mt-1">
                 {order.deliveryType === "door-delivery" ? "Delivery Address:" : "Pickup Address:"} {order.deliveryType === "door-delivery" ? order.address : "1057 Estey Rd, Beaverton, MI 48612"}
               </div>
+              {order.customItems && (
+                <div className="text-gray-700 mt-2">
+                  <span className="font-medium">Custom Items:</span> {order.customItems}
+                </div>
+              )}
               {order.cookingInstructions && (
                 <div className="text-gray-700 mt-2">Notes: {order.cookingInstructions}</div>
               )}

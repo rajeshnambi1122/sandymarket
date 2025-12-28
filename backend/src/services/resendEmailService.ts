@@ -223,6 +223,13 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
                   </div>
                 </div>
 
+                ${orderDetails.customItems ? `
+                <div class="cooking-instructions" style="background-color: #f3e5f5; border-left: 4px solid #9c27b0;">
+                  <h3 style="margin-top: 0; color: #7b1fa2;">✨ Custom Items Requested</h3>
+                  <p style="margin-bottom: 0; font-size: 16px; font-weight: 500;">${orderDetails.customItems}</p>
+                </div>
+                ` : ''}
+
                 ${orderDetails.cookingInstructions ? `
                 <div class="cooking-instructions">
                   <h3 style="margin-top: 0; color: #e65100;">🔥 Special Cooking Instructions</h3>
@@ -539,6 +546,13 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                     <p style="margin: 0;"><strong>${orderDetails.deliveryType === 'door-delivery' ? 'Delivery' : 'Pickup'} Address:</strong> ${orderDetails.address || 'Pickup at store'}</p>
                   </div>
                 </div>
+
+                ${orderDetails.customItems ? `
+                <div class="cooking-instructions" style="background-color: #f3e5f5; border-left: 4px solid #9c27b0;">
+                  <h3 style="margin-top: 0; color: #7b1fa2;">✨ Custom Items</h3>
+                  <p style="margin-bottom: 0; font-size: 16px; font-style: italic;">"${orderDetails.customItems}"</p>
+                </div>
+                ` : ''}
 
                 ${orderDetails.cookingInstructions ? `
                 <div class="cooking-instructions">

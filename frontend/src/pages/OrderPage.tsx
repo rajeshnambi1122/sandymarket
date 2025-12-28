@@ -42,6 +42,7 @@ const orderSchema = z.object({
   phone: z.string().min(10, "Valid phone number required"),
   email: z.string().email("Valid email required"),
   items: z.array(z.any()),
+  customItems: z.string().optional(),
   cookingInstructions: z.string().optional(),
   deliveryType: z.enum(["pickup", "door-delivery"]).default("pickup"),
   deliveryAddress: z.string().optional(),
@@ -811,7 +812,7 @@ const CartSummary = React.memo(({
   cart: CartItem[];
   cartTotal: number;
   isSubmitting: boolean;
-  onCheckout: (customerData: { customerName: string; phone: string; email: string; cookingInstructions?: string; deliveryType?: string; deliveryAddress?: string; couponCode?: string }) => void;
+  onCheckout: (customerData: { customerName: string; phone: string; email: string; customItems?: string; cookingInstructions?: string; deliveryType?: string; deliveryAddress?: string; couponCode?: string }) => void;
   onRemoveItem: (index: number) => void;
   isPlacingOrder: boolean;
   setIsPlacingOrder: React.Dispatch<React.SetStateAction<boolean>>;
@@ -930,6 +931,7 @@ const CartSummary = React.memo(({
       customerName: data.customerName,
       phone: data.phone,
       email: data.email,
+      customItems: data.customItems,
       cookingInstructions: data.cookingInstructions,
       deliveryType: data.deliveryType,
       deliveryAddress: data.deliveryAddress,
@@ -1113,7 +1115,7 @@ const CartSummary = React.memo(({
                             <LoadingSpinner size={20} className="mr-2" />
                             Processing...
                           </>
-                        ) : "Place Order"}
+                        ) : "Proceed"}
                       </Button>
                     </>
                   ) : (
@@ -1226,6 +1228,26 @@ const CartSummary = React.memo(({
                             )}
                           />
                         )}
+
+                        <FormField
+                          control={form.control}
+                          name="customItems"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2">
+                                <span>Items Not in Menu (Optional)</span>
+                                <span className="text-xs text-orange-600 font-normal">✨ Add your Extra Items!</span>
+                              </FormLabel>
+                              <FormControl>
+                                <textarea
+                                  className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                  placeholder="List any items not in our menu that you'd like to order...&#10;Example: Pop, Groceries, Pepsi, etc."
+                                  {...field}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
 
                         <FormField
                           control={form.control}
@@ -1632,6 +1654,7 @@ export default function PizzaOrder() {
     customerName: string;
     phone: string;
     email: string;
+    customItems?: string;
     cookingInstructions?: string;
     deliveryType?: "pickup" | "door-delivery";
     deliveryAddress?: string;
@@ -1686,6 +1709,7 @@ export default function PizzaOrder() {
         totalAmount: cartTotal,
         deliveryType: customerData.deliveryType || "pickup",
         address: customerData.deliveryType === "door-delivery" ? customerData.deliveryAddress || "" : "",
+        customItems: customerData.customItems || "",
         cookingInstructions: customerData.cookingInstructions || "",
         couponCode: customerData.couponCode
       };

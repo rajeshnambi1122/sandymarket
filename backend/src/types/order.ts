@@ -13,6 +13,7 @@ export interface OrderDetails {
   phone: string;
   totalAmount: number;
   items: OrderItem[];
+  customItems?: string;
   cookingInstructions?: string;
   deliveryType?: "pickup" | "door-delivery";
   address?: string;

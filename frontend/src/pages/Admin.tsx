@@ -452,6 +452,23 @@ export default function Admin() {
                                       <p className="text-xl md:text-2xl font-bold text-orange-600 font-heading">{formatCurrency(order.totalAmount)}</p>
                                     </div>
                                   </div>
+
+                                  {(order.customItems || order.cookingInstructions) && (
+                                    <div className="mt-4 space-y-3">
+                                      {order.customItems && (
+                                        <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
+                                          <h4 className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-1">Custom Items</h4>
+                                          <p className="text-sm text-gray-700">{order.customItems}</p>
+                                        </div>
+                                      )}
+                                      {order.cookingInstructions && (
+                                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                          <h4 className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Cooking Instructions</h4>
+                                          <p className="text-sm text-gray-700">{order.cookingInstructions}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 

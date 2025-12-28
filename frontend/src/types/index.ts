@@ -19,6 +19,7 @@ export interface Order {
     createdAt: string;
     user?: string; // Reference to User ID
     userId?: string; // For creating orders with explicit user ID
+    customItems?: string; // Optional custom items not in menu
     cookingInstructions?: string; // Optional cooking instructions
     deliveryType?: "pickup" | "door-delivery"; // Delivery method
     coupon?: {
@@ -39,6 +40,7 @@ export interface CreateOrderDTO {
     items: OrderItem[];
     totalAmount: number;
     userId?: string; // Optional user ID for associating with a user
+    customItems?: string; // Optional custom items not in menu
     cookingInstructions?: string; // Optional cooking instructions
     deliveryType?: "pickup" | "door-delivery"; // Delivery method
 }
