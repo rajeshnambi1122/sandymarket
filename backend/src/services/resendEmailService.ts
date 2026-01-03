@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 import dotenv from 'dotenv';
-import { OrderDetails, OrderItem } from '../types/order';
+import { OrderDetails } from '../types/order';
 
 dotenv.config();
 
