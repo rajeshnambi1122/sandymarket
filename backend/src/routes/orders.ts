@@ -3,6 +3,7 @@ import { Order } from "../models/Order";
 import { auth, AuthRequest, adminAuth } from "../middleware/auth";
 import { sendOrderConfirmationEmail } from '../services/resendEmailService';
 import { sendNewOrderNotification } from '../services/notificationService';
+import { sendNewOrderSms, sendOrderStatusSms, sendCustomerOrderConfirmationSms } from '../services/smsService';
 import { OrderItem } from '../types/order';
 import mongoose from 'mongoose';
 
@@ -344,7 +345,7 @@ router.post("/", auth, async (req: AuthRequest, res) => {
     });
 
     const savedOrder = await order.save();
-    console.log(`📦 NEW ORDER PLACED: #${savedOrder._id} by ${savedOrder.email} - Total: $${savedOrder.totalAmount} (${savedOrder.items?.length || 0} items)`);
+    console.log(`📦 NEW ORDER PLACED: #${savedOrder._id} by ${savedOrder.email} - Total: $${savedOrder.totalAmount})`);
 
 
 
@@ -395,6 +396,42 @@ router.post("/", auth, async (req: AuthRequest, res) => {
       savedOrder.customerName
     ).catch(error => console.error('Failed to send new order notification:', error));
 
+    // Send SMS notification to admin (non-blocking)
+    sendNewOrderSms(
+      savedOrder._id.toString(),
+      savedOrder.customerName,
+      savedOrder.phone,
+      savedOrder.totalAmount,
+      orderItemsForEmail, // Already processed items with toppings
+      savedOrder.deliveryType || 'pickup',
+      savedOrder.address || 'Pickup at store',
+      typeof savedOrder.cookingInstructions === 'string' ? savedOrder.cookingInstructions : undefined,
+      typeof savedOrder.customItems === 'string' ? savedOrder.customItems : undefined,
+      savedOrder.coupon ? {
+        isApplied: savedOrder.coupon.isApplied,
+        code: savedOrder.coupon.code || undefined,
+        discountAmount: savedOrder.coupon.discountAmount,
+        discountPercentage: savedOrder.coupon.discountPercentage || undefined
+      } : undefined
+    ).catch(error => console.error('Failed to send new order SMS:', error));
+
+    // Send SMS confirmation to customer (non-blocking)
+    sendCustomerOrderConfirmationSms(
+      savedOrder._id.toString(),
+      savedOrder.customerName,
+      savedOrder.phone,
+      savedOrder.totalAmount,
+      orderItemsForEmail,
+      savedOrder.deliveryType || 'pickup',
+      savedOrder.address || 'Pickup at store',
+      savedOrder.coupon ? {
+        isApplied: savedOrder.coupon.isApplied,
+        code: savedOrder.coupon.code || undefined,
+        discountAmount: savedOrder.coupon.discountAmount,
+        discountPercentage: savedOrder.coupon.discountPercentage || undefined
+      } : undefined
+    ).catch(error => console.error('Failed to send customer confirmation SMS:', error));
+
     return res.status(201).json({
       success: true,
       data: {
@@ -434,6 +471,15 @@ router.patch("/:id", adminAuth, async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Send SMS notification to customer when status changes (non-blocking)
+    if (order.phone && status && status !== 'pending') {
+      sendOrderStatusSms(
+        order.phone,
+        order._id.toString(),
+        status,
+        order.customerName
+      ).catch(error => console.error('Failed to send order status SMS:', error));
+    }
 
     return res.json({ success: true, data: order });
   } catch (error: any) {

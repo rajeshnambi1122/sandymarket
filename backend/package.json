@@ -6,10 +6,12 @@
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
     "build": "chmod +x node_modules/.bin/tsc && tsc",
-    "test:resend": "npx ts-node src/services/testResend.ts"
+    "test:resend": "npx ts-node src/services/testResend.ts",
+    "test:sms": "npx ts-node src/services/testSms.ts"
   },
   "dependencies": {
     "@types/twilio": "^3.19.2",
+    "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",

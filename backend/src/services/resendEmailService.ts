@@ -336,21 +336,7 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
       console.error('Customer email format is invalid:', orderDetails.customerEmail);
       throw new Error(`Invalid customer email format: ${orderDetails.customerEmail}`);
     }
-
-    // Log order items for debugging
-    console.log("RESEND SERVICE - Preparing order confirmation email:");
-    orderDetails.items.forEach((item: OrderItem, index: number) => {
-      console.log(`Email Item ${index}: ${item.name}`, {
-        hasTopping: !!item.toppings,
-        toppingsArray: item.toppings || [],
-        toppingsCount: item.toppings ? item.toppings.length : 0,
-        toppingsString: item.toppings ? item.toppings.join(', ') : 'NONE',
-        size: item.size || null,
-        quantity: item.quantity,
-        price: item.price
-      });
-    });
-
+    
     // Send customer confirmation email
     const { data: customerData, error: customerError } = await resend.emails.send({
       from: FROM_EMAIL,
