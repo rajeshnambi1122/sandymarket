@@ -30,7 +30,7 @@ export const menu = {
       },
       {
         name: "Deluxe Pizza",
-        price: "22.99",
+        price: "17.99",
         description: "Pepperoni, sausage, onions, peppers, olives",
         image: "/images/pizza4.jpg",
         predefinedToppings: ["Pepperoni", "Sausage", "Onions", "Green Peppers", "Black Olives"]
@@ -113,7 +113,7 @@ export const menu = {
     },
     {
       name: "Mini Tacos (12)",
-      price: "6.99",
+      price: "7.99",
       image: "/images/minitacos.jpg"
     },
     {
