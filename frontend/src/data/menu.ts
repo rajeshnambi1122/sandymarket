@@ -15,7 +15,7 @@ export const menu = {
       },
       {
         name: "3 Toppings Pizza",
-        prices: { medium: "14.99", large: "18.99" },
+        prices: { medium: "15.99", large: "18.99" },
         description: "Choose three toppings from our selection",
         image: "/images/pizza3.jpg"
       },
@@ -23,57 +23,57 @@ export const menu = {
     specialty: [
       {
         name: "Supreme Pizza",
-        price: "21.99",
+        price: "22.99",
         description: "Pepperoni, sausage, onions, peppers, olives",
         image: "/images/pizza4.jpg",
         predefinedToppings: ["Pepperoni","Ham","Bacon","Mushroom", "Sausage", "Onions", "Green Peppers", "Black Olives"]
       },
       {
         name: "Deluxe Pizza",
-        price: "21.99",
+        price: "22.99",
         description: "Pepperoni, sausage, onions, peppers, olives",
         image: "/images/pizza4.jpg",
         predefinedToppings: ["Pepperoni", "Sausage", "Onions", "Green Peppers", "Black Olives"]
       },
       {
         name: "Chicken Bacon Ranch",
-        price: "21.99",
+        price: "22.99",
         description: "Grilled chicken, bacon, and ranch",
         image: "/images/pizza1.jpg"
       },
       {
         name: "BLT Pizza",
-        prices: { medium: "17.99", large: "21.99" },
+        prices: { medium: "17.99", large: "22.99" },
         description: "Bacon, lettuce & tomato",
         image: "/images/pizza2.jpg"
       },
       {
         name: "Philly Steak Pizza",
-        prices: { medium: "17.99", large: "21.99" },
+        prices: { medium: "17.99", large: "22.99" },
         description: "Steak, peppers, onions, and cheese",
         image: "/images/pizza3.jpg"
       },
       {
         name: "The Big Pig Pizza",
-        price: "21.99",
+        price: "22.99",
         description: "All meat pizza",
         image: "/images/pizza3.jpg"
       },
       {
         name: "Breakfast Pizza",
-        price: "21.99",
+        price: "22.99",
         description: "Bacon, ham, sausage & eggs",
         image: "/images/pizza4.jpg"
       },
       {
         name: "BBQ Chicken",
-        price: "21.99",
+        price: "22.99",
         description: "Chicken with BBQ sauce",
         image: "/images/pizza1.jpg"
       },
       {
         name: "Hawaiian Pizza",
-        price: "21.99",
+        price: "22.99",
         description: "Bacon, ham, pineapple",
         image: "/images/pizza2.jpg"
       },
