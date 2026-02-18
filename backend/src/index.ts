@@ -5,6 +5,8 @@ import { createServer } from "http";
 import { orderRoutes } from "./routes/orders";
 import { authRoutes } from "./routes/auth";
 import { gasPriceRoutes } from "./routes/gasprice";
+import { fuelRoutes } from "./routes/fuel";
+import { startFuelMonitoring } from "./jobs/fuelMonitoringJob";
 import dotenv from "dotenv";
 import 'dotenv/config'; // This loads .env automatically
 
@@ -30,6 +32,7 @@ app.use(express.json());
 app.use("/api/orders", orderRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/gasprice", gasPriceRoutes);
+app.use("/api/fuel", fuelRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -41,10 +44,14 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sandymarket')
   .then(() => {
     console.log('Connected to MongoDB');
-    console.log('process.env.PORT', process.env.STORE_EMAILS);
+    console.log('process.env.STORE_EMAILS', process.env.STORE_EMAILS);
     const port = process.env.PORT || 5000;
     httpServer.listen(port, () => {
       console.log(`Server is running on port ${port}`);
+
+      // Start fuel monitoring cron job
+      console.log('\n🚀 Starting fuel monitoring system...');
+      startFuelMonitoring();
     });
   })
   .catch((error) => {

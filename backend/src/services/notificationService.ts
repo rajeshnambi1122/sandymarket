@@ -22,7 +22,7 @@ export const sendNotification = async (
 ) => {
   try {
     // Get all admin users with FCM tokens (including admin1 role)
-    const adminUsers = await User.find({ 
+    const adminUsers = await User.find({
       role: { $in: ['admin', 'admin1'] },
       fcmToken: { $exists: true, $ne: null }
     }); // Removed .lean() here if not strictly necessary, to match suggested code structure
@@ -41,25 +41,16 @@ export const sendNotification = async (
       return;
     }
 
-    console.log(` SENDING NOTIFICATIONS: Attempting to send to ${fcmTokens.length} device(s)`);
-    
-    // Log detailed information about recipients
-    console.log('📋 NOTIFICATION RECIPIENTS:');
-    adminUsers.forEach((user, index) => {
-      if (user.fcmToken) {
-        const truncatedToken = `${user.fcmToken.substring(0, 20)}...${user.fcmToken.substring(user.fcmToken.length - 8)}`;
-        console.log(`  ${index + 1}. User: ${user.name} | FCM Token: ${truncatedToken}`);
-      }
-    });
+    console.log(`📱 Sending push notifications to ${fcmTokens.length} admin user(s)...`);
 
     const failedTokens: string[] = [];
-    const failedUsers: Array<{name: string, token: string}> = [];
-    const successfulUsers: Array<{name: string, token: string}> = [];
+    const failedUsers: Array<{ name: string, token: string }> = [];
+    const successfulUsers: Array<{ name: string, token: string }> = [];
 
     for (let i = 0; i < fcmTokens.length; i++) {
       const token = fcmTokens[i];
       const user = adminUsers.find(u => u.fcmToken === token);
-      
+
       const message = {
         token,
         notification: {
@@ -93,37 +84,30 @@ export const sendNotification = async (
       try {
         await firebaseAdmin.messaging().send(message);
         if (user) {
-          successfulUsers.push({name: user.name, token});
+          successfulUsers.push({ name: user.name, token });
         }
       } catch (err: any) {
         console.error(`Failed to send to ${user?.name || 'Unknown User'} (${token.substring(0, 20)}...):`, err.message);
         failedTokens.push(token);
         if (user) {
-          failedUsers.push({name: user.name, token});
+          failedUsers.push({ name: user.name, token });
         }
         // Optional: Log specific Firebase errors for debugging
         if (err.errorInfo) {
-            console.error('Firebase Error Info:', err.errorInfo);
+          console.error('Firebase Error Info:', err.errorInfo);
         }
       }
     }
 
     // Log notification results summary
     const successCount = fcmTokens.length - failedTokens.length;
-    console.log(`✅ NOTIFICATION RESULTS: ${successCount}/${fcmTokens.length} devices received notification successfully`);
-    
-    // Log successful notifications with user details
-    if (successfulUsers.length > 0) {
-      console.log('✅ SUCCESSFUL NOTIFICATIONS:');
-      successfulUsers.forEach((user, index) => {
-        const truncatedToken = `${user.token.substring(0, 20)}...${user.token.substring(user.token.length - 8)}`;
-        console.log(`  ${index + 1}. ✓ ${user.name} | FCM Token: ${truncatedToken}`);
-      });
+    if (successCount > 0) {
+      console.log(`✅ Push notifications sent to ${successCount}/${fcmTokens.length} device(s)`);
     }
-    
+
     if (failedTokens.length > 0) {
       console.log(`❌ ${failedTokens.length} notification(s) failed - cleaning up invalid tokens`);
-      
+
       // Log failed notifications with user details
       if (failedUsers.length > 0) {
         console.log('❌ FAILED NOTIFICATIONS:');
@@ -132,7 +116,7 @@ export const sendNotification = async (
           console.log(`  ${index + 1}. ✗ ${user.name} | FCM Token: ${truncatedToken}`);
         });
       }
-      
+
       await User.updateMany(
         { fcmToken: { $in: failedTokens } },
         { $unset: { fcmToken: 1 } }
@@ -159,4 +143,59 @@ export const sendNewOrderNotification = async (orderId: string, customerName: st
     `New order #${orderId} from ${customerName || 'Guest'}`,
     notificationData
   );
-}; 
+};
+
+export const sendFuelAlertNotification = async (lowFuelTanks: any[]) => {
+  const tankLines = lowFuelTanks.map(alert =>
+    `${alert.tank.productLabel} (Tank ${alert.tank.tankNumber}): ${alert.tank.volumeGallons.toFixed(0)} gal`
+  ).join('\n');
+
+  // Get admin1 users only
+  const admin1Users = await User.find({
+    role: 'admin1',
+    fcmToken: { $exists: true, $ne: null }
+  });
+
+  if (admin1Users.length === 0) {
+    console.log('No admin1 users with FCM tokens found');
+    return;
+  }
+
+  const userNames = admin1Users.map(u => u.name).join(', ');
+  console.log(`📱 Sending fuel alert to ${admin1Users.length} admin1 user(s): ${userNames}`);
+
+  const title = '⛽ Fuel Level Alert';
+  const body = `${lowFuelTanks.length} tank(s) low:\n${tankLines}`;
+  const data: Record<string, string> = {
+    type: 'fuel',
+    screen: 'fuel',
+    isFuelAlert: 'true',
+    tankCount: lowFuelTanks.length.toString(),
+    timestamp: new Date().toISOString(),
+  };
+
+  let successCount = 0;
+  for (const user of admin1Users) {
+    const message = {
+      token: user.fcmToken as string,
+      notification: { title, body },
+      data: { ...data, click_action: 'FLUTTER_NOTIFICATION_CLICK' },
+      android: {
+        priority: 'high' as const,
+        notification: { channelId: 'default', priority: 'high' as const, sound: 'default' },
+      },
+      apns: { payload: { aps: { sound: 'default', badge: 1 } } },
+    };
+
+    try {
+      await firebaseAdmin.messaging().send(message);
+      successCount++;
+    } catch (err: any) {
+      console.error(`Failed to send fuel alert to ${user.name}:`, err.message);
+    }
+  }
+
+  if (successCount > 0) {
+    console.log(`✅ Fuel alert push sent to ${successCount}/${admin1Users.length} admin1 device(s)`);
+  }
+};

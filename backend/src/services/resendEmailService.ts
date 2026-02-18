@@ -336,7 +336,7 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
       console.error('Customer email format is invalid:', orderDetails.customerEmail);
       throw new Error(`Invalid customer email format: ${orderDetails.customerEmail}`);
     }
-    
+
     // Send customer confirmation email
     const { data: customerData, error: customerError } = await resend.emails.send({
       from: FROM_EMAIL,
@@ -637,7 +637,170 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
   }
 };
 
+/**
+ * Send fuel alert email to store admins
+ */
+export const sendFuelAlertEmail = async (lowFuelTanks: any[]): Promise<void> => {
+  try {
+    const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
+
+    if (storeEmails.length === 0) {
+      throw new Error('No valid store email addresses found in STORE_EMAILS environment variable');
+    }
+
+    const tanksHtml = lowFuelTanks.map(alert => `
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px; border:1px solid #ffcdd2; border-radius:8px; overflow:hidden; background:#fff8f8;">
+        <!-- Tank Header -->
+        <tr>
+          <td style="background:#c62828; padding:12px 16px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="width:36px;">
+                  <table cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="width:36px; height:36px; background:#fff; border-radius:50%; text-align:center; vertical-align:middle; font-size:16px; font-weight:bold; color:#c62828;">
+                        ${alert.tank.tankNumber}
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <td style="padding-left:12px; color:#fff; font-size:18px; font-weight:bold; vertical-align:middle;">
+                  ${alert.tank.productLabel}
+                </td>
+                <td style="text-align:right; color:#ffcdd2; font-size:13px; vertical-align:middle;">
+                  Tank #${alert.tank.tankNumber}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Current Level Row -->
+        <tr>
+          <td style="padding:0 16px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding:12px 0; border-bottom:1px solid #ffcdd2; color:#666; font-size:14px; font-family:Arial,sans-serif;">
+                  Current Level
+                </td>
+                <td style="padding:12px 0; border-bottom:1px solid #ffcdd2; text-align:right; color:#c62828; font-size:18px; font-weight:bold; font-family:Arial,sans-serif;">
+                  ${alert.tank.volumeGallons.toFixed(1)} gal
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; color:#666; font-size:14px; font-family:Arial,sans-serif;">
+                  Alert Threshold
+                </td>
+                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">
+                  ${alert.threshold} gal
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; color:#666; font-size:14px; font-family:Arial,sans-serif;">
+                  Tank Capacity
+                </td>
+                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">
+                  ${alert.tank.fullVolumeGallons} gal
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0 14px; color:#666; font-size:14px; font-family:Arial,sans-serif;">
+                  % Full
+                </td>
+                <td style="padding:10px 0 14px; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">
+                  ${alert.percentageFull.toFixed(1)}%
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Progress Bar -->
+        <tr>
+          <td style="padding:0 16px 14px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eee; border-radius:4px; overflow:hidden; height:8px;">
+              <tr>
+                <td style="width:${Math.min(alert.percentageFull, 100).toFixed(1)}%; background:#c62828; height:8px;"></td>
+                <td style="background:#eee; height:8px;"></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    `).join('');
+
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: storeEmails,
+      subject: "⛽ Fuel Level Alert - Sandy's Market",
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Fuel Level Alert</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f0f0f0; font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f0f0; padding:20px 0;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#c62828,#e53935); padding:28px 24px; text-align:center;">
+              <div style="font-size:32px; margin-bottom:8px;">⛽</div>
+              <div style="color:#fff; font-size:22px; font-weight:bold; margin-bottom:4px;">Fuel Level Alert!</div>
+              <div style="color:#ffcdd2; font-size:14px;">${lowFuelTanks[0]?.tank?.site?.nickname || "Sandy's Market"}</div>
+            </td>
+          </tr>
+
+          <!-- Orange Banner -->
+          <tr>
+            <td style="background:#ff9800; padding:12px 24px; text-align:center; color:#fff; font-weight:bold; font-size:14px;">
+              ⚠️ Low Fuel Levels Detected
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:20px 16px;">
+
+              <!-- Summary -->
+              <p style="margin:0 0 16px; font-size:15px; font-weight:bold; color:#c62828; font-family:Arial,sans-serif;">
+                🚨 ${lowFuelTanks.length} tank(s) below threshold
+              </p>
+
+              <!-- Tank Cards -->
+              ${tanksHtml}
+
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+    });
+
+    if (error) {
+      console.error('Failed to send fuel alert email:', error);
+      throw error;
+    }
+
+    console.log('✅ Fuel alert email sent successfully:', data?.id);
+  } catch (error) {
+    console.error('Error sending fuel alert email:', error);
+    throw error;
+  }
+};
+
+
+
+
 export default {
   sendOrderConfirmationEmail,
-  sendStoreNotification
+  sendStoreNotification,
+  sendFuelAlertEmail
 };
+
