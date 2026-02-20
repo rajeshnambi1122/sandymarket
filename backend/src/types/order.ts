@@ -24,3 +24,23 @@ export interface OrderDetails {
     discountPercentage?: number;
   };
 }
+
+export interface SendSmsParams {
+  recipients: string[];
+  message: string;
+}
+
+export interface OrderItemForSms {
+  name: string;
+  quantity: number;
+  price: number;
+  size?: string;
+  toppings?: string[];
+}
+
+export interface CouponForSms {
+  isApplied: boolean;
+  code?: string;
+  discountAmount: number;
+  discountPercentage?: number;
+}

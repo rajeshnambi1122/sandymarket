@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { LowFuelAlert } from '../types/fuelTypes';
+import { SendSmsParams, OrderItemForSms, CouponForSms } from '../types/order';
 
 const BASE_URL = 'https://api.textbee.dev/api/v1';
 const API_KEY = process.env.TEXTBEE_API_KEY;
@@ -8,17 +10,14 @@ const DEVICE_ID = process.env.TEXTBEE_DEVICE_ID;
 const getAdminPhoneNumbers = (): string[] => {
   const phoneString = process.env.ADMIN_PHONE_NUMBERS;
   if (!phoneString) return [];
-  
+
   return phoneString
     .split(',')
     .map(phone => phone.trim())
     .filter(phone => phone.length > 0);
 };
 
-interface SendSmsParams {
-  recipients: string[];
-  message: string;
-}
+
 
 export const sendSms = async ({ recipients, message }: SendSmsParams): Promise<any> => {
   try {
@@ -56,20 +55,6 @@ export const sendSms = async ({ recipients, message }: SendSmsParams): Promise<a
   }
 };
 
-interface OrderItemForSms {
-  name: string;
-  quantity: number;
-  price: number;
-  size?: string;
-  toppings?: string[];
-}
-
-interface CouponForSms {
-  isApplied: boolean;
-  code?: string;
-  discountAmount: number;
-  discountPercentage?: number;
-}
 
 export const sendNewOrderSms = async (
   orderId: string,
@@ -85,44 +70,44 @@ export const sendNewOrderSms = async (
 ): Promise<void> => {
   try {
     const adminPhones = getAdminPhoneNumbers();
-    
+
     if (adminPhones.length === 0) {
       console.warn('⚠️ Admin phone numbers not configured - SMS notification skipped');
       return;
     }
-    
+
     console.log(`📱 Sending admin notification to ${adminPhones.length} phone number(s): ${adminPhones.join(', ')}`);
 
-    const deliveryInfo = deliveryType === 'door-delivery' 
+    const deliveryInfo = deliveryType === 'door-delivery'
       ? `🚗 DELIVERY\nAddress: ${address}`
       : `🏪 PICKUP at store`;
 
     // Format items with details
     const itemsDetails = items.map(item => {
       let itemText = `${item.quantity}x ${item.name}`;
-      
+
       if (item.size) {
         itemText += ` (${item.size})`;
       }
-      
+
       if (item.toppings && item.toppings.length > 0) {
         itemText += `\n   Toppings: ${item.toppings.join(', ')}`;
       }
-      
+
       itemText += ` - $${(item.price * item.quantity).toFixed(2)}`;
-      
+
       return itemText;
     }).join('\n\n');
 
     // Build custom items section
     const customItemsSection = customItems ? `\n✨ CUSTOM ITEMS:\n${customItems}\n` : '';
-    
+
     // Build cooking instructions section
     const cookingInstructionsSection = cookingInstructions ? `\n🔥 COOKING INSTRUCTIONS:\n${cookingInstructions}\n` : '';
 
     // Build coupon section
-    const couponSection = (coupon && coupon.isApplied) 
-      ? `\n🎟️ COUPON APPLIED: ${coupon.code}${coupon.discountPercentage ? ` (${coupon.discountPercentage}% OFF)` : ''}\nDiscount: -$${coupon.discountAmount.toFixed(2)}\n` 
+    const couponSection = (coupon && coupon.isApplied)
+      ? `\n🎟️ COUPON APPLIED: ${coupon.code}${coupon.discountPercentage ? ` (${coupon.discountPercentage}% OFF)` : ''}\nDiscount: -$${coupon.discountAmount.toFixed(2)}\n`
       : '';
 
     const message = `🔔 NEW ORDER RECEIVED!
@@ -173,7 +158,7 @@ export const sendCustomerOrderConfirmationSms = async (
       return;
     }
 
-    const deliveryInfo = deliveryType === 'door-delivery' 
+    const deliveryInfo = deliveryType === 'door-delivery'
       ? `🚗 Delivery to:\n${address}`
       : `🏪 Pickup at store`;
 
@@ -190,8 +175,8 @@ export const sendCustomerOrderConfirmationSms = async (
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     // Build coupon section
-    const couponSection = (coupon && coupon.isApplied) 
-      ? `Discount (${coupon.code}): -$${coupon.discountAmount.toFixed(2)}\n` 
+    const couponSection = (coupon && coupon.isApplied)
+      ? `Discount (${coupon.code}): -$${coupon.discountAmount.toFixed(2)}\n`
       : '';
 
     const message = `✅ ORDER CONFIRMED!
@@ -265,6 +250,60 @@ Thank you for choosing Sandy Market!`;
     console.log(`📱 Status update SMS sent to customer for order #${orderId}`);
   } catch (error) {
     console.error(`❌ Failed to send status SMS for order #${orderId}:`, error);
-    // Don't throw - we don't want SMS failures to break status updates
+  }
+};
+
+// Send SMS fuel alert — only between 8am and 8pm Detroit (ET) time
+export const sendFuelAlertSms = async (lowFuelTanks: LowFuelAlert[]): Promise<void> => {
+  try {
+    // Check current time in Detroit (America/Detroit = Eastern Time, auto DST)
+    const now = new Date();
+    const detroitHour = parseInt(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Detroit',
+        hour: 'numeric',
+        hour12: false,
+      }).format(now)
+    );
+
+    const detroitTimeStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Detroit',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(now);
+
+    if (detroitHour < 8 || detroitHour >= 20) {
+      console.log(`📵 SMS fuel alert skipped — Detroit time is ${detroitTimeStr} (outside 8am–8pm window)`);
+      return;
+    }
+
+    console.log(`🕐 Detroit time: ${detroitTimeStr} — within SMS window, sending alert...`);
+
+    // Get phone number(s) from env
+    const fuelAlertPhone = process.env.FUEL_ALERT_PHONE;
+    if (!fuelAlertPhone) {
+      console.warn('⚠️ FUEL_ALERT_PHONE not set in .env — SMS skipped');
+      return;
+    }
+
+    const recipients = fuelAlertPhone.split(',').map(p => p.trim()).filter(Boolean);
+
+    // Build message
+    const tankLines = lowFuelTanks.map(alert =>
+      `  ${alert.tank.productLabel} (Tank ${alert.tank.tankNumber}): ${alert.tank.volumeGallons.toFixed(0)} gal (threshold: ${alert.threshold} gal)`
+    ).join('\n');
+
+    const message =
+      `⛽FUEL ALERT - Sandy's Market
+
+${lowFuelTanks.length} tank(s) below threshold:
+${tankLines}`;
+
+    await sendSms({ recipients, message });
+    console.log(`✅ Fuel alert SMS sent to: ${recipients.join(', ')}`);
+  } catch (error: any) {
+    console.error('❌ Failed to send fuel alert SMS:', error.message);
+    // Don't throw — SMS failure should not block other alerts
   }
 };

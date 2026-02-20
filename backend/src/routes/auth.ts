@@ -10,32 +10,32 @@ const router = express.Router();
 // Register
 router.post("/register", async (req, res) => {
   try {
-    
+
     const { email, password, name, phone, address } = req.body;
 
     // Basic validation
     if (!email || !password || !name) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Email, password, and name are required" 
+        message: "Email, password, and name are required"
       });
     }
-    
+
     // Check email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Invalid email format" 
+        message: "Invalid email format"
       });
     }
 
     // Check if user already exists
     let existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "User with this email already exists" 
+        message: "User with this email already exists"
       });
     }
 
@@ -59,9 +59,9 @@ router.post("/register", async (req, res) => {
 
     // Create token with user ID and role
     const token = jwt.sign(
-      { 
-        userId: savedUser._id.toString(), 
-        role: savedUser.role 
+      {
+        userId: savedUser._id.toString(),
+        role: savedUser.role
       },
       process.env.JWT_SECRET || "secret",
       { expiresIn: "1y" }
@@ -83,19 +83,19 @@ router.post("/register", async (req, res) => {
     });
   } catch (error: any) {
     console.error("Registration error:", error);
-    
+
     // Check for MongoDB duplicate key error
     if (error.code === 11000) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "User with this email already exists" 
+        message: "User with this email already exists"
       });
     }
-    
-    return res.status(500).json({ 
+
+    return res.status(500).json({
       success: false,
-      message: "Registration failed", 
-      error: error.message || "Unknown error" 
+      message: "Registration failed",
+      error: error.message || "Unknown error"
     });
   }
 });
@@ -103,15 +103,15 @@ router.post("/register", async (req, res) => {
 // Login
 router.post("/login", async (req, res) => {
   try {
-    
-    
+
+
     const { email, password } = req.body;
 
     // Basic validation
     if (!email || !password) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Email and password are required" 
+        message: "Email and password are required"
       });
     }
 
@@ -122,9 +122,9 @@ router.post("/login", async (req, res) => {
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
 
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Invalid credentials" 
+        message: "Invalid credentials"
       });
     }
 
@@ -132,17 +132,17 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
 
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Invalid credentials" 
+        message: "Invalid credentials"
       });
     }
 
     // Create token with user ID and role
     const token = jwt.sign(
-      { 
-        userId: user._id.toString(), 
-        role: user.role || "user" 
+      {
+        userId: user._id.toString(),
+        role: user.role || "user"
       },
       process.env.JWT_SECRET || "secret",
       { expiresIn: "1y" }
@@ -153,40 +153,35 @@ router.post("/login", async (req, res) => {
     // Associate any existing orders with this user
     try {
       const Order = mongoose.model('Order');
-      
+
       // First try direct email match
-      let matchingOrders = await Order.find({ 
-        email: normalizedEmail, 
+      let matchingOrders = await Order.find({
+        email: normalizedEmail,
         user: { $exists: false }
       });
-      
+
       if (matchingOrders.length > 0) {
-        console.log(`Found ${matchingOrders.length} unlinked orders with exact email match`);
-        
         // Update orders with this user's ID
         await Order.updateMany(
           { email: normalizedEmail, user: { $exists: false } },
           { $set: { user: user._id } }
         );
-        
-        console.log(`Linked ${matchingOrders.length} orders to user ${user._id}`);
+
       } else {
         // If no exact matches, try case-insensitive email match
         matchingOrders = await Order.find({
           email: { $regex: new RegExp(normalizedEmail, "i") },
           user: { $exists: false }
         });
-        
+
         if (matchingOrders.length > 0) {
-          console.log(`Found ${matchingOrders.length} unlinked orders with case-insensitive email match`);
-          
+
           // Update orders with this user's ID
           await Order.updateMany(
             { email: { $regex: new RegExp(normalizedEmail, "i") }, user: { $exists: false } },
             { $set: { user: user._id } }
           );
-          
-          console.log(`Linked ${matchingOrders.length} orders to user ${user._id}`);
+
         }
       }
     } catch (orderError) {
@@ -210,10 +205,10 @@ router.post("/login", async (req, res) => {
     });
   } catch (error: any) {
     console.error("Login error:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: "Login failed", 
-      error: error.message || "Unknown error" 
+      message: "Login failed",
+      error: error.message || "Unknown error"
     });
   }
 });
@@ -247,24 +242,24 @@ router.post("/fcm-token", auth, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user?.userId) {
       console.log('FCM token update failed: User not authenticated');
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: "User not authenticated" 
+        message: "User not authenticated"
       });
     }
     const { token } = req.body;
     if (!token) {
       console.log('FCM token update failed: Token missing from request body');
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "FCM token is required" 
+        message: "FCM token is required"
       });
     }
 
     // Update user's FCM token in MongoDB
     const updatedUser = await User.findByIdAndUpdate(
       req.user.userId,
-      { 
+      {
         fcmToken: token,
         updatedAt: new Date()
       },

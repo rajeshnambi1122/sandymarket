@@ -2,6 +2,7 @@ import { canaryApiService } from './canaryApiService';
 import { TankInventory, FuelThresholds, LowFuelAlert } from '../types/fuelTypes';
 import { sendFuelAlertEmail } from './resendEmailService';
 import { sendFuelAlertNotification } from './notificationService';
+import { sendFuelAlertSms } from './smsService';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -66,6 +67,9 @@ class FuelMonitoringService {
 
             // Send push notification
             await sendFuelAlertNotification(lowFuelTanks);
+
+            // Send SMS (only 8am–8pm Detroit time)
+            await sendFuelAlertSms(lowFuelTanks);
         } catch (error) {
             console.error('❌ Error sending fuel alerts:', error);
             throw error;

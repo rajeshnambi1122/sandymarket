@@ -345,7 +345,7 @@ router.post("/", auth, async (req: AuthRequest, res) => {
     });
 
     const savedOrder = await order.save();
-    console.log(`📦 NEW ORDER PLACED: #${savedOrder._id} by ${savedOrder.email} - Total: $${savedOrder.totalAmount})`);
+    console.log(`🍕NEW ORDER PLACED: #${savedOrder._id} by ${savedOrder.email} - Total: $${savedOrder.totalAmount})`);
 
 
 

@@ -84,8 +84,6 @@ class CanaryApiService {
         try {
             await this.ensureAuthenticated();
 
-            console.log('📊 Fetching fuel inventories from Canary API...');
-
             const response = await this.axiosInstance.get('/inventories', {
                 params: {
                     include: 'inventoryDate,site,tankNumber,productLabel,status,waterHeightInches,fullVolumeGallons,volumeGallons,ullage90PercentGallons,siteLabels',
@@ -95,7 +93,6 @@ class CanaryApiService {
                 },
             });
 
-            console.log(`✅ Successfully fetched ${response.data.length} tank inventories`);
             return response.data;
         } catch (error: any) {
             // Check if error is due to expired/invalid token

@@ -36,7 +36,6 @@ router.post('/check', adminAuth, async (_req: Request, res: Response) => {
  */
 router.get('/status', adminAuth, async (_req: Request, res: Response) => {
     try {
-        console.log('📊 Fetching current fuel status via API');
 
         const inventories = await canaryApiService.getInventories();
         const thresholds = fuelMonitoringService.getThresholds();
