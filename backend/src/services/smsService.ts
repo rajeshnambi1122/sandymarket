@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { LowFuelAlert } from '../types/fuelTypes';
 import { SendSmsParams, OrderItemForSms, CouponForSms } from '../types/order';
+import { PriceComparison } from './gasBuddyService';
 
 const BASE_URL = 'https://api.textbee.dev/api/v1';
 const API_KEY = process.env.TEXTBEE_API_KEY;
@@ -305,5 +306,110 @@ ${tankLines}`;
   } catch (error: any) {
     console.error('❌ Failed to send fuel alert SMS:', error.message);
     // Don't throw — SMS failure should not block other alerts
+  }
+};
+
+/**
+ * Send fuel delivery SMS notification to admin1
+ */
+export const sendFuelDeliverySms = async (deliveries: {
+  tankNumber: number;
+  productLabel: string;
+  gallonsDelivered: number;
+  startVolume: number;
+  endVolume: number;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+}[]): Promise<void> => {
+  try {
+    console.log('📱 Sending fuel delivery SMS...');
+
+    // Only send to admin1 users
+    const adminPhones = getAdminPhoneNumbers();
+    
+    if (adminPhones.length === 0) {
+      console.warn('⚠️ No admin phone numbers configured — SMS skipped');
+      return;
+    }
+
+    const totalGallons = deliveries.reduce((sum, d) => sum + d.gallonsDelivered, 0);
+
+    // Format delivery details with before → after volumes
+    const deliveryDetails = deliveries.map(d => 
+      `${d.productLabel} Tank ${d.tankNumber}:\n  ${d.startVolume.toLocaleString()} gal → ${d.endVolume.toLocaleString()} gal (+${d.gallonsDelivered.toLocaleString()} gal)\n  ${d.startDate} ${d.startTime}`
+    ).join('\n\n');
+
+    const message = `⛽ FUEL DELIVERY DETECTED
+
+${deliveries.length} delivery event(s) — ${totalGallons.toLocaleString()} total gallons
+
+${deliveryDetails}
+
+Sandy's Market — ATG Auto-Detection`;
+
+    await sendSms({ recipients: adminPhones, message });
+    console.log(`✅ Fuel delivery SMS sent to admin1: ${adminPhones.join(', ')}`);
+  } catch (error: any) {
+    console.error('❌ Failed to send fuel delivery SMS:', error.message);
+  }
+};
+
+/**
+ * Send Gas Buddy price comparison SMS to admin1 only
+ */
+export const sendGasBuddyPriceSms = async (comparison: PriceComparison): Promise<void> => {
+  try {
+    console.log('📱 Sending Gas Buddy price comparison SMS...');
+
+    // Only send to admin1 users (not FUEL_ALERT_PHONE)
+    const adminPhones = getAdminPhoneNumbers();
+    
+    if (adminPhones.length === 0) {
+      console.warn('⚠️ No admin phone numbers configured — SMS skipped');
+      return;
+    }
+
+    // Format prices with updated time
+    const formatPriceWithTime = (price: number | null, updated: string | null) => {
+      if (!price) return 'N/A';
+      return updated ? `$${price.toFixed(2)} (${updated})` : `$${price.toFixed(2)}`;
+    };
+    
+    const formatComparison = (sandyPrice: number | null, bigRPrice: number | null): string => {
+      if (!sandyPrice || !bigRPrice) return '';
+      const diff = sandyPrice - bigRPrice;
+      if (Math.abs(diff) < 0.01) return ' (Same)';
+      if (diff > 0) return ` (+$${diff.toFixed(2)})`;
+      return ` (-$${Math.abs(diff).toFixed(2)})`;
+    };
+
+    const message = `⛽ GAS BUDDY PRICE UPDATE
+
+🏪 SANDY'S MARKET:
+Regular: ${formatPriceWithTime(comparison.sandy.regular, comparison.sandy.regularUpdated)}
+Midgrade: ${formatPriceWithTime(comparison.sandy.midgrade, comparison.sandy.midgradeUpdated)}
+Premium: ${formatPriceWithTime(comparison.sandy.premium, comparison.sandy.premiumUpdated)}
+Diesel: ${formatPriceWithTime(comparison.sandy.diesel, comparison.sandy.dieselUpdated)}
+
+🏬 BIG R'S PUMP & PARTY:
+Regular: ${formatPriceWithTime(comparison.bigR.regular, comparison.bigR.regularUpdated)}
+Midgrade: ${formatPriceWithTime(comparison.bigR.midgrade, comparison.bigR.midgradeUpdated)}
+Premium: ${formatPriceWithTime(comparison.bigR.premium, comparison.bigR.premiumUpdated)}
+Diesel: ${formatPriceWithTime(comparison.bigR.diesel, comparison.bigR.dieselUpdated)}
+
+📊 COMPARISON (Sandy's vs Big R):
+Regular: ${formatComparison(comparison.sandy.regular, comparison.bigR.regular)}
+Midgrade: ${formatComparison(comparison.sandy.midgrade, comparison.bigR.midgrade)}
+Premium: ${formatComparison(comparison.sandy.premium, comparison.bigR.premium)}
+Diesel: ${formatComparison(comparison.sandy.diesel, comparison.bigR.diesel)}
+
+🕐 ${new Date().toLocaleString('en-US', { timeZone: 'America/Detroit' })}`;
+
+    await sendSms({ recipients: adminPhones, message });
+    console.log(`✅ Gas Buddy price SMS sent to admin1: ${adminPhones.join(', ')}`);
+  } catch (error: any) {
+    console.error('❌ Failed to send Gas Buddy price SMS:', error.message);
   }
 };

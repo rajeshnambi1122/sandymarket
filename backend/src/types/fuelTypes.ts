@@ -55,3 +55,34 @@ export interface LowFuelAlert {
     threshold: number;
     percentageFull: number;
 }
+
+export interface DeliveryEntry {
+    startDate: string;       // e.g. "02/27/26"
+    startTime: string;       // e.g. "7:55 AM"
+    endDate: string;
+    endTime: string;
+    startVolume: number;     // gallons at start
+    endVolume: number;       // gallons at end
+    gallonsDelivered: number; // endVolume - startVolume
+    startTCVolume: number;   // temperature-corrected
+    endTCVolume: number;
+    tcGallonsDelivered: number;
+    startWaterHeight: number;
+    endWaterHeight: number;
+    startFuelTemp: number;
+    endFuelTemp: number;
+    startFuelHeight: number;
+    endFuelHeight: number;
+}
+
+export interface TankDelivery {
+    tankNumber: number;
+    productLabel: string;
+    deliveries: DeliveryEntry[];
+}
+
+export interface DeliveryReportResult {
+    reportDate: string;
+    tanks: TankDelivery[];
+    rawText: string;
+}

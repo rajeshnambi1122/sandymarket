@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import dotenv from 'dotenv';
-import type { CanaryAuthResponse } from '../types/fuelTypes';
+import type { CanaryAuthResponse, DeliveryReportResult, TankDelivery, DeliveryEntry } from '../types/fuelTypes';
 
 dotenv.config();
 
@@ -125,6 +125,195 @@ class CanaryApiService {
             }
             throw new Error(`Failed to fetch inventories: ${error.message}`);
         }
+    }
+
+    /**
+     * Get In-Tank Delivery Report via intent system
+     * Step 1: POST /intents with intentName GET_IN_TANK_DELIVERY
+     * Step 2: Poll GET /intents/{id} until status is Resolved
+     * Step 3: Parse the raw text in event.data and return structured data
+     */
+    async getDeliveryReport(siteId: number = 5534): Promise<DeliveryReportResult> {
+        await this.ensureAuthenticated();
+
+        // Step 1: Create the intent
+        console.log('📋 Creating GET_IN_TANK_DELIVERY intent...');
+        let intentId: number;
+        try {
+            const postRes = await this.axiosInstance.post('/intents', {
+                intentName: 'GET_IN_TANK_DELIVERY',
+                siteId,
+            }, {
+                headers: { Authorization: `${this.authToken}` },
+            });
+            intentId = postRes.data.id;
+            console.log(`✅ Intent created: id=${intentId}`);
+        } catch (error: any) {
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                this.authToken = null;
+                await this.login();
+                const retryRes = await this.axiosInstance.post('/intents', {
+                    intentName: 'GET_IN_TANK_DELIVERY',
+                    siteId,
+                }, { headers: { Authorization: `${this.authToken}` } });
+                intentId = retryRes.data.id;
+            } else {
+                throw new Error(`Failed to create delivery intent: ${error.message}`);
+            }
+        }
+
+        // Step 2: Poll until Resolved (max 60 seconds)
+        console.log(`⏳ Polling intent ${intentId} for resolution...`);
+        const maxAttempts = 20;
+        const pollInterval = 3000; // 3 seconds
+        let rawText = '';
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+            const pollRes = await this.axiosInstance.get(`/intents/${intentId}`, {
+                params: { include: 'id,status,commandRequests,intentName,siteId' },
+                headers: { Authorization: `${this.authToken}` },
+            });
+
+            const status: string = pollRes.data.status;
+            console.log(`   Attempt ${attempt}/${maxAttempts}: status=${status}`);
+
+            if (status === 'Resolved') {
+                const commandRequests: any[] = pollRes.data.commandRequests || [];
+                if (commandRequests.length > 0 && commandRequests[0].event?.data) {
+                    rawText = commandRequests[0].event.data;
+                    console.log(`✅ Delivery report received (${rawText.length} chars)`);
+                }
+                break;
+            }
+
+            if (status === 'Failed' || status === 'Rejected') {
+                console.warn(`⚠️ Intent ${intentId} ended with status: ${status}`);
+                
+                // Log additional details for debugging
+                const commandRequests: any[] = pollRes.data.commandRequests || [];
+                if (commandRequests.length > 0) {
+                    const errorInfo = commandRequests[0].event?.error || commandRequests[0].event?.message;
+                    if (errorInfo) {
+                        console.log(`📝 Error details: ${errorInfo}`);
+                    }
+                }
+                
+                console.log('ℹ️ This typically means:');
+                console.log('   • No deliveries recorded in the selected time period');
+                console.log('   • ATG system is offline or not responding');
+                console.log('   • Site configuration issue');
+                console.log('✅ Continuing monitoring - will check again next hour');
+                
+                // Return empty result instead of throwing error
+                return { reportDate: new Date().toISOString(), tanks: [], rawText: '' };
+            }
+        }
+
+        if (!rawText) {
+            console.warn('⚠️ Delivery report did not resolve within the timeout period');
+            console.log('ℹ️ This may indicate no recent deliveries or ATG system busy');
+            return { reportDate: new Date().toISOString(), tanks: [], rawText: '' };
+        }
+
+        // Step 3: Parse the raw text report
+        return this.parseDeliveryReport(rawText);
+    }
+
+    /**
+     * Parse the raw ATG delivery report text into structured JSON
+     * The report format has blocks per tank with START/END/AMOUNT rows
+     */
+    private parseDeliveryReport(rawText: string): DeliveryReportResult {
+        const tanks: TankDelivery[] = [];
+        const lines = rawText.split('\n').map(l => l.trimEnd());
+
+        let currentTank: TankDelivery | null = null;
+        let pendingStart: Partial<DeliveryEntry> | null = null;
+        let reportDate = new Date().toISOString();
+
+        for (const line of lines) {
+            // Match date header like "03/4/2026  4:57 AM"
+            const dateHeaderMatch = line.match(/^\s*(\d{2}\/\d+\/\d{4})\s+(\d+:\d+\s+[AP]M)/);
+            if (dateHeaderMatch) {
+                reportDate = dateHeaderMatch[1] + ' ' + dateHeaderMatch[2];
+            }
+
+            // Match tank header like "TANK  1:REGULAR" or "TANK  2:PREMIUM"
+            const tankMatch = line.match(/^\s*TANK\s+(\d+)\s*:\s*(.+?)\s*$/);
+            if (tankMatch) {
+                currentTank = {
+                    tankNumber: parseInt(tankMatch[1]),
+                    productLabel: tankMatch[2].trim(),
+                    deliveries: [],
+                };
+                tanks.push(currentTank);
+                pendingStart = null;
+                continue;
+            }
+
+            if (!currentTank) continue;
+
+            // Match START row: START: 02/27/26  7:55 AM  809  820  0.00  39.83  13.97
+            const startMatch = line.match(
+                /^\s*START:\s*(\d{2}\/\d{2}\/\d{2})\s+(\d+:\d+\s+[AP]M)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/
+            );
+            if (startMatch) {
+                pendingStart = {
+                    startDate: startMatch[1],
+                    startTime: startMatch[2],
+                    startVolume: parseFloat(startMatch[3]),
+                    startTCVolume: parseFloat(startMatch[4]),
+                    startWaterHeight: parseFloat(startMatch[5]),
+                    startFuelTemp: parseFloat(startMatch[6]),
+                    startFuelHeight: parseFloat(startMatch[7]),
+                };
+                continue;
+            }
+
+            // Match END row: END: 02/27/26  8:13 AM  6718  6848  0.00  32.33  67.24
+            const endMatch = line.match(
+                /^\s*END:\s*(\d{2}\/\d{2}\/\d{2})\s+(\d+:\d+\s+[AP]M)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/
+            );
+            if (endMatch && pendingStart) {
+                pendingStart.endDate = endMatch[1];
+                pendingStart.endTime = endMatch[2];
+                pendingStart.endVolume = parseFloat(endMatch[3]);
+                pendingStart.endTCVolume = parseFloat(endMatch[4]);
+                pendingStart.endWaterHeight = parseFloat(endMatch[5]);
+                pendingStart.endFuelTemp = parseFloat(endMatch[6]);
+                pendingStart.endFuelHeight = parseFloat(endMatch[7]);
+                continue;
+            }
+
+            // Match AMOUNT row: AMOUNT:  5909  6028
+            const amountMatch = line.match(/^\s*AMOUNT:\s+([\d.]+)\s+([\d.]+)/);
+            if (amountMatch && pendingStart && pendingStart.startVolume !== undefined) {
+                const entry: DeliveryEntry = {
+                    startDate: pendingStart.startDate!,
+                    startTime: pendingStart.startTime!,
+                    endDate: pendingStart.endDate!,
+                    endTime: pendingStart.endTime!,
+                    startVolume: pendingStart.startVolume!,
+                    endVolume: pendingStart.endVolume!,
+                    gallonsDelivered: parseFloat(amountMatch[1]),
+                    startTCVolume: pendingStart.startTCVolume!,
+                    endTCVolume: pendingStart.endTCVolume!,
+                    tcGallonsDelivered: parseFloat(amountMatch[2]),
+                    startWaterHeight: pendingStart.startWaterHeight!,
+                    endWaterHeight: pendingStart.endWaterHeight || 0,
+                    startFuelTemp: pendingStart.startFuelTemp!,
+                    endFuelTemp: pendingStart.endFuelTemp || 0,
+                    startFuelHeight: pendingStart.startFuelHeight!,
+                    endFuelHeight: pendingStart.endFuelHeight || 0,
+                };
+                currentTank.deliveries.push(entry);
+                pendingStart = null;
+            }
+        }
+
+        return { reportDate, tanks, rawText };
     }
 
     /**

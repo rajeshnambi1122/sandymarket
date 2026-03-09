@@ -54,8 +54,7 @@ router.post("/register", async (req, res) => {
 
     // Save user to database
     const savedUser = await user.save();
-    console.log(`✅ NEW USER REGISTERED: ${savedUser.email} (ID: ${savedUser._id}) - Role: ${savedUser.role}`);
-
+    console.log(`👤 NEW USER REGISTERED: ${savedUser.email} (ID: ${savedUser._id}) - Role: ${savedUser.role}`);
 
     // Create token with user ID and role
     const token = jwt.sign(

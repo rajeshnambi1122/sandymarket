@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import dotenv from 'dotenv';
 import { OrderDetails } from '../types/order';
+import { PriceComparison } from './gasBuddyService';
 
 dotenv.config();
 
@@ -8,7 +9,8 @@ dotenv.config();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Store email configuration
-const FROM_EMAIL = "Sandy's Market <orders@sandysmarket.net>";
+const ORDER_EMAIL = "Sandy's Market <orders@sandysmarket.net>";
+const ALERT_EMAIL ="Sandy's Market <alerts@sandysmarket.net>";
 
 /**
  * Validate and parse email addresses for Resend API
@@ -42,7 +44,7 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
     console.log('📋 STORE EMAIL RECIPIENTS:', storeEmails.map((email, index) => `  ${index + 1}. ${email}`).join('\n'));
 
     const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: ORDER_EMAIL,
       to: storeEmails,
       subject: "🚨New Food Order Received - Sandy's Market",
       html: `
@@ -339,7 +341,7 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
 
     // Send customer confirmation email
     const { data: customerData, error: customerError } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: ORDER_EMAIL,
       to: [orderDetails.customerEmail],
       subject: "✅ Order Confirmation - Sandy's Market",
       html: `
@@ -728,7 +730,7 @@ export const sendFuelAlertEmail = async (lowFuelTanks: any[]): Promise<void> => 
     `).join('');
 
     const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: ALERT_EMAIL,
       to: storeEmails,
       subject: "⛽ Fuel Level Alert - Sandy's Market",
       html: `<!DOCTYPE html>
@@ -798,9 +800,271 @@ export const sendFuelAlertEmail = async (lowFuelTanks: any[]): Promise<void> => 
 
 
 
+/**
+ * Send fuel delivery alert email to store admins
+ */
+export const sendFuelDeliveryEmail = async (deliveries: {
+  tankNumber: number;
+  productLabel: string;
+  gallonsDelivered: number;
+  startVolume: number;
+  endVolume: number;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+}[]): Promise<void> => {
+  try {
+    const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
+    if (storeEmails.length === 0) {
+      throw new Error('No valid store email addresses found in STORE_EMAILS environment variable');
+    }
+
+    const totalGallons = deliveries.reduce((sum, d) => sum + d.gallonsDelivered, 0);
+
+    const deliveryRows = deliveries.map(d => `
+      <table class="delivery-card" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px; border:1px solid #c8e6c9; border-radius:8px; overflow:hidden; background:#f9fff9;">
+        <tr>
+          <td class="tank-header" style="background:linear-gradient(135deg,#2E7D32,#43A047); padding:12px 16px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+              <td style="width:36px; height:36px; background:#fff; border-radius:50%; text-align:center; vertical-align:middle; font-size:16px; font-weight:bold; color:#2E7D32;">${d.tankNumber}</td>
+              <td class="tank-name" style="padding-left:12px; color:#fff; font-size:18px; font-weight:bold; vertical-align:middle;">${d.productLabel}</td>
+              <td style="text-align:right; color:#c8e6c9; font-size:13px; vertical-align:middle;">Tank #${d.tankNumber}</td>
+            </tr></table>
+          </td>
+        </tr>
+        <tr><td style="padding:0 16px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="padding:12px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:14px; font-family:Arial,sans-serif;">Volume Before</td>
+              <td class="value" style="padding:12px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#666; font-size:16px; font-weight:600; font-family:Arial,sans-serif;">${d.startVolume.toLocaleString()} gal</td>
+            </tr>
+            <tr>
+              <td style="padding:12px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:14px; font-family:Arial,sans-serif;">Gallons Delivered</td>
+              <td class="value" style="padding:12px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#2E7D32; font-size:22px; font-weight:bold; font-family:Arial,sans-serif;">+${d.gallonsDelivered.toLocaleString()} gal</td>
+            </tr>
+            <tr>
+              <td style="padding:12px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:14px; font-family:Arial,sans-serif;">Volume After</td>
+              <td class="value" style="padding:12px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#1565C0; font-size:18px; font-weight:bold; font-family:Arial,sans-serif;">${d.endVolume.toLocaleString()} gal</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:14px; font-family:Arial,sans-serif;">Delivery Start</td>
+              <td class="value" style="padding:10px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#333; font-size:14px; font-family:Arial,sans-serif;">${d.startDate} ${d.startTime}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 0 14px; color:#555; font-size:14px; font-family:Arial,sans-serif;">Delivery End</td>
+              <td class="value" style="padding:10px 0 14px; text-align:right; color:#333; font-size:14px; font-family:Arial,sans-serif;">${d.endDate} ${d.endTime}</td>
+            </tr>
+          </table>
+        </td></tr>
+      </table>
+    `).join('');
+
+    const { data, error } = await resend.emails.send({
+      from: ALERT_EMAIL,
+      to: storeEmails,
+      subject: `⛽ Fuel Delivery Detected : ${deliveries.length} tank(s), ${totalGallons.toLocaleString()} gal`,
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fuel Delivery Detected</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f0f0f0; font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f0f0; padding:20px 0;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+        <!-- Header -->
+        <tr><td style="background:linear-gradient(135deg,#2E7D32,#43A047); padding:28px 24px; text-align:center;">
+          <div style="font-size:36px; margin-bottom:8px;">⛽</div>
+          <div style="color:#fff; font-size:22px; font-weight:bold; margin-bottom:4px;">Fuel Delivery Detected!</div>
+          <div style="color:#c8e6c9; font-size:14px;">Sandy's Market : ATG Auto-Detection</div>
+        </td></tr>
+        <!-- Summary Banner -->
+        <tr><td class="banner" style="background:#43A047; padding:12px 24px; text-align:center; color:#fff; font-weight:bold; font-size:14px;">
+          ✅ ${deliveries.length} delivery event(s) — ${totalGallons.toLocaleString()} total gallons
+        </td></tr>
+        <!-- Body -->
+        <tr><td class="content" style="padding:20px 16px;">
+          <p style="margin:0 0 16px; font-size:15px; font-weight:bold; color:#2E7D32; font-family:Arial,sans-serif;">
+            New fuel deliveries have been automatically detected:
+          </p>
+          ${deliveryRows}
+          <p style="margin:16px 0 0; font-size:13px; color:#888; font-family:Arial,sans-serif; text-align:center;">
+            This notification was automatically generated by the Sandy's Market fuel monitoring system.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+    });
+
+    if (error) {
+      console.error('Failed to send fuel delivery email:', error);
+      throw error;
+    }
+    console.log('✅ Fuel delivery email sent successfully:', data?.id);
+  } catch (error) {
+    console.error('Error sending fuel delivery email:', error);
+    throw error;
+  }
+};
+
+/**
+ * Send Gas Buddy price comparison email
+ */
+export const sendGasBuddyPriceEmail = async (comparison: PriceComparison): Promise<void> => {
+  try {
+    console.log('📧 Sending Gas Buddy price comparison email...');
+
+    const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
+    if (storeEmails.length === 0) {
+      throw new Error('No valid store email addresses found in STORE_EMAILS environment variable');
+    }
+
+    const formatPriceWithTime = (price: number | null, updated: string | null) => {
+      if (!price) return '<span style="color:#999;">N/A</span>';
+      const priceText = `<div style="font-size:16px; font-weight:bold; margin-bottom:4px;">$${price.toFixed(2)}</div>`;
+      const timeText = updated ? `<div style="color:#666; font-size:11px;">${updated}</div>` : '';
+      return priceText + timeText;
+    };
+    
+    const getPriceDifference = (sandyPrice: number | null, bigRPrice: number | null): string => {
+      if (!sandyPrice || !bigRPrice) return '<span style="color:#999;">-</span>';
+      const diff = sandyPrice - bigRPrice;
+      if (Math.abs(diff) < 0.01) return '<span style="color:#666;">Same</span>';
+      if (diff > 0) return `<span style="color:#d32f2f; font-weight:bold;">+$${diff.toFixed(2)}</span>`;
+      return `<span style="color:#388e3c; font-weight:bold;">-$${Math.abs(diff).toFixed(2)}</span>`;
+    };
+
+    const detroitTime = new Date().toLocaleString('en-US', { 
+      timeZone: 'America/Detroit',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    const { data, error } = await resend.emails.send({
+      from: ALERT_EMAIL,
+      to: storeEmails,
+      subject: `⛽ Daily Gas Price Update - ${new Date().toLocaleDateString('en-US')}`,
+      html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gas Buddy Price Update</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .container { width: 100% !important; border-radius: 0 !important; }
+      .header { padding: 24px 16px !important; }
+      .header-title { font-size: 22px !important; }
+      .header-icon { font-size: 40px !important; }
+      .content { padding: 16px !important; }
+      .station-header { font-size: 16px !important; padding: 10px 12px !important; }
+      .price-table { font-size: 14px !important; }
+      .price-value { font-size: 16px !important; }
+      .comparison-table th, .comparison-table td { padding: 8px 4px !important; font-size: 12px !important; }
+      .comparison-table .price-col { font-size: 14px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f5f5; font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f5f5; padding:20px 0;">
+    <tr><td align="center">
+      <table class="container" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+        
+        <!-- Header -->
+        <tr><td class="header" style="background:linear-gradient(135deg,#1976D2,#2196F3); padding:32px 24px; text-align:center;">
+          <div class="header-icon" style="font-size:48px; margin-bottom:12px;">⛽</div>
+          <div class="header-title" style="color:#fff; font-size:26px; font-weight:bold; margin-bottom:6px;">Gas Buddy Price Update</div>
+          <div style="color:#BBDEFB; font-size:14px;">📅 ${detroitTime}</div>
+        </td></tr>
+
+        <!-- Price Comparison Table -->
+        <tr><td class="content" style="padding:24px;">
+          <div style="font-size:18px; font-weight:bold; color:#1976D2; margin-bottom:16px; text-align:center;">📊 Price Comparison</div>
+          
+          <table class="comparison-table" width="100%" cellpadding="12" cellspacing="0" style="border-collapse:collapse; border:2px solid #E3F2FD; border-radius:8px; overflow:hidden;">
+            <thead>
+              <tr style="background:linear-gradient(135deg,#1976D2,#2196F3);">
+                <th style="text-align:left; padding:14px 12px; color:#fff; font-weight:bold; font-size:14px;">Fuel Type</th>
+                <th class="price-col" style="text-align:center; padding:14px 12px; color:#fff; font-weight:bold; font-size:14px;">Sandy's</th>
+                <th class="price-col" style="text-align:center; padding:14px 12px; color:#fff; font-weight:bold; font-size:14px;">Big R</th>
+                <th style="text-align:center; padding:14px 12px; color:#fff; font-weight:bold; font-size:14px;">Difference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background:#fff; border-bottom:1px solid #E3F2FD;">
+                <td class="fuel-type" style="padding:14px 12px; font-weight:600; color:#555;">⭐ Regular</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:#2E7D32;">${formatPriceWithTime(comparison.sandy.regular, comparison.sandy.regularUpdated)}</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:#C62828;">${formatPriceWithTime(comparison.bigR.regular, comparison.bigR.regularUpdated)}</td>
+                <td style="text-align:center; padding:14px 12px; font-size:15px;">${getPriceDifference(comparison.sandy.regular, comparison.bigR.regular)}</td>
+              </tr>
+              <tr style="background:#FAFAFA; border-bottom:1px solid #E3F2FD;">
+                <td class="fuel-type" style="padding:14px 12px; font-weight:600; color:#555;">🔶 Midgrade</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:#2E7D32;">${formatPriceWithTime(comparison.sandy.midgrade, comparison.sandy.midgradeUpdated)}</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:#C62828;">${formatPriceWithTime(comparison.bigR.midgrade, comparison.bigR.midgradeUpdated)}</td>
+                <td style="text-align:center; padding:14px 12px; font-size:15px;">${getPriceDifference(comparison.sandy.midgrade, comparison.bigR.midgrade)}</td>
+              </tr>
+              <tr style="background:#fff; border-bottom:1px solid #E3F2FD;">
+                <td class="fuel-type" style="padding:14px 12px; font-weight:600; color:#555;">💎 Premium</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:#2E7D32;">${formatPriceWithTime(comparison.sandy.premium, comparison.sandy.premiumUpdated)}</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:#C62828;">${formatPriceWithTime(comparison.bigR.premium, comparison.bigR.premiumUpdated)}</td>
+                <td style="text-align:center; padding:14px 12px; font-size:15px;">${getPriceDifference(comparison.sandy.premium, comparison.bigR.premium)}</td>
+              </tr>
+              <tr style="background:#FAFAFA;">
+                <td class="fuel-type" style="padding:14px 12px; font-weight:600; color:#555;">🚛 Diesel</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:#2E7D32;">${formatPriceWithTime(comparison.sandy.diesel, comparison.sandy.dieselUpdated)}</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:#C62828;">${formatPriceWithTime(comparison.bigR.diesel, comparison.bigR.dieselUpdated)}</td>
+                <td style="text-align:center; padding:14px 12px; font-size:15px;">${getPriceDifference(comparison.sandy.diesel, comparison.bigR.diesel)}</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div style="margin-top:16px; padding:12px; background:#F5F5F5; border-radius:6px; font-size:12px; color:#666; text-align:center;">
+            🏪 <strong>Sandy's Market:</strong> 1057 Estey Rd, Beaverton, MI<br/>
+            🏬 <strong>Big R's Pump & Party:</strong> 4016 S MI-30, Beaverton, MI
+          </div>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:#f5f5f5; padding:16px 24px; text-align:center;">
+          <p style="margin:0; font-size:12px; color:#888;">
+            💡 This daily price update is automatically fetched from GasBuddy.<br/>
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+    });
+
+    if (error) {
+      console.error('Failed to send Gas Buddy price email:', error);
+      throw error;
+    }
+    console.log('✅ Gas Buddy price email sent successfully:', data?.id);
+  } catch (error) {
+    console.error('Error sending Gas Buddy price email:', error);
+    throw error;
+  }
+};
+
 export default {
   sendOrderConfirmationEmail,
-  sendStoreNotification,
-  sendFuelAlertEmail
+  sendFuelAlertEmail,
+  sendFuelDeliveryEmail,
+  sendGasBuddyPriceEmail,
 };
+
 

@@ -7,6 +7,8 @@ import { authRoutes } from "./routes/auth";
 import { gasPriceRoutes } from "./routes/gasprice";
 import { fuelRoutes } from "./routes/fuel";
 import { startFuelMonitoring } from "./jobs/fuelMonitoringJob";
+import { startDeliveryMonitoring } from "./jobs/deliveryMonitoringJob";
+import { startGasBuddyPriceJob } from "./jobs/gasBuddyPriceJob";
 import dotenv from "dotenv";
 import 'dotenv/config'; // This loads .env automatically
 
@@ -52,6 +54,14 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sandymark
       // Start fuel monitoring cron job
       console.log('\n🚀 Starting fuel monitoring system...');
       startFuelMonitoring();
+      
+      // Start delivery monitoring cron job
+      console.log('\n📦 Starting delivery monitoring system...');
+      startDeliveryMonitoring();
+      
+      // Start Gas Buddy price comparison cron job
+      console.log('\n💰 Starting Gas Buddy price comparison job...');
+      startGasBuddyPriceJob();
     });
   })
   .catch((error) => {

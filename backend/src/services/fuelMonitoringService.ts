@@ -1,9 +1,11 @@
 import { canaryApiService } from './canaryApiService';
 import { TankInventory, FuelThresholds, LowFuelAlert } from '../types/fuelTypes';
-import { sendFuelAlertEmail } from './resendEmailService';
-import { sendFuelAlertNotification } from './notificationService';
-import { sendFuelAlertSms } from './smsService';
+import { sendFuelAlertEmail, sendFuelDeliveryEmail } from './resendEmailService';
+import { sendFuelAlertNotification, sendFuelDeliveryNotification } from './notificationService';
+import { sendFuelAlertSms, sendFuelDeliverySms } from './smsService';
+import { FuelDelivery } from '../models/FuelDelivery';
 import dotenv from 'dotenv';
+
 
 dotenv.config();
 
@@ -134,6 +136,167 @@ class FuelMonitoringService {
     }
 
     /**
+     * Fetch delivery report, save new deliveries to MongoDB, and notify admin if new ones found
+     */
+    async detectAndSaveNewDeliveries(): Promise<void> {
+        try {
+            console.log('\n📦 ========== DELIVERY DETECTION STARTED ==========');
+            const siteId = parseInt(process.env.CANARY_SITE_ID || '5534');
+            const report = await canaryApiService.getDeliveryReport(siteId);
+            
+            if (report.tanks.length === 0) {
+                console.log('ℹ️ No delivery data available from API (this is normal if no recent deliveries)');
+                console.log('✅ ========== DELIVERY DETECTION COMPLETED ==========\n');
+                return;
+            }
+            
+            console.log(`📊 Received delivery data for ${report.tanks.length} tank(s)`);
+
+            const newDeliveries: {
+                tankNumber: number;
+                productLabel: string;
+                gallonsDelivered: number;
+                startVolume: number;
+                endVolume: number;
+                startDate: string;
+                startTime: string;
+                endDate: string;
+                endTime: string;
+            }[] = [];
+
+            for (const tank of report.tanks) {
+                for (const delivery of tank.deliveries) {
+                    try {
+                        // insertOne — will throw E11000 duplicate key error if already exists (that's fine)
+                        await FuelDelivery.create({
+                            tankNumber: tank.tankNumber,
+                            productLabel: tank.productLabel,
+                            startDate: delivery.startDate,
+                            startTime: delivery.startTime,
+                            endDate: delivery.endDate,
+                            endTime: delivery.endTime,
+                            startVolume: delivery.startVolume,
+                            endVolume: delivery.endVolume,
+                            gallonsDelivered: delivery.gallonsDelivered,
+                            startTCVolume: delivery.startTCVolume,
+                            endTCVolume: delivery.endTCVolume,
+                            tcGallonsDelivered: delivery.tcGallonsDelivered,
+                            startWaterHeight: delivery.startWaterHeight,
+                            endWaterHeight: delivery.endWaterHeight,
+                            startFuelTemp: delivery.startFuelTemp,
+                            endFuelTemp: delivery.endFuelTemp,
+                            startFuelHeight: delivery.startFuelHeight,
+                            endFuelHeight: delivery.endFuelHeight,
+                            notificationSent: false,
+                        });
+
+                        console.log(`✅ NEW delivery saved: Tank ${tank.tankNumber} (${tank.productLabel}) — ${delivery.gallonsDelivered} gal on ${delivery.startDate}`);
+                        newDeliveries.push({
+                            tankNumber: tank.tankNumber,
+                            productLabel: tank.productLabel,
+                            gallonsDelivered: delivery.gallonsDelivered,
+                            startVolume: delivery.startVolume,
+                            endVolume: delivery.endVolume,
+                            startDate: delivery.startDate,
+                            startTime: delivery.startTime,
+                            endDate: delivery.endDate,
+                            endTime: delivery.endTime,
+                        });
+                    } catch (err: any) {
+                        if (err.code === 11000) {
+                            // Duplicate key — delivery already recorded, skip silently
+                        } else {
+                            console.error(`❌ Error saving delivery for Tank ${tank.tankNumber}:`, err.message);
+                        }
+                    }
+                }
+            }
+
+            if (newDeliveries.length > 0) {
+                console.log(`🚨 ${newDeliveries.length} new delivery(ies) detected`);
+
+                // IMPORTANT: Only send notifications for deliveries after March 8, 2026
+                // This prevents spam from historical deliveries on first production run
+                const cutoffDate = new Date('2026-03-08T23:59:59-05:00'); // March 8, 2026 end of day (Detroit time)
+                
+                // Filter deliveries: only notify for those after cutoff date
+                const deliveriesToNotify = newDeliveries.filter(d => {
+                    // Parse delivery date (format: MM/DD/YY)
+                    const [month, day, year] = d.startDate.split('/').map(x => parseInt(x));
+                    const fullYear = 2000 + year; // Convert YY to YYYY
+                    const deliveryDate = new Date(fullYear, month - 1, day);
+                    return deliveryDate > cutoffDate;
+                });
+
+                const deliveriesBeforeCutoff = newDeliveries.filter(d => {
+                    const [month, day, year] = d.startDate.split('/').map(x => parseInt(x));
+                    const fullYear = 2000 + year;
+                    const deliveryDate = new Date(fullYear, month - 1, day);
+                    return deliveryDate <= cutoffDate;
+                });
+
+                // Mark old deliveries as notified without sending alerts
+                if (deliveriesBeforeCutoff.length > 0) {
+                    console.log(`📅 ${deliveriesBeforeCutoff.length} delivery(ies) before March 8, 2026 - SKIPPING notifications (historical data)`);
+                    for (const delivery of deliveriesBeforeCutoff) {
+                        await FuelDelivery.updateOne(
+                            {
+                                tankNumber: delivery.tankNumber,
+                                startDate: delivery.startDate,
+                                startTime: delivery.startTime,
+                                notificationSent: false,
+                            },
+                            { notificationSent: true }
+                        );
+                    }
+                    console.log(`✅ Marked ${deliveriesBeforeCutoff.length} historical delivery(ies) as notified (no alerts sent)`);
+                }
+
+                // Send notifications for deliveries after cutoff
+                if (deliveriesToNotify.length > 0) {
+                    console.log(`📤 Sending notifications for ${deliveriesToNotify.length} delivery(ies) after March 8, 2026...`);
+
+                    // Send email (non-blocking)
+                    sendFuelDeliveryEmail(deliveriesToNotify)
+                        .then(async () => {
+                            // Mark notifications as sent for each specific delivery
+                            for (const delivery of deliveriesToNotify) {
+                                await FuelDelivery.updateOne(
+                                    {
+                                        tankNumber: delivery.tankNumber,
+                                        startDate: delivery.startDate,
+                                        startTime: delivery.startTime,
+                                        notificationSent: false,
+                                    },
+                                    { notificationSent: true }
+                                );
+                            }
+                            console.log(`✅ Marked ${deliveriesToNotify.length} delivery(ies) as notified`);
+                        })
+                        .catch(err => console.error('Failed to send delivery email:', err));
+
+                    // Send SMS (non-blocking)
+                    sendFuelDeliverySms(deliveriesToNotify)
+                        .catch(err => console.error('Failed to send delivery SMS:', err));
+
+                    // Send push notification (non-blocking)
+                    sendFuelDeliveryNotification(deliveriesToNotify)
+                        .catch(err => console.error('Failed to send delivery push:', err));
+                } else {
+                    console.log(`ℹ️ All ${newDeliveries.length} new delivery(ies) are before March 8, 2026 - no notifications sent`);
+                }
+            } else {
+                console.log('✅ No new deliveries detected this run');
+            }
+
+            console.log('✅ ========== DELIVERY DETECTION COMPLETED ==========\n');
+        } catch (error: any) {
+            console.error('❌ Delivery detection error:', error.message);
+            // Don't re-throw — let the cron job continue even if delivery check fails
+        }
+    }
+
+    /**
      * Get fuel thresholds for display/debugging
      */
     getThresholds(): FuelThresholds {
@@ -143,3 +306,4 @@ class FuelMonitoringService {
 
 // Export singleton instance
 export const fuelMonitoringService = new FuelMonitoringService();
+
