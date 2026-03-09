@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import * as cheerio from 'cheerio';
 
 export interface GasPrice {
@@ -24,6 +24,7 @@ export interface PriceComparison {
  * Gas Buddy Service
  * Fetches current gas prices for Sandy's Market and Big R
  * Reusable service for both API routes and scheduled alerts
+ * Includes retry logic and rate limit handling
  */
 class GasBuddyService {
     private readonly sandyUrl = 'https://www.gasbuddy.com/station/68645';
@@ -43,16 +44,58 @@ class GasBuddyService {
     };
 
     /**
+     * Sleep helper for delays
+     */
+    private sleep(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Fetch with retry logic and exponential backoff
+     */
+    private async fetchWithRetry(url: string, maxRetries = 3): Promise<string> {
+        let lastError: Error | null = null;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`🌐 Fetching ${url} (attempt ${attempt}/${maxRetries})...`);
+                
+                const response = await axios.get(url, {
+                    headers: this.headers,
+                    timeout: 15000,
+                });
+
+                return response.data;
+            } catch (error: any) {
+                lastError = error;
+                const axiosError = error as AxiosError;
+
+                if (axiosError.response?.status === 429) {
+                    // Rate limited - wait longer
+                    const waitTime = Math.min(1000 * Math.pow(2, attempt), 30000); // Max 30s
+                    console.log(`⏳ Rate limited (429). Waiting ${waitTime}ms before retry...`);
+                    await this.sleep(waitTime);
+                } else if (attempt < maxRetries) {
+                    // Other error - shorter wait
+                    const waitTime = 1000 * attempt;
+                    console.log(`⚠️ Error: ${error.message}. Retrying in ${waitTime}ms...`);
+                    await this.sleep(waitTime);
+                } else {
+                    console.error(`❌ Failed after ${maxRetries} attempts:`, error.message);
+                }
+            }
+        }
+
+        throw lastError || new Error('Failed to fetch data from GasBuddy');
+    }
+
+    /**
      * Fetch Sandy's Market gas prices
      */
     async getSandyPrices(): Promise<GasPrice> {
         try {
-            const response = await axios.get(this.sandyUrl, {
-                headers: this.headers,
-                timeout: 10000,
-            });
-
-            const $ = cheerio.load(response.data);
+            const data = await this.fetchWithRetry(this.sandyUrl);
+            const $ = cheerio.load(data);
             const bodyText = $('body').text();
 
             const prices: GasPrice = {
@@ -112,12 +155,8 @@ class GasBuddyService {
      */
     async getBigRPrices(): Promise<GasPrice> {
         try {
-            const response = await axios.get(this.bigRUrl, {
-                headers: this.headers,
-                timeout: 10000,
-            });
-
-            const $ = cheerio.load(response.data);
+            const data = await this.fetchWithRetry(this.bigRUrl);
+            const $ = cheerio.load(data);
             const bodyText = $('body').text();
 
             const prices: GasPrice = {
@@ -190,15 +229,21 @@ class GasBuddyService {
 
     /**
      * Fetch and compare prices from both stations
+     * Fetches sequentially with delay to avoid rate limiting
      */
     async comparePrices(): Promise<PriceComparison> {
         try {
             console.log('\n💰 ========== FETCHING GAS BUDDY PRICES ==========');
 
-            const [sandy, bigR] = await Promise.all([
-                this.getSandyPrices(),
-                this.getBigRPrices(),
-            ]);
+            // Fetch Sandy's first
+            const sandy = await this.getSandyPrices();
+            
+            // Wait 2 seconds before fetching Big R to avoid rate limiting
+            console.log('⏳ Waiting 2 seconds before next request...');
+            await this.sleep(2000);
+            
+            // Fetch Big R
+            const bigR = await this.getBigRPrices();
 
             const comparison: PriceComparison = {
                 sandy,
