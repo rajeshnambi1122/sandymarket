@@ -371,41 +371,35 @@ export const sendGasBuddyPriceSms = async (comparison: PriceComparison): Promise
       return;
     }
 
-    // Format prices with updated time
-    const formatPriceWithTime = (price: number | null, updated: string | null) => {
-      if (!price) return 'N/A';
-      return updated ? `$${price.toFixed(2)} (${updated})` : `$${price.toFixed(2)}`;
+    // Format price with compact time
+    const fp = (price: number | null, updated: string | null) => {
+      if (!price) return '  N/A  ';
+      const time = updated ? updated.replace(' Hours', 'h').replace(' Hour', 'h')
+        .replace(' Days', 'd').replace(' Day', 'd')
+        .replace(' Minutes', 'm').replace(' Minute', 'm')
+        .replace(' Ago', '') : '';
+      return `$${price.toFixed(2)}${time ? ' ' + time : ''}`;
     };
     
-    const formatComparison = (sandyPrice: number | null, bigRPrice: number | null): string => {
-      if (!sandyPrice || !bigRPrice) return '';
-      const diff = sandyPrice - bigRPrice;
-      if (Math.abs(diff) < 0.01) return ' (Same)';
-      if (diff > 0) return ` (+$${diff.toFixed(2)})`;
-      return ` (-$${Math.abs(diff).toFixed(2)})`;
+    // Format difference
+    const diff = (s: number | null, b: number | null) => {
+      if (!s || !b) return '  -  ';
+      const d = s - b;
+      if (Math.abs(d) < 0.01) return 'Same';
+      if (d > 0) return `+$${d.toFixed(2)}`;
+      return `-$${Math.abs(d).toFixed(2)}`;
     };
 
     const message = `⛽ GAS BUDDY PRICE UPDATE
 
-🏪 SANDY'S MARKET:
-Regular: ${formatPriceWithTime(comparison.sandy.regular, comparison.sandy.regularUpdated)}
-Midgrade: ${formatPriceWithTime(comparison.sandy.midgrade, comparison.sandy.midgradeUpdated)}
-Premium: ${formatPriceWithTime(comparison.sandy.premium, comparison.sandy.premiumUpdated)}
-Diesel: ${formatPriceWithTime(comparison.sandy.diesel, comparison.sandy.dieselUpdated)}
+FUEL     SANDY'S      BIG R        DIFF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Regular  ${fp(comparison.sandy.regular, comparison.sandy.regularUpdated).padEnd(12)} ${fp(comparison.bigR.regular, comparison.bigR.regularUpdated).padEnd(12)} ${diff(comparison.sandy.regular, comparison.bigR.regular)}
+Midgrade ${fp(comparison.sandy.midgrade, comparison.sandy.midgradeUpdated).padEnd(12)} ${fp(comparison.bigR.midgrade, comparison.bigR.midgradeUpdated).padEnd(12)} ${diff(comparison.sandy.midgrade, comparison.bigR.midgrade)}
+Premium  ${fp(comparison.sandy.premium, comparison.sandy.premiumUpdated).padEnd(12)} ${fp(comparison.bigR.premium, comparison.bigR.premiumUpdated).padEnd(12)} ${diff(comparison.sandy.premium, comparison.bigR.premium)}
+Diesel   ${fp(comparison.sandy.diesel, comparison.sandy.dieselUpdated).padEnd(12)} ${fp(comparison.bigR.diesel, comparison.bigR.dieselUpdated).padEnd(12)} ${diff(comparison.sandy.diesel, comparison.bigR.diesel)}
 
-🏬 BIG R'S PUMP & PARTY:
-Regular: ${formatPriceWithTime(comparison.bigR.regular, comparison.bigR.regularUpdated)}
-Midgrade: ${formatPriceWithTime(comparison.bigR.midgrade, comparison.bigR.midgradeUpdated)}
-Premium: ${formatPriceWithTime(comparison.bigR.premium, comparison.bigR.premiumUpdated)}
-Diesel: ${formatPriceWithTime(comparison.bigR.diesel, comparison.bigR.dieselUpdated)}
-
-📊 COMPARISON (Sandy's vs Big R):
-Regular: ${formatComparison(comparison.sandy.regular, comparison.bigR.regular)}
-Midgrade: ${formatComparison(comparison.sandy.midgrade, comparison.bigR.midgrade)}
-Premium: ${formatComparison(comparison.sandy.premium, comparison.bigR.premium)}
-Diesel: ${formatComparison(comparison.sandy.diesel, comparison.bigR.diesel)}
-
-🕐 ${new Date().toLocaleString('en-US', { timeZone: 'America/Detroit' })}`;
+📅 ${new Date().toLocaleString('en-US', { timeZone: 'America/Detroit', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}`;
 
     await sendSms({ recipients: adminPhones, message });
     console.log(`✅ Gas Buddy price SMS sent to admin1: ${adminPhones.join(', ')}`);
