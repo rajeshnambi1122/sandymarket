@@ -2,6 +2,9 @@ import express, { Request, Response } from 'express';
 import { fuelMonitoringService } from '../services/fuelMonitoringService';
 import { canaryApiService } from '../services/canaryApiService';
 import { gasBuddyService } from '../services/gasBuddyService';
+import { sendGasBuddyPriceEmail } from '../services/resendEmailService';
+import { sendGasBuddyPriceSms } from '../services/smsService';
+import { sendGasBuddyPriceNotification } from '../services/notificationService';
 import { adminAuth } from "../middleware/auth";
 import { FuelDelivery } from '../models/FuelDelivery';
 
@@ -158,6 +161,53 @@ router.get('/bigrprice', async (_req: Request, res: Response) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch gas prices from GasBuddy',
+            error: error.message,
+        });
+    }
+});
+
+/**
+ * POST /api/fuel/gasbuddy-report
+ * Manually trigger Gas Buddy daily price report
+ * Sends Email, SMS, and Push Notification to admin1 and FUEL_ALERT_PHONE
+ */
+router.post('/gasbuddy-report', async (_req: Request, res: Response) => {
+    try {
+        console.log('\n💰 ========== MANUAL GAS BUDDY REPORT TRIGGERED ==========');
+        
+        const comparison = await gasBuddyService.comparePrices();
+        
+        console.log('📤 Sending notifications...');
+        
+        const notifications = [
+            sendGasBuddyPriceEmail(comparison)
+                .then(() => console.log('✅ Email sent successfully'))
+                .catch(err => console.error('❌ Email failed:', err.message)),
+
+            sendGasBuddyPriceSms(comparison)
+                .then(() => console.log('✅ SMS sent successfully'))
+                .catch(err => console.error('❌ SMS failed:', err.message)),
+
+            sendGasBuddyPriceNotification(comparison)
+                .then(() => console.log('✅ Push notification sent successfully'))
+                .catch(err => console.error('❌ Push notification failed:', err.message)),
+        ];
+
+        await Promise.allSettled(notifications);
+        
+        console.log('✅ ========== MANUAL GAS BUDDY REPORT COMPLETED ==========\n');
+        
+        res.status(200).json({
+            success: true,
+            message: 'Gas Buddy price report sent successfully',
+            data: comparison,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error: any) {
+        console.error('❌ Failed to send Gas Buddy report:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to send Gas Buddy price report',
             error: error.message,
         });
     }

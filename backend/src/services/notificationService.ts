@@ -284,7 +284,7 @@ export const sendGasBuddyPriceNotification = async (comparison: PriceComparison)
   const formatPrice = (price: number | null) => price ? `$${price.toFixed(2)}` : 'N/A';
 
   const title = '⛽ Daily GasBuddy Price Update';
-  const body = `Sandy's: Reg ${formatPrice(comparison.sandy.regular)}, Mid ${formatPrice(comparison.sandy.midgrade)}, Diesel ${formatPrice(comparison.sandy.diesel)} | Big R: Reg ${formatPrice(comparison.bigR.regular)}, Mid ${formatPrice(comparison.bigR.midgrade)}, Diesel ${formatPrice(comparison.bigR.diesel)}`;
+  const body = `Sandy's: Reg ${formatPrice(comparison.sandy.regular)}, Mid ${formatPrice(comparison.sandy.midgrade)}, Prem ${formatPrice(comparison.sandy.premium)}, Diesel ${formatPrice(comparison.sandy.diesel)} | Big R: Reg ${formatPrice(comparison.bigR.regular)}, Mid ${formatPrice(comparison.bigR.midgrade)}, Prem ${formatPrice(comparison.bigR.premium)}, Diesel ${formatPrice(comparison.bigR.diesel)}`;
 
   const data: Record<string, string> = {
     type: 'gas_buddy_price',

@@ -116,15 +116,52 @@ class GasBuddyService {
 
             if (stationPricesIndex !== -1 && stationRatingsIndex !== -1) {
                 const sectionText = bodyText.substring(stationPricesIndex, stationRatingsIndex);
-                const priceWithTimePattern = /\$(\d+\.\d+)[^\$]{0,150}?(\d{1,2})\s+(Hour|Day|Minute)s?\s+Ago/gi;
-                const priceTimeMatches = [...sectionText.matchAll(priceWithTimePattern)];
+                                
+                // Match price with time, but DON'T cross over another price ($)
+                // Use [^$] to stop at the next price
+                const hourMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|1\d|2[0-4])\s(Hour)s?\sAgo/gi)];
+                const dayMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|[12]\d|30)\s(Day)s?\sAgo/gi)];
+                const minuteMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|[1-5]\d)\s(Minute)s?\sAgo/gi)];
+                
+                // Normalize matches to have same structure: [fullMatch, price, time, unit, index]
+                const normalizeMatch = (match: RegExpMatchArray, unit: string) => {
+                    return {
+                        fullMatch: match[0],
+                        price: match[1],
+                        time: match[3],
+                        unit: unit,
+                        index: match.index || 0
+                    };
+                };
+                
+                // Combine and sort by position in text
+                const allMatches = [
+                    ...hourMatches.map(m => normalizeMatch(m, 'Hour')),
+                    ...dayMatches.map(m => normalizeMatch(m, 'Day')),
+                    ...minuteMatches.map(m => normalizeMatch(m, 'Minute'))
+                ].sort((a, b) => a.index - b.index);
+                
+                // Convert back to array format for existing logic
+                const priceTimeMatches = allMatches.map(m => [m.fullMatch, m.price, m.time, m.unit]);
 
+                console.log(`📊 Sandy's - Found ${priceTimeMatches.length} price+time matches (${hourMatches.length} hours, ${dayMatches.length} days, ${minuteMatches.length} minutes)`);
+                if (priceTimeMatches.length > 0) {
+                    console.log(`   First match: $${priceTimeMatches[0][1]} - ${priceTimeMatches[0][2]} ${priceTimeMatches[0][3]}s Ago`);
+                }
 
-                // For Sandy's Market: Regular, Midgrade, Diesel (3 prices total)
-                // Premium column exists but shows "---"
-                // Strategy: Assign prices sequentially based on count
-                if (priceTimeMatches.length === 3) {
-                    // Sandy's pattern: Regular, Midgrade, Diesel
+                // For Sandy's Market: Usually 2 prices (Regular, Diesel)
+                // Sometimes 3 if Midgrade is available
+                if (priceTimeMatches.length === 2) {
+                    // 2 prices: Regular and Diesel (no Midgrade)
+                    const [, regularPrice, regularTimeNum, regularTimeUnit] = priceTimeMatches[0];
+                    prices.regular = parseFloat(regularPrice);
+                    prices.regularUpdated = `${regularTimeNum} ${regularTimeUnit}${regularTimeNum !== '1' ? 's' : ''} Ago`;
+
+                    const [, dieselPrice, dieselTimeNum, dieselTimeUnit] = priceTimeMatches[1];
+                    prices.diesel = parseFloat(dieselPrice);
+                    prices.dieselUpdated = `${dieselTimeNum} ${dieselTimeUnit}${dieselTimeNum !== '1' ? 's' : ''} Ago`;
+                } else if (priceTimeMatches.length === 3) {
+                    // 3 prices: Regular, Midgrade, Diesel
                     const [, regularPrice, regularTimeNum, regularTimeUnit] = priceTimeMatches[0];
                     prices.regular = parseFloat(regularPrice);
                     prices.regularUpdated = `${regularTimeNum} ${regularTimeUnit}${regularTimeNum !== '1' ? 's' : ''} Ago`;
@@ -137,7 +174,6 @@ class GasBuddyService {
                     prices.diesel = parseFloat(dieselPrice);
                     prices.dieselUpdated = `${dieselTimeNum} ${dieselTimeUnit}${dieselTimeNum !== '1' ? 's' : ''} Ago`;
                 } else {
-                    // Fallback: try to detect by checking nearby text
                     console.log(`   ⚠️ Unexpected number of prices (${priceTimeMatches.length}), using fallback logic`);
                 }
             }
@@ -177,13 +213,40 @@ class GasBuddyService {
 
             if (stationPricesIndex !== -1 && stationRatingsIndex !== -1) {
                 const sectionText = bodyText.substring(stationPricesIndex, stationRatingsIndex);
-                const priceWithTimePattern = /\$(\d+\.\d+)[^\$]{0,100}?(\d{1,2})\s+(Hour|Day|Minute)s?\s+Ago/gi;
-                const priceTimeMatches = [...sectionText.matchAll(priceWithTimePattern)];
+                              
+                // Match price with time, but DON'T cross over another price ($)
+                const hourMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|1\d|2[0-4])\s(Hour)s?\sAgo/gi)];
+                const dayMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|[12]\d|30)\s(Day)s?\sAgo/gi)];
+                const minuteMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|[1-5]\d)\s(Minute)s?\sAgo/gi)];
+                
+                // Normalize and sort by position in text
+                const normalizeMatch = (match: RegExpMatchArray) => ({
+                    fullMatch: match[0],
+                    price: match[1],
+                    time: match[3],
+                    unit: match[4],
+                    index: match.index || 0
+                });
+                
+                const allMatches = [
+                    ...hourMatches.map(normalizeMatch),
+                    ...dayMatches.map(normalizeMatch),
+                    ...minuteMatches.map(normalizeMatch)
+                ].sort((a, b) => a.index - b.index);
+                
+                const priceTimeMatches = allMatches.map(m => [m.fullMatch, m.price, m.time, m.unit]);
+
+                console.log(`📊 Big R - Found ${priceTimeMatches.length} price+time matches`);
+                if (priceTimeMatches.length > 0) {
+                    console.log(`   First match: $${priceTimeMatches[0][1]} - ${priceTimeMatches[0][2]} ${priceTimeMatches[0][3]}s Ago`);
+                }
 
                 const hasRegular = sectionText.includes('Regular');
                 const hasDiesel = sectionText.includes('Diesel');
                 const hasMidgrade = sectionText.includes('Midgrade');
                 const hasPremium = sectionText.includes('Premium');
+                
+                console.log(`   Fuel types detected: Regular=${hasRegular}, Midgrade=${hasMidgrade}, Premium=${hasPremium}, Diesel=${hasDiesel}`);
 
                 if (priceTimeMatches.length >= 1 && hasRegular) {
                     const [, price, timeNum, timeUnit] = priceTimeMatches[0];

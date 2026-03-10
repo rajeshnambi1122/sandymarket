@@ -954,7 +954,7 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison): Promi
     const { data, error } = await resend.emails.send({
       from: ALERT_EMAIL,
       to: storeEmails,
-      subject: `⛽ Daily Gas Price Update - ${new Date().toLocaleDateString('en-US')}`,
+      subject: `⛽ Daily Gas Price Update : ${new Date().toLocaleDateString('en-US')}`,
       html: `<!DOCTYPE html>
 <html>
 <head>
