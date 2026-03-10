@@ -310,7 +310,7 @@ ${tankLines}`;
 };
 
 /**
- * Send fuel delivery SMS notification to admin1
+ * Send fuel delivery SMS notification to FUEL_ALERT_PHONE
  */
 export const sendFuelDeliverySms = async (deliveries: {
   tankNumber: number;
@@ -326,13 +326,14 @@ export const sendFuelDeliverySms = async (deliveries: {
   try {
     console.log('📱 Sending fuel delivery SMS...');
 
-    // Only send to admin1 users
-    const adminPhones = getAdminPhoneNumbers();
-    
-    if (adminPhones.length === 0) {
-      console.warn('⚠️ No admin phone numbers configured — SMS skipped');
+    // Send only to FUEL_ALERT_PHONE
+    const fuelAlertPhone = process.env.FUEL_ALERT_PHONE;
+    if (!fuelAlertPhone) {
+      console.warn('⚠️ FUEL_ALERT_PHONE not set in .env — SMS skipped');
       return;
     }
+
+    const recipients = fuelAlertPhone.split(',').map(p => p.trim()).filter(Boolean);
 
     const totalGallons = deliveries.reduce((sum, d) => sum + d.gallonsDelivered, 0);
 
@@ -349,27 +350,28 @@ ${deliveryDetails}
 
 Sandy's Market — ATG Auto-Detection`;
 
-    await sendSms({ recipients: adminPhones, message });
-    console.log(`✅ Fuel delivery SMS sent to admin1: ${adminPhones.join(', ')}`);
+    await sendSms({ recipients, message });
+    console.log(`✅ Fuel delivery SMS sent to: ${recipients.join(', ')}`);
   } catch (error: any) {
     console.error('❌ Failed to send fuel delivery SMS:', error.message);
   }
 };
 
 /**
- * Send Gas Buddy price comparison SMS to admin1 only
+ * Send Gas Buddy price comparison SMS to FUEL_ALERT_PHONE only
  */
 export const sendGasBuddyPriceSms = async (comparison: PriceComparison): Promise<void> => {
   try {
     console.log('📱 Sending Gas Buddy price comparison SMS...');
 
-    // Only send to admin1 users (not FUEL_ALERT_PHONE)
-    const adminPhones = getAdminPhoneNumbers();
-    
-    if (adminPhones.length === 0) {
-      console.warn('⚠️ No admin phone numbers configured — SMS skipped');
+    // Send only to FUEL_ALERT_PHONE
+    const fuelAlertPhone = process.env.FUEL_ALERT_PHONE;
+    if (!fuelAlertPhone) {
+      console.warn('⚠️ FUEL_ALERT_PHONE not set in .env — SMS skipped');
       return;
     }
+
+    const recipients = fuelAlertPhone.split(',').map(p => p.trim()).filter(Boolean);
 
     // Format price with compact time
     const fp = (price: number | null, updated: string | null) => {
@@ -401,8 +403,8 @@ Diesel   ${fp(comparison.sandy.diesel, comparison.sandy.dieselUpdated).padEnd(12
 
 📅 ${new Date().toLocaleString('en-US', { timeZone: 'America/Detroit', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}`;
 
-    await sendSms({ recipients: adminPhones, message });
-    console.log(`✅ Gas Buddy price SMS sent to admin1: ${adminPhones.join(', ')}`);
+    await sendSms({ recipients, message });
+    console.log(`✅ Gas Buddy price SMS sent to: ${recipients.join(', ')}`);
   } catch (error: any) {
     console.error('❌ Failed to send Gas Buddy price SMS:', error.message);
   }
