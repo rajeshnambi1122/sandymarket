@@ -268,7 +268,7 @@ export const sendFuelDeliveryNotification = async (deliveries: {
 /**
  * Send Gas Buddy price comparison push notification to admin1 users
  */
-export const sendGasBuddyPriceNotification = async (comparison: PriceComparison): Promise<void> => {
+export const sendGasBuddyPriceNotification = async (comparison: PriceComparison, timeOfDay: 'Morning' | 'Afternoon' = 'Morning'): Promise<void> => {
   console.log('📱 Preparing Gas Buddy price push notification...');
 
   const admin1Users = await User.find({
@@ -283,7 +283,7 @@ export const sendGasBuddyPriceNotification = async (comparison: PriceComparison)
 
   const formatPrice = (price: number | null) => price ? `$${price.toFixed(2)}` : 'N/A';
 
-  const title = '⛽ Daily GasBuddy Price Update';
+  const title = `⛽ Gas Buddy ${timeOfDay} Price Update`;
   const body = `Sandy's: Reg ${formatPrice(comparison.sandy.regular)}, Mid ${formatPrice(comparison.sandy.midgrade)}, Prem ${formatPrice(comparison.sandy.premium)}, Diesel ${formatPrice(comparison.sandy.diesel)} | Big R: Reg ${formatPrice(comparison.bigR.regular)}, Mid ${formatPrice(comparison.bigR.midgrade)}, Prem ${formatPrice(comparison.bigR.premium)}, Diesel ${formatPrice(comparison.bigR.diesel)}`;
 
   const data: Record<string, string> = {

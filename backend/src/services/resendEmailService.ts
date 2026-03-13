@@ -916,7 +916,7 @@ export const sendFuelDeliveryEmail = async (deliveries: {
 /**
  * Send Gas Buddy price comparison email
  */
-export const sendGasBuddyPriceEmail = async (comparison: PriceComparison): Promise<void> => {
+export const sendGasBuddyPriceEmail = async (comparison: PriceComparison, timeOfDay: 'Morning' | 'Afternoon' = 'Morning'): Promise<void> => {
   try {
     console.log('📧 Sending Gas Buddy price comparison email...');
 
@@ -954,7 +954,7 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison): Promi
     const { data, error } = await resend.emails.send({
       from: ALERT_EMAIL,
       to: storeEmails,
-      subject: `⛽ Daily Gas Price Update : ${new Date().toLocaleDateString('en-US')}`,
+      subject: `⛽Gas Buddy ${timeOfDay} Price Update: ${new Date().toLocaleDateString('en-US')}`,
       html: `<!DOCTYPE html>
 <html>
 <head>
@@ -1038,7 +1038,7 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison): Promi
         <!-- Footer -->
         <tr><td style="background:#f5f5f5; padding:16px 24px; text-align:center;">
           <p style="margin:0; font-size:12px; color:#888;">
-            💡 This daily price update is automatically fetched from GasBuddy.<br/>
+            💡 This price update is automatically fetched from GasBuddy twice daily (8:15 AM & 3:00 PM).<br/>
           </p>
         </td></tr>
 

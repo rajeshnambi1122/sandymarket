@@ -360,7 +360,7 @@ Sandy's Market — ATG Auto-Detection`;
 /**
  * Send Gas Buddy price comparison SMS to FUEL_ALERT_PHONE only
  */
-export const sendGasBuddyPriceSms = async (comparison: PriceComparison): Promise<void> => {
+export const sendGasBuddyPriceSms = async (comparison: PriceComparison, timeOfDay: 'Morning' | 'Afternoon' = 'Morning'): Promise<void> => {
   try {
     console.log('📱 Sending Gas Buddy price comparison SMS...');
 
@@ -392,7 +392,7 @@ export const sendGasBuddyPriceSms = async (comparison: PriceComparison): Promise
       return `-$${Math.abs(d).toFixed(2)}`;
     };
 
-    const message = `⛽ GAS BUDDY PRICE UPDATE
+    const message = `⛽ GAS BUDDY ${timeOfDay.toUpperCase()} PRICE UPDATE
 
 FUEL     SANDY'S      BIG R        DIFF
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

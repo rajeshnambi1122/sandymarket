@@ -6,17 +6,19 @@ import { sendGasBuddyPriceNotification } from '../services/notificationService';
 
 /**
  * Start the Gas Buddy price comparison cron job
- * Sends daily price comparison alert at 8:15 AM Detroit time
+ * Sends price comparison alerts twice daily at 8:15 AM and 3:00 PM Detroit time
  * Includes Email, SMS, and Push Notification to admin1 and FUEL_ALERT_PHONE
  */
 export const startGasBuddyPriceJob = (): void => {
     // Schedule for 8:15 AM Detroit time (America/Detroit timezone)
     // Cron format: minute hour * * *
-    const cronExpression = '15 8 * * *';
+    const morningCronExpression = '15 8 * * *';
+    const afternoonCronExpression = '0 15 * * *';
 
-    console.log('⚙️ Gas Buddy price job will run daily at 8:15 AM Detroit time');
+    console.log('⚙️ Gas Buddy price job will run twice daily at 8:15 AM and 3:00 PM Detroit time');
 
-    cron.schedule(cronExpression, async () => {
+    // Job execution function (used for both morning and afternoon runs)
+    const executeJob = async (timeOfDay: 'Morning' | 'Afternoon') => {
         console.log('\n💰 ========== GAS BUDDY PRICE JOB STARTED ==========');
         console.log(`⏰ Job triggered at: ${new Date().toLocaleString('en-US', { timeZone: 'America/Detroit' })}`);
 
@@ -38,15 +40,15 @@ export const startGasBuddyPriceJob = (): void => {
             console.log('\n📤 Sending notifications...');
 
             const notifications = [
-                sendGasBuddyPriceEmail(comparison)
+                sendGasBuddyPriceEmail(comparison, timeOfDay)
                     .then(() => console.log('✅ Email sent successfully'))
                     .catch(err => console.error('❌ Email failed:', err.message)),
 
-                sendGasBuddyPriceSms(comparison)
+                sendGasBuddyPriceSms(comparison, timeOfDay)
                     .then(() => console.log('✅ SMS sent successfully'))
                     .catch(err => console.error('❌ SMS failed:', err.message)),
 
-                sendGasBuddyPriceNotification(comparison)
+                sendGasBuddyPriceNotification(comparison, timeOfDay)
                     .then(() => console.log('✅ Push notification sent successfully'))
                     .catch(err => console.error('❌ Push notification failed:', err.message)),
             ];
@@ -58,12 +60,21 @@ export const startGasBuddyPriceJob = (): void => {
             console.error('❌ Gas Buddy price job error:', error.message);
             console.error('Stack:', error.stack);
         }
-    }, {
+    };
+
+    // Schedule morning job (8:15 AM)
+    cron.schedule(morningCronExpression, () => executeJob('Morning'), {
+        timezone: 'America/Detroit'
+    });
+
+    // Schedule afternoon job (3:00 PM)
+    cron.schedule(afternoonCronExpression, () => executeJob('Afternoon'), {
         timezone: 'America/Detroit'
     });
 
     console.log('✅ Gas Buddy price job started successfully');
-    console.log(`📅 Cron expression: ${cronExpression} (8:15 AM Detroit time)`);
+    console.log(`📅 Morning cron: ${morningCronExpression} (8:15 AM Detroit time)`);
+    console.log(`📅 Afternoon cron: ${afternoonCronExpression} (3:00 PM Detroit time)`);
     console.log(`🌍 Timezone: America/Detroit (Eastern Time)`);
 };
 
