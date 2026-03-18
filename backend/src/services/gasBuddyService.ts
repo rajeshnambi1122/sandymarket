@@ -96,7 +96,12 @@ class GasBuddyService {
         try {
             const data = await this.fetchWithRetry(this.sandyUrl);
             const $ = cheerio.load(data);
-            const bodyText = $('body').text();
+            // Replace HTML tags with spaces to prevent text concatenation bugs
+            const bodyHtml = $('body').html() || '';
+            const bodyText = bodyHtml
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/&nbsp;/ig, ' ')
+                .replace(/\s+/g, ' ');
 
             const prices: GasPrice = {
                 regular: null,
@@ -118,10 +123,10 @@ class GasBuddyService {
                 const sectionText = bodyText.substring(stationPricesIndex, stationRatingsIndex);
                                 
                 // Match price with time, but DON'T cross over another price ($)
-                // Use [^$] to stop at the next price
-                const hourMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|1\d|2[0-4])\s(Hour)s?\sAgo/gi)];
-                const dayMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|[12]\d|30)\s(Day)s?\sAgo/gi)];
-                const minuteMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|[1-5]\d)\s(Minute)s?\sAgo/gi)];
+                // Use [^$] to stop at the next price. Use \b and \s+ for robust spacing.
+                const hourMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)\b([1-9]|1\d|2[0-4])\s+(Hour)s?\s+Ago/gi)];
+                const dayMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)\b([1-9]|[12]\d|30)\s+(Day)s?\s+Ago/gi)];
+                const minuteMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)\b([1-9]|[1-5]\d)\s+(Minute)s?\s+Ago/gi)];
                 
                 // Normalize matches to have same structure: [fullMatch, price, time, unit, index]
                 const normalizeMatch = (match: RegExpMatchArray, unit: string) => {
@@ -193,7 +198,12 @@ class GasBuddyService {
         try {
             const data = await this.fetchWithRetry(this.bigRUrl);
             const $ = cheerio.load(data);
-            const bodyText = $('body').text();
+            // Replace HTML tags with spaces to prevent text concatenation bugs
+            const bodyHtml = $('body').html() || '';
+            const bodyText = bodyHtml
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/&nbsp;/ig, ' ')
+                .replace(/\s+/g, ' ');
 
             const prices: GasPrice = {
                 regular: null,
@@ -215,9 +225,10 @@ class GasBuddyService {
                 const sectionText = bodyText.substring(stationPricesIndex, stationRatingsIndex);
                               
                 // Match price with time, but DON'T cross over another price ($)
-                const hourMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|1\d|2[0-4])\s(Hour)s?\sAgo/gi)];
-                const dayMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|[12]\d|30)\s(Day)s?\sAgo/gi)];
-                const minuteMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)([1-9]|[1-5]\d)\s(Minute)s?\sAgo/gi)];
+                // Use \b and \s+ for robust spacing.
+                const hourMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)\b([1-9]|1\d|2[0-4])\s+(Hour)s?\s+Ago/gi)];
+                const dayMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)\b([1-9]|[12]\d|30)\s+(Day)s?\s+Ago/gi)];
+                const minuteMatches = [...sectionText.matchAll(/\$(\d+\.\d+)([^$]{0,80}?)\b([1-9]|[1-5]\d)\s+(Minute)s?\s+Ago/gi)];
                 
                 // Normalize and sort by position in text
                 const normalizeMatch = (match: RegExpMatchArray) => ({

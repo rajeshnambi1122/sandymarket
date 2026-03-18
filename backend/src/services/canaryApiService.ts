@@ -132,12 +132,38 @@ class CanaryApiService {
      * Step 1: POST /intents with intentName GET_IN_TANK_DELIVERY
      * Step 2: Poll GET /intents/{id} until status is Resolved
      * Step 3: Parse the raw text in event.data and return structured data
+     * Retries up to 3 times when intent ends with Failed/Rejected (delays can occur)
      */
     async getDeliveryReport(siteId: number = 5534): Promise<DeliveryReportResult> {
         await this.ensureAuthenticated();
 
+        const maxRetries = 3;
+
+        for (let retry = 1; retry <= maxRetries; retry++) {
+            if (retry > 1) {
+                const delaySec = retry * 15; // 15s, 30s, 45s between retries
+                console.log(`🔄 Retry ${retry}/${maxRetries}: waiting ${delaySec}s before retrying...`);
+                await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
+            }
+
+            try {
+                const result = await this.executeDeliveryIntent(siteId, retry, maxRetries);
+                if (result) return result;
+            } catch (err: any) {
+                console.warn(`⚠️ Attempt ${retry}/${maxRetries} failed: ${err.message}`);
+            }
+        }
+
+        console.log('ℹ️ All retries exhausted - will check again on next run');
+        return { reportDate: new Date().toISOString(), tanks: [], rawText: '' };
+    }
+
+    /**
+     * Execute a single delivery intent (create + poll). Returns null if Failed/Rejected.
+     */
+    private async executeDeliveryIntent(siteId: number, retry: number, maxRetries: number): Promise<DeliveryReportResult | null> {
         // Step 1: Create the intent
-        console.log('📋 Creating GET_IN_TANK_DELIVERY intent...');
+        console.log(`📋 Creating GET_IN_TANK_DELIVERY intent... (attempt ${retry}/${maxRetries})`);
         let intentId: number;
         try {
             const postRes = await this.axiosInstance.post('/intents', {
@@ -190,34 +216,26 @@ class CanaryApiService {
 
             if (status === 'Failed' || status === 'Rejected') {
                 console.warn(`⚠️ Intent ${intentId} ended with status: ${status}`);
-                
-                // Log additional details for debugging
                 const commandRequests: any[] = pollRes.data.commandRequests || [];
                 if (commandRequests.length > 0) {
                     const errorInfo = commandRequests[0].event?.error || commandRequests[0].event?.message;
-                    if (errorInfo) {
-                        console.log(`📝 Error details: ${errorInfo}`);
-                    }
+                    if (errorInfo) console.log(`📝 Error details: ${errorInfo}`);
                 }
-                
-                console.log('ℹ️ This typically means:');
-                console.log('   • No deliveries recorded in the selected time period');
-                console.log('   • ATG system is offline or not responding');
-                console.log('   • Site configuration issue');
-                console.log('✅ Continuing monitoring - will check again next hour');
-                
-                // Return empty result instead of throwing error
-                return { reportDate: new Date().toISOString(), tanks: [], rawText: '' };
+                if (retry < maxRetries) {
+                    console.log(`🔄 Will retry (${retry}/${maxRetries}) — ATG may be delayed`);
+                }
+                return null; // Signal to retry
             }
         }
 
         if (!rawText) {
             console.warn('⚠️ Delivery report did not resolve within the timeout period');
-            console.log('ℹ️ This may indicate no recent deliveries or ATG system busy');
-            return { reportDate: new Date().toISOString(), tanks: [], rawText: '' };
+            if (retry < maxRetries) {
+                console.log(`🔄 Will retry (${retry}/${maxRetries}) — ATG may need more time`);
+            }
+            return null;
         }
 
-        // Step 3: Parse the raw text report
         return this.parseDeliveryReport(rawText);
     }
 
