@@ -154,32 +154,52 @@ class GasBuddyService {
                     console.log(`   First match: $${priceTimeMatches[0][1]} - ${priceTimeMatches[0][2]} ${priceTimeMatches[0][3]}s Ago`);
                 }
 
-                // For Sandy's Market: Usually 2 prices (Regular, Diesel)
-                // Sometimes 3 if Midgrade is available
+                const hasRegular = sectionText.includes('Regular');
+                const hasMidgrade = sectionText.includes('Midgrade');
+                const hasPremium = sectionText.includes('Premium');
+                const hasDiesel = sectionText.includes('Diesel');
+
+                console.log(`   Fuel types detected: Regular=${hasRegular}, Midgrade=${hasMidgrade}, Premium=${hasPremium}, Diesel=${hasDiesel}`);
+
+                const assignPrice = (
+                    fuelType: 'regular' | 'midgrade' | 'premium' | 'diesel',
+                    matchIndex: number
+                ) => {
+                    const match = priceTimeMatches[matchIndex];
+                    if (!match) return;
+
+                    const [, price, timeNum, timeUnit] = match;
+                    prices[fuelType] = parseFloat(price);
+                    prices[`${fuelType}Updated`] = `${timeNum} ${timeUnit}${timeNum !== '1' ? 's' : ''} Ago`;
+                };
+
+                // Preserve the visual order GasBuddy uses in the station prices section.
                 if (priceTimeMatches.length === 2) {
                     // 2 prices: Regular and Diesel (no Midgrade)
-                    const [, regularPrice, regularTimeNum, regularTimeUnit] = priceTimeMatches[0];
-                    prices.regular = parseFloat(regularPrice);
-                    prices.regularUpdated = `${regularTimeNum} ${regularTimeUnit}${regularTimeNum !== '1' ? 's' : ''} Ago`;
-
-                    const [, dieselPrice, dieselTimeNum, dieselTimeUnit] = priceTimeMatches[1];
-                    prices.diesel = parseFloat(dieselPrice);
-                    prices.dieselUpdated = `${dieselTimeNum} ${dieselTimeUnit}${dieselTimeNum !== '1' ? 's' : ''} Ago`;
+                    assignPrice('regular', 0);
+                    assignPrice('diesel', 1);
                 } else if (priceTimeMatches.length === 3) {
-                    // 3 prices: Regular, Midgrade, Diesel
-                    const [, regularPrice, regularTimeNum, regularTimeUnit] = priceTimeMatches[0];
-                    prices.regular = parseFloat(regularPrice);
-                    prices.regularUpdated = `${regularTimeNum} ${regularTimeUnit}${regularTimeNum !== '1' ? 's' : ''} Ago`;
-
-                    const [, midgradePrice, midgradeTimeNum, midgradeTimeUnit] = priceTimeMatches[1];
-                    prices.midgrade = parseFloat(midgradePrice);
-                    prices.midgradeUpdated = `${midgradeTimeNum} ${midgradeTimeUnit}${midgradeTimeNum !== '1' ? 's' : ''} Ago`;
-
-                    const [, dieselPrice, dieselTimeNum, dieselTimeUnit] = priceTimeMatches[2];
-                    prices.diesel = parseFloat(dieselPrice);
-                    prices.dieselUpdated = `${dieselTimeNum} ${dieselTimeUnit}${dieselTimeNum !== '1' ? 's' : ''} Ago`;
+                    // 3 prices: usually Regular, Midgrade, Diesel
+                    assignPrice('regular', 0);
+                    if (hasMidgrade) assignPrice('midgrade', 1);
+                    if (hasPremium && !hasMidgrade) assignPrice('premium', 1);
+                    assignPrice('diesel', 2);
+                } else if (priceTimeMatches.length >= 4) {
+                    assignPrice('regular', 0);
+                    if (hasMidgrade) assignPrice('midgrade', 1);
+                    if (hasPremium) assignPrice('premium', hasMidgrade ? 2 : 1);
+                    if (hasDiesel) {
+                        const dieselIndex = hasPremium ? (hasMidgrade ? 3 : 2) : (hasMidgrade ? 2 : 1);
+                        assignPrice('diesel', dieselIndex);
+                    }
                 } else {
                     console.log(`   ⚠️ Unexpected number of prices (${priceTimeMatches.length}), using fallback logic`);
+
+                    let matchIndex = 0;
+                    if (hasRegular) assignPrice('regular', matchIndex++);
+                    if (hasMidgrade) assignPrice('midgrade', matchIndex++);
+                    if (hasPremium) assignPrice('premium', matchIndex++);
+                    if (hasDiesel) assignPrice('diesel', matchIndex);
                 }
             }
 
