@@ -1454,7 +1454,11 @@ export default function PizzaOrder() {
 
   // Optimize menu data with reordered sections
   const menuSections = useMemo(() => {
-    const orderedCategories = ['pizzas', 'burgers', 'sides', 'chicken', 'subs', 'deliSalads', 'specials'];
+    const orderedCategories = ['pizzas', 'burgers', 'sides', 'chicken', 'subs', 'deliSalads', 'meatAndCheese', 'specials'];
+    const titleMap: Record<string, string> = {
+      deliSalads: 'Deli Salads',
+      meatAndCheese: 'Meat & Cheese',
+    };
     return orderedCategories
       .filter(category => menu[category])
       .map(category => {
@@ -1468,7 +1472,7 @@ export default function PizzaOrder() {
 
         return {
           category,
-          title: category.charAt(0).toUpperCase() + category.slice(1),
+          title: titleMap[category] || (category.charAt(0).toUpperCase() + category.slice(1)),
           items: menu[category],
           color
         };

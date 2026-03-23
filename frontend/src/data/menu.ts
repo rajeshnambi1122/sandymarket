@@ -201,6 +201,50 @@ export const menu = {
       image: "/images/deli5.jpg"
     },
   ],
+  meatAndCheese: [
+    {
+      name: "Ham",
+      price: "7.99",
+      description: "Per pound",
+      image: "/images/delisalads.jpg"
+    },
+    {
+      name: "Turkey",
+      price: "8.99",
+      description: "Per pound",
+      image: "/images/turkey.jpg"
+    },
+    {
+      name: "Salami",
+      price: "9.99",
+      description: "Per pound",
+      image: "/images/deli3.jpg"
+    },
+    {
+      name: "Roast Beef",
+      price: "11.99",
+      description: "Per pound",
+      image: "/images/deli4.jpg"
+    },
+    {
+      name: "American Cheese",
+      price: "6.99",
+      description: "Per pound",
+      image: "/images/cheese.jpg"
+    },
+    {
+      name: "Swiss Cheese",
+      price: "7.99",
+      description: "Per pound",
+      image: "/images/swiss.jpg"
+    },
+    {
+      name: "Provolone / Pepper Jack",
+      price: "8.99",
+      description: "Per pound",
+      image: "/images/delisalads.jpg"
+    },
+  ],
   burgers: [
     {
       name: "Cheeseburger",
