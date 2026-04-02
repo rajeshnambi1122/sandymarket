@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import dotenv from 'dotenv';
 import { OrderDetails } from '../types/order';
 import { PriceComparison } from './gasBuddyService';
+import { FuelPriceQuote } from '../types/fuelTypes';
 
 dotenv.config();
 
@@ -10,7 +11,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Store email configuration
 const ORDER_EMAIL = "Sandy's Market <orders@sandysmarket.net>";
-const ALERT_EMAIL ="Sandy's Market <alerts@sandysmarket.net>";
+const ALERT_EMAIL = "Sandy's Market <alerts@sandysmarket.net>";
 
 /**
  * Validate and parse email addresses for Resend API
@@ -813,7 +814,7 @@ export const sendFuelDeliveryEmail = async (deliveries: {
   startTime: string;
   endDate: string;
   endTime: string;
-}[]): Promise<void> => {
+}[], priceQuote?: FuelPriceQuote | null): Promise<void> => {
   try {
     const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
     if (storeEmails.length === 0) {
@@ -823,42 +824,85 @@ export const sendFuelDeliveryEmail = async (deliveries: {
     const totalGallons = deliveries.reduce((sum, d) => sum + d.gallonsDelivered, 0);
 
     const deliveryRows = deliveries.map(d => `
-      <table class="delivery-card" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px; border:1px solid #c8e6c9; border-radius:8px; overflow:hidden; background:#f9fff9;">
+      <table class="delivery-card" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px; border:1px solid #c8e6c9; border-radius:6px; overflow:hidden; background:#f9fff9;">
         <tr>
-          <td class="tank-header" style="background:linear-gradient(135deg,#2E7D32,#43A047); padding:12px 16px;">
+          <td class="tank-header" style="background:linear-gradient(135deg,#2E7D32,#43A047); padding:8px 12px;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-              <td style="width:36px; height:36px; background:#fff; border-radius:50%; text-align:center; vertical-align:middle; font-size:16px; font-weight:bold; color:#2E7D32;">${d.tankNumber}</td>
-              <td class="tank-name" style="padding-left:12px; color:#fff; font-size:18px; font-weight:bold; vertical-align:middle;">${d.productLabel}</td>
-              <td style="text-align:right; color:#c8e6c9; font-size:13px; vertical-align:middle;">Tank #${d.tankNumber}</td>
+              <td style="width:28px; height:28px; background:#fff; border-radius:50%; text-align:center; vertical-align:middle; font-size:14px; font-weight:bold; color:#2E7D32;">${d.tankNumber}</td>
+              <td class="tank-name" style="padding-left:10px; color:#fff; font-size:15px; font-weight:bold; vertical-align:middle;">${d.productLabel}</td>
+              <td style="text-align:right; color:#c8e6c9; font-size:12px; vertical-align:middle;">Tank #${d.tankNumber}</td>
             </tr></table>
           </td>
         </tr>
-        <tr><td style="padding:0 16px;">
+        <tr><td style="padding:0 12px;">
           <table width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
-              <td style="padding:12px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:14px; font-family:Arial,sans-serif;">Volume Before</td>
-              <td class="value" style="padding:12px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#666; font-size:16px; font-weight:600; font-family:Arial,sans-serif;">${d.startVolume.toLocaleString()} gal</td>
+              <td style="padding:6px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:12px; font-family:Arial,sans-serif;">Volume Before</td>
+              <td class="value" style="padding:6px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#666; font-size:13px; font-weight:600; font-family:Arial,sans-serif;">${d.startVolume.toLocaleString()} gal</td>
             </tr>
             <tr>
-              <td style="padding:12px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:14px; font-family:Arial,sans-serif;">Gallons Delivered</td>
-              <td class="value" style="padding:12px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#2E7D32; font-size:22px; font-weight:bold; font-family:Arial,sans-serif;">+${d.gallonsDelivered.toLocaleString()} gal</td>
+              <td style="padding:6px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:12px; font-family:Arial,sans-serif;">Gallons Delivered</td>
+              <td class="value" style="padding:6px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#2E7D32; font-size:16px; font-weight:bold; font-family:Arial,sans-serif;">+${d.gallonsDelivered.toLocaleString()} gal</td>
             </tr>
             <tr>
-              <td style="padding:12px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:14px; font-family:Arial,sans-serif;">Volume After</td>
-              <td class="value" style="padding:12px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#1565C0; font-size:18px; font-weight:bold; font-family:Arial,sans-serif;">${d.endVolume.toLocaleString()} gal</td>
+              <td style="padding:6px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:12px; font-family:Arial,sans-serif;">Volume After</td>
+              <td class="value" style="padding:6px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#1565C0; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">${d.endVolume.toLocaleString()} gal</td>
             </tr>
             <tr>
-              <td style="padding:10px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:14px; font-family:Arial,sans-serif;">Delivery Start</td>
-              <td class="value" style="padding:10px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#333; font-size:14px; font-family:Arial,sans-serif;">${d.startDate} ${d.startTime}</td>
+              <td style="padding:6px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:12px; font-family:Arial,sans-serif;">Delivery Start</td>
+              <td class="value" style="padding:6px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#333; font-size:12px; font-family:Arial,sans-serif;">${d.startDate} ${d.startTime}</td>
             </tr>
             <tr>
-              <td style="padding:10px 0 14px; color:#555; font-size:14px; font-family:Arial,sans-serif;">Delivery End</td>
-              <td class="value" style="padding:10px 0 14px; text-align:right; color:#333; font-size:14px; font-family:Arial,sans-serif;">${d.endDate} ${d.endTime}</td>
+              <td style="padding:6px 0 8px; color:#555; font-size:12px; font-family:Arial,sans-serif;">Delivery End</td>
+              <td class="value" style="padding:6px 0 8px; text-align:right; color:#333; font-size:12px; font-family:Arial,sans-serif;">${d.endDate} ${d.endTime}</td>
             </tr>
           </table>
         </td></tr>
       </table>
     `).join('');
+
+    // Build price quote section if available
+    let priceQuoteHtml = '';
+    if (priceQuote && priceQuote.prices.length > 0) {
+      const priceRows = priceQuote.prices.map((p, idx) => `
+        <tr style="background:${idx % 2 === 0 ? '#fff' : '#F5F5F5'}; border-bottom:1px solid #E3F2FD;">
+          <td style="padding:6px 12px; color:#333; font-size:12px; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">${p.product}</td>
+          <td style="padding:6px 10px; text-align:right; color:#1565C0; font-size:13px; font-weight:bold; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">$${p.costPerGallon.toFixed(6)}</td>
+          <td style="padding:6px 10px; text-align:right; color:#C62828; font-size:13px; font-weight:bold; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">$${p.costWithTaxes.toFixed(6)}</td>
+        </tr>
+      `).join('');
+
+      priceQuoteHtml = `
+        <!-- Price Quote Section -->
+        <tr><td style="padding:0 16px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px; border:1px solid #BBDEFB; border-radius:8px; overflow:hidden;">
+            <tr>
+              <td colspan="3" style="background:linear-gradient(135deg,#1565C0,#1976D2); padding:10px 14px;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+                  <td style="color:#fff; font-size:15px; font-weight:bold; font-family:Arial,sans-serif;">📋 RKA Price Quote</td>
+                  <td style="text-align:right; color:#BBDEFB; font-size:11px; font-family:Arial,sans-serif;">Quote Date: ${priceQuote.quoteDate}</td>
+                </tr></table>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="3" style="padding:0;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr style="background:#E3F2FD;">
+                    <th style="padding:8px 12px; text-align:left; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">Product</th>
+                    <th style="padding:8px 10px; text-align:right; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">Cost/Gal</th>
+                    <th style="padding:8px 10px; text-align:right; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">W/ Taxes</th>
+                  </tr>
+                  ${priceRows}
+                </table>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:8px 0 0; font-size:11px; color:#999; font-family:Arial,sans-serif; text-align:center;">
+            Prices sourced from latest RKA Petroleum quote email (${priceQuote.supplier})
+          </p>
+        </td></tr>
+      `;
+    }
 
     const { data, error } = await resend.emails.send({
       from: ALERT_EMAIL,
@@ -885,13 +929,17 @@ export const sendFuelDeliveryEmail = async (deliveries: {
         <tr><td class="banner" style="background:#43A047; padding:12px 24px; text-align:center; color:#fff; font-weight:bold; font-size:14px;">
           ✅ ${deliveries.length} delivery event(s) — ${totalGallons.toLocaleString()} total gallons
         </td></tr>
-        <!-- Body -->
+        <!-- Delivery Details -->
         <tr><td class="content" style="padding:20px 16px;">
           <p style="margin:0 0 16px; font-size:15px; font-weight:bold; color:#2E7D32; font-family:Arial,sans-serif;">
             New fuel deliveries have been automatically detected:
           </p>
           ${deliveryRows}
-          <p style="margin:16px 0 0; font-size:13px; color:#888; font-family:Arial,sans-serif; text-align:center;">
+        </td></tr>
+        ${priceQuoteHtml}
+        <!-- Footer -->
+        <tr><td style="padding:12px 16px 16px; border-top:1px solid #eee;">
+          <p style="margin:0; font-size:13px; color:#888; font-family:Arial,sans-serif; text-align:center;">
             This notification was automatically generated by the Sandy's Market fuel monitoring system.
           </p>
         </td></tr>
@@ -913,6 +961,7 @@ export const sendFuelDeliveryEmail = async (deliveries: {
   }
 };
 
+
 /**
  * Send Gas Buddy price comparison email
  */
@@ -931,7 +980,7 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison, timeOf
       const timeText = updated ? `<div style="color:#666; font-size:11px;">${updated}</div>` : '';
       return priceText + timeText;
     };
-    
+
     const getPriceDifference = (sandyPrice: number | null, bigRPrice: number | null): string => {
       if (!sandyPrice || !bigRPrice) return '<span style="color:#999;">-</span>';
       const diff = sandyPrice - bigRPrice;
@@ -940,7 +989,7 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison, timeOf
       return `<span style="color:#388e3c; font-weight:bold;">-$${Math.abs(diff).toFixed(2)}</span>`;
     };
 
-    const detroitTime = new Date().toLocaleString('en-US', { 
+    const detroitTime = new Date().toLocaleString('en-US', {
       timeZone: 'America/Detroit',
       weekday: 'long',
       year: 'numeric',

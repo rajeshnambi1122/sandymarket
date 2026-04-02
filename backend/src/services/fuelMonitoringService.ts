@@ -1,8 +1,9 @@
 import { canaryApiService } from './canaryApiService';
-import { TankInventory, FuelThresholds, LowFuelAlert } from '../types/fuelTypes';
+import { TankInventory, FuelThresholds, LowFuelAlert, FuelPriceQuote } from '../types/fuelTypes';
 import { sendFuelAlertEmail, sendFuelDeliveryEmail } from './resendEmailService';
 import { sendFuelAlertNotification, sendFuelDeliveryNotification } from './notificationService';
 import { sendFuelAlertSms, sendFuelDeliverySms } from './smsService';
+import { outlookEmailService } from './outlookEmailService';
 import { FuelDelivery } from '../models/FuelDelivery';
 import dotenv from 'dotenv';
 
@@ -256,8 +257,16 @@ class FuelMonitoringService {
                 if (deliveriesToNotify.length > 0) {
                     console.log(`📤 Sending notifications for ${deliveriesToNotify.length} delivery(ies) after March 8, 2026...`);
 
-                    // Send email (non-blocking)
-                    sendFuelDeliveryEmail(deliveriesToNotify)
+                    // Fetch latest fuel price quote from RKA email (non-blocking on failure)
+                    let priceQuote: FuelPriceQuote | null = null;
+                    try {
+                        priceQuote = await outlookEmailService.getLatestFuelPriceQuote();
+                    } catch (err) {
+                        console.error('⚠️ Could not fetch fuel price quote (will send notification without prices):', err);
+                    }
+
+                    // Send email (non-blocking) — includes price quote if available
+                    sendFuelDeliveryEmail(deliveriesToNotify, priceQuote)
                         .then(async () => {
                             // Mark notifications as sent for each specific delivery
                             for (const delivery of deliveriesToNotify) {

@@ -86,3 +86,20 @@ export interface DeliveryReportResult {
     tanks: TankDelivery[];
     rawText: string;
 }
+
+export interface FuelPriceEntry {
+    effectiveDate: string;      // e.g. "03/31/26"
+    effectiveTime: string;      // e.g. "18:00"
+    product: string;            // e.g. "87 Regular Gasoline E10"
+    deliveryLocation: string;   // e.g. "1057 Estey Rd"
+    costPerGallon: number;      // cost without taxes
+    costWithTaxes: number;      // cost with taxes
+}
+
+export interface FuelPriceQuote {
+    quoteDate: string;          // email date
+    supplier: string;           // "RKA Petroleum"
+    customerNumber: string;     // e.g. "0003912"
+    prices: FuelPriceEntry[];
+    rawText: string;            // raw extracted PDF text for debugging
+}

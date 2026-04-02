@@ -5,6 +5,7 @@ import { gasBuddyService } from '../services/gasBuddyService';
 import { sendGasBuddyPriceEmail } from '../services/resendEmailService';
 import { sendGasBuddyPriceSms } from '../services/smsService';
 import { sendGasBuddyPriceNotification } from '../services/notificationService';
+import { outlookEmailService } from '../services/outlookEmailService';
 import { adminAuth } from "../middleware/auth";
 import { FuelDelivery } from '../models/FuelDelivery';
 
@@ -162,6 +163,39 @@ router.get('/bigrprice', async (_req: Request, res: Response) => {
             success: false,
             message: 'Failed to fetch gas prices from GasBuddy',
             error: error.message,
+        });
+    }
+});
+
+/**
+ * GET /api/fuel/quote-price
+ * Fetch the latest RKA quote details from Outlook
+ * Useful for warming up Microsoft auth on production and verifying quote parsing
+ */
+router.get('/quote-price', adminAuth, async (_req: Request, res: Response) => {
+    try {
+        const quote = await outlookEmailService.getLatestFuelPriceQuote();
+
+        if (!quote) {
+            return res.status(404).json({
+                success: false,
+                message: 'No fuel price quote found or Outlook authentication is still pending. Check Railway logs for the Microsoft device-code sign-in prompt.',
+                timestamp: new Date().toISOString(),
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: quote,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error: any) {
+        console.error('Failed to fetch fuel price quote:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to fetch fuel price quote',
+            error: error.message,
+            timestamp: new Date().toISOString(),
         });
     }
 });

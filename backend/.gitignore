@@ -16,5 +16,6 @@ testResend.ts
 extract-phone-numbers.js
 extract-phone-numbers.ts
 split-csv.js
+.msal-token-cache.json
 
 
