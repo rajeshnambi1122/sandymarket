@@ -8,23 +8,13 @@ import { FuelPriceQuote, FuelPriceEntry } from '../types/fuelTypes';
 
 dotenv.config();
 
-/**
- * Outlook Email Service
- * Reads fuel price quote emails from a personal Hotmail account
- * using Microsoft Graph API with Device Code Flow (OAuth2).
- *
- * First run: prints a URL + code to the console for one-time interactive login.
- * Subsequent runs: uses the cached refresh token for unattended access.
- */
-
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 const TOKEN_CACHE_PATH = path.resolve(__dirname, '../../.msal-token-cache.json');
 
-// MSAL configuration for personal Microsoft accounts
 const msalConfig: msal.Configuration = {
     auth: {
         clientId: process.env.MICROSOFT_CLIENT_ID || '',
-        authority: 'https://login.microsoftonline.com/consumers', // personal accounts
+        authority: 'https://login.microsoftonline.com/consumers',
     },
     cache: {
         cachePlugin: {
@@ -35,7 +25,7 @@ const msalConfig: msal.Configuration = {
                         cacheContext.tokenCache.deserialize(data);
                     }
                 } catch (err) {
-                    console.warn('⚠️ Could not read MSAL token cache:', (err as Error).message);
+                    console.warn('Could not read MSAL token cache:', (err as Error).message);
                 }
             },
             afterCacheAccess: async (cacheContext: msal.TokenCacheContext) => {
@@ -43,7 +33,7 @@ const msalConfig: msal.Configuration = {
                     try {
                         fs.writeFileSync(TOKEN_CACHE_PATH, cacheContext.tokenCache.serialize());
                     } catch (err) {
-                        console.warn('⚠️ Could not write MSAL token cache:', (err as Error).message);
+                        console.warn('Could not write MSAL token cache:', (err as Error).message);
                     }
                 }
             },
@@ -53,19 +43,15 @@ const msalConfig: msal.Configuration = {
 
 class OutlookEmailService {
     private pca: msal.PublicClientApplication;
-    private initialized: boolean = false;
+    private initialized = false;
 
     constructor() {
         this.pca = new msal.PublicClientApplication(msalConfig);
     }
 
-    /**
-     * Get an access token. Tries silent (cached) first, falls back to device code flow.
-     */
     private async getAccessToken(): Promise<string> {
         const scopes = ['Mail.Read', 'Mail.ReadBasic'];
 
-        // Try silent acquisition first (using cached refresh token)
         const accounts = await this.pca.getTokenCache().getAllAccounts();
         if (accounts.length > 0) {
             try {
@@ -73,31 +59,31 @@ class OutlookEmailService {
                     account: accounts[0],
                     scopes,
                 });
+
                 if (silentResult?.accessToken) {
                     if (!this.initialized) {
-                        console.log('✅ Outlook: Authenticated silently (cached token)');
+                        console.log('Outlook: Authenticated silently (cached token)');
                         this.initialized = true;
                     }
                     return silentResult.accessToken;
                 }
-            } catch (err) {
-                console.log('🔄 Outlook: Silent token acquisition failed, will use device code flow');
+            } catch {
+                console.log('Outlook: Silent token acquisition failed, will use device code flow');
             }
         }
 
-        // Fall back to device code flow (interactive, one-time)
         console.log('\n' + '='.repeat(60));
-        console.log('📧 OUTLOOK EMAIL AUTHENTICATION REQUIRED');
+        console.log('OUTLOOK EMAIL AUTHENTICATION REQUIRED');
         console.log('='.repeat(60));
 
         const deviceCodeResult = await this.pca.acquireTokenByDeviceCode({
             scopes,
             deviceCodeCallback: (response) => {
-                console.log('\n🔗 To sign in to sandymarket-gbs@hotmail.com:');
+                console.log('\nTo sign in to sandymarket-gbs@hotmail.com:');
                 console.log(`   1. Open: ${response.verificationUri}`);
                 console.log(`   2. Enter code: ${response.userCode}`);
-                console.log(`   3. Sign in with your Hotmail account\n`);
-                console.log(`⏳ Waiting for you to complete sign-in...`);
+                console.log('   3. Sign in with your Hotmail account\n');
+                console.log('Waiting for you to complete sign-in...');
             },
         });
 
@@ -105,25 +91,19 @@ class OutlookEmailService {
             throw new Error('Failed to acquire access token via device code flow');
         }
 
-        console.log('✅ Outlook: Successfully authenticated!');
+        console.log('Outlook: Successfully authenticated!');
         console.log('='.repeat(60) + '\n');
         this.initialized = true;
         return deviceCodeResult.accessToken;
     }
 
-    /**
-     * Search for the latest RKA Petroleum price quote email
-     */
-    private async findLatestRkaEmail(accessToken: string): Promise<any | null> {
+    private async findLatestRkaEmails(accessToken: string, limit = 1): Promise<any[]> {
         try {
-            // Search for emails from RKA Petroleum (automail@rka.com)
             const searchUrl = `${GRAPH_BASE}/me/messages`;
-            
-            // Using $search instead of $filter + $orderby is more robust for personal Outlook
-            // $search automatically orders results by date descending.
+            const fetchCount = Math.max(limit * 8, 10);
             const params = {
                 $search: '"from:automail@RKA.com"',
-                $top: 1,
+                $top: fetchCount,
                 $select: 'id,subject,receivedDateTime,from,hasAttachments',
             };
 
@@ -132,83 +112,72 @@ class OutlookEmailService {
                 params,
             });
 
-            const messages = response.data?.value;
-            if (!messages || messages.length === 0) {
-                // Fallback: search by subject keyword
-                console.log('📧 No emails from automail@RKA.com, trying subject search...');
-                const fallbackParams = {
-                    $search: '"GBS P&S LLC"',
-                    // removed $orderby as it causes InefficientFilter with $search
-                    $top: 1,
-                    $select: 'id,subject,receivedDateTime,from,hasAttachments',
-                };
-
-                const fallbackResponse = await axios.get(searchUrl, {
-                    headers: { Authorization: `Bearer ${accessToken}` },
-                    params: fallbackParams,
-                });
-
-                const fallbackMessages = fallbackResponse.data?.value;
-                if (!fallbackMessages || fallbackMessages.length === 0) {
-                    console.log('⚠️ No RKA price quote emails found');
-                    return null;
-                }
-                return fallbackMessages[0];
+            const messages = response.data?.value || [];
+            const rankedMessages = this.selectLatestEmailPerDay(this.rankQuoteEmails(messages));
+            if (rankedMessages.length > 0) {
+                return rankedMessages.slice(0, limit);
             }
 
-            return messages[0];
+            console.log('No emails from automail@RKA.com, trying subject search...');
+
+            const fallbackResponse = await axios.get(searchUrl, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                params: {
+                    $search: '"GBS P&S LLC"',
+                    $top: fetchCount,
+                    $select: 'id,subject,receivedDateTime,from,hasAttachments',
+                },
+            });
+
+            const fallbackMessages = this.selectLatestEmailPerDay(
+                this.rankQuoteEmails(fallbackResponse.data?.value || [])
+            );
+            if (!fallbackMessages || fallbackMessages.length === 0) {
+                console.log('No RKA price quote emails found');
+                return [];
+            }
+
+            return fallbackMessages.slice(0, limit);
         } catch (err: any) {
-            console.error('❌ Error searching for RKA email:', err.response?.data || err.message);
-            return null;
+            console.error('Error searching for RKA email:', err.response?.data || err.message);
+            return [];
         }
     }
 
-    /**
-     * Download PDF attachment from an email
-     */
-    private async downloadPdfAttachment(
-        accessToken: string,
-        messageId: string
-    ): Promise<Buffer | null> {
+    private async downloadPdfAttachment(accessToken: string, messageId: string): Promise<Buffer | null> {
         try {
-            // List attachments for the message
-            const attachmentsUrl = `${GRAPH_BASE}/me/messages/${messageId}/attachments`;
+            const encodedMessageId = encodeURIComponent(messageId);
+            const attachmentsUrl = `${GRAPH_BASE}/me/messages/${encodedMessageId}/attachments`;
             const response = await axios.get(attachmentsUrl, {
                 headers: { Authorization: `Bearer ${accessToken}` },
-                params: {
-                    // Removed 'contentBytes' from $select as it causes BadRequest 'OData Select and Expand failed'
-                    $select: 'id,name,contentType,size',
-                },
             });
 
             const attachments = response.data?.value;
             if (!attachments || attachments.length === 0) {
-                console.log('⚠️ No attachments found on RKA email');
+                console.log('No attachments found on RKA email');
                 return null;
             }
 
-            // Find a PDF attachment
             const pdfAttachment = attachments.find(
-                (att: any) =>
-                    att.name?.toLowerCase().endsWith('.pdf') ||
-                    att.contentType === 'application/pdf'
+                (attachment: any) =>
+                    attachment.name?.toLowerCase().endsWith('.pdf') ||
+                    attachment.contentType === 'application/pdf'
             );
 
             if (!pdfAttachment) {
-                console.log('⚠️ No PDF attachment found on RKA email');
-                console.log('   Available attachments:', attachments.map((a: any) => a.name).join(', '));
+                console.log('No PDF attachment found on RKA email');
+                console.log('Available attachments:', attachments.map((attachment: any) => attachment.name).join(', '));
                 return null;
             }
 
-            console.log(`📎 Found PDF attachment: ${pdfAttachment.name} (${(pdfAttachment.size / 1024).toFixed(1)} KB)`);
+            console.log(`Found PDF attachment: ${pdfAttachment.name} (${(pdfAttachment.size / 1024).toFixed(1)} KB)`);
 
-            // contentBytes is base64-encoded
             if (pdfAttachment.contentBytes) {
                 return Buffer.from(pdfAttachment.contentBytes, 'base64');
             }
 
-            // If contentBytes is not inline, fetch the attachment content separately
-            const contentUrl = `${GRAPH_BASE}/me/messages/${messageId}/attachments/${pdfAttachment.id}/$value`;
+            const encodedAttachmentId = encodeURIComponent(pdfAttachment.id);
+            const contentUrl = `${GRAPH_BASE}/me/messages/${encodedMessageId}/attachments/${encodedAttachmentId}/$value`;
             const contentResponse = await axios.get(contentUrl, {
                 headers: { Authorization: `Bearer ${accessToken}` },
                 responseType: 'arraybuffer',
@@ -216,101 +185,130 @@ class OutlookEmailService {
 
             return Buffer.from(contentResponse.data);
         } catch (err: any) {
-            console.error('❌ Error downloading PDF attachment:', err.response?.data || err.message);
+            console.error('Error downloading PDF attachment:', err.response?.data || err.message);
             return null;
         }
     }
 
+    private rankQuoteEmails(emails: any[]): any[] {
+        const scoreEmail = (email: any): number => {
+            const subject = String(email?.subject || '').toLowerCase();
+            let score = 0;
+
+            if (email?.hasAttachments) score += 10;
+            if (subject.includes('for gbs p&s llc')) score += 8;
+            if (subject.includes("sandy's market")) score += 5;
+            if (subject.includes('price quote')) score += 4;
+            if (subject.includes('quote')) score += 3;
+            if (subject.includes('.pdf')) score += 1;
+            if (subject.includes('dtn credit cards')) score -= 20;
+
+            return score;
+        };
+
+        return [...emails]
+            .filter((email) => Boolean(email?.id))
+            .sort((a, b) => {
+                const scoreDiff = scoreEmail(b) - scoreEmail(a);
+                if (scoreDiff !== 0) return scoreDiff;
+
+                const timeA = new Date(a?.receivedDateTime || 0).getTime();
+                const timeB = new Date(b?.receivedDateTime || 0).getTime();
+                return timeB - timeA;
+            });
+    }
+
+    private selectLatestEmailPerDay(emails: any[]): any[] {
+        const seenDates = new Set<string>();
+        const uniqueEmails: any[] = [];
+
+        for (const email of emails) {
+            const receivedDate = String(email?.receivedDateTime || '').split('T')[0];
+            if (!receivedDate || seenDates.has(receivedDate)) {
+                continue;
+            }
+
+            seenDates.add(receivedDate);
+            uniqueEmails.push(email);
+        }
+
+        return uniqueEmails;
+    }
+
     private parsePriceQuoteText(text: string): FuelPriceEntry[] {
         const prices: FuelPriceEntry[] = [];
-        // Flatten all whitespace (newlines, tabs) into single spaces for robust scanning
         const normalized = text.replace(/\s+/g, ' ');
 
-        console.log('📄 PDF text extracted, parsing prices (robust method)...');
-        
-        // Find the effective date
+        console.log('PDF text extracted, parsing prices...');
+
         let effectiveDate = 'N/A';
-        const dateMatch = normalized.match(/(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/);
+        const dateMatch = normalized.match(/(\d{4}-\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/);
         if (dateMatch) {
-            effectiveDate = dateMatch[1];
+            effectiveDate = this.normalizeQuoteDate(dateMatch[1]);
         }
 
-        // Define expected RKA fuel products
         const products = [
-            { id: '87_reg', search: /87\s*Regular.*?(?:Gasoline|E10)?/i, formatted: '87 Regular Gasoline E10' },
-            { id: '89_mid', search: /89\s*Mid[ \-]*Grade/i, formatted: '89 Mid-Grade Conventional' },
-            { id: '91_sup', search: /91\s*Super/i, formatted: '91 Super Gasoline' },
-            { id: '93_pre', search: /93\s*Premium.*?(?:Gasoline|E10)?/i, formatted: '93 Premium Gasoline E10' },
-            { id: 'diesel', search: /#2\s*Ultra\s*Low\s*Sulfur\s*Diesel|Diesel/i, formatted: '#2 Ultra Low Sulfur Diesel' },
-            { id: 'rec', search: /Rec\s*Fuel/i, formatted: 'Rec Fuel' },
-            { id: 'offroad', search: /Off[\s\-]*Road/i, formatted: 'Off Road Diesel' }
+            { search: /87\s*Regular.*?(?:Gasoline|E10)?/i, formatted: '87 Regular Gasoline E10' },
+            { search: /89\s*Mid[ \-]*Grade/i, formatted: '89 Mid-Grade Conventional' },
+            { search: /91\s*Super/i, formatted: '91 Super Gasoline' },
+            { search: /93\s*Premium.*?(?:Gasoline|E10)?/i, formatted: '93 Premium Gasoline E10' },
+            { search: /#2\s*Ultra\s*Low\s*Sulfur\s*Diesel|Diesel/i, formatted: '#2 Ultra Low Sulfur Diesel' },
+            { search: /Rec\s*Fuel/i, formatted: 'Rec Fuel' },
+            { search: /Off[\s\-]*Road/i, formatted: 'Off Road Diesel' },
         ];
 
-        // 1. Find all high-precision decimal numbers (e.g. 2.965110)
-        // Values usually between 1.000000 and 6.999999
         const decimalsRegex = /(?:^|\b)([1-6]\.\d{4,6})(?=\b|$)/g;
-        const decimals: { val: number, index: number }[] = [];
-        let m;
-        while ((m = decimalsRegex.exec(normalized)) !== null) {
-            decimals.push({ val: parseFloat(m[1]), index: m.index });
+        const decimals: { val: number; index: number }[] = [];
+        let match: RegExpExecArray | null;
+
+        while ((match = decimalsRegex.exec(normalized)) !== null) {
+            decimals.push({ val: parseFloat(match[1]), index: match.index });
         }
 
-        // 2. Pair them up (w/o tax and tax costs come sequentially)
-        const pricePairs: { p1: number, p2: number, index: number }[] = [];
-        for (let i = 0; i < decimals.length - 1; i++) {
-            // Check if they are listed adjacently within 50 characters of each other
-            const dist = decimals[i+1].index - decimals[i].index;
-            if (dist > 0 && dist < 50) {
-                const vals = [decimals[i].val, decimals[i+1].val].sort((a, b) => a - b);
+        const pricePairs: { p1: number; p2: number; index: number }[] = [];
+        for (let index = 0; index < decimals.length - 1; index++) {
+            const distance = decimals[index + 1].index - decimals[index].index;
+            if (distance > 0 && distance < 50) {
+                const values = [decimals[index].val, decimals[index + 1].val].sort((a, b) => a - b);
                 pricePairs.push({
-                    p1: Math.round(vals[0] * 1000000) / 1000000, // round to 6 decimals for precise quoting
-                    p2: Math.round(vals[1] * 1000000) / 1000000,
-                    index: decimals[i].index
+                    p1: Math.round(values[0] * 1000000) / 1000000,
+                    p2: Math.round(values[1] * 1000000) / 1000000,
+                    index: decimals[index].index,
                 });
-                i++; // advance past the second item in the pair
+                index++;
             }
         }
 
-        // 3. Match each pair backwards to the closest product label
         for (const pair of pricePairs) {
-            // Get the preceding text chunk (up to 150 chars backward should be plenty)
             const textBefore = normalized.substring(Math.max(0, pair.index - 150), pair.index);
-            
             let bestName = '';
             let bestDist = 999;
 
-            for (const prod of products) {
-                // Find all matches of this product in the preceding text chunk
-                const matches = [...textBefore.matchAll(new RegExp(prod.search, 'gi'))];
-                if (matches.length > 0) {
-                    const lastMatch = matches[matches.length - 1]; // get the closest one to the end
-                    const dist = textBefore.length - (lastMatch.index! + lastMatch[0].length);
-                    
-                    if (dist < bestDist && dist < 120) {
-                        bestDist = dist;
-                        bestName = prod.formatted;
-                    }
+            for (const product of products) {
+                const matches = [...textBefore.matchAll(new RegExp(product.search, 'gi'))];
+                if (!matches.length) continue;
+
+                const lastMatch = matches[matches.length - 1];
+                const distance = textBefore.length - ((lastMatch.index || 0) + lastMatch[0].length);
+                if (distance < bestDist && distance < 120) {
+                    bestDist = distance;
+                    bestName = product.formatted;
                 }
             }
 
-            // Only add if we confidently found a product name and haven't added it yet
-            if (bestName && !prices.some(p => p.product === bestName)) {
+            if (bestName && !prices.some((price) => price.product === bestName)) {
                 prices.push({
                     effectiveDate,
                     effectiveTime: 'N/A',
                     product: bestName,
-                    deliveryLocation: "1057 Estey Rd", // Clean default
+                    deliveryLocation: '1057 Estey Rd',
                     costPerGallon: pair.p1,
-                    costWithTaxes: pair.p2
+                    costWithTaxes: pair.p2,
                 });
             }
         }
 
-        console.log(`   ✅ Extracted ${prices.length} fuel price(s) reliably`);
-        for (const p of prices) {
-            console.log(`      ${p.product}: $${p.costPerGallon} (w/tax: $${p.costWithTaxes})`);
-        }
-
+        console.log(`Extracted ${prices.length} fuel price(s)`);
         return prices;
     }
 
@@ -352,83 +350,84 @@ class OutlookEmailService {
         return fallbackIso?.split('T')[0] || new Date().toISOString().split('T')[0];
     }
 
-    /**
-     * Get the latest RKA fuel price quote from the Hotmail inbox
-     * Returns null if unavailable (auth issues, no emails, parse failure)
-     */
-    async getLatestFuelPriceQuote(): Promise<FuelPriceQuote | null> {
-        // Check if Microsoft credentials are configured
-        if (!process.env.MICROSOFT_CLIENT_ID) {
-            console.log('⚠️ MICROSOFT_CLIENT_ID not set — skipping fuel price quote fetch');
+    private async buildFuelPriceQuoteFromEmail(accessToken: string, email: any): Promise<FuelPriceQuote | null> {
+        console.log(`Found RKA email: "${email.subject}" (${email.receivedDateTime})`);
+
+        const pdfBuffer = await this.downloadPdfAttachment(accessToken, email.id);
+        if (!pdfBuffer) {
+            console.log('Could not download PDF attachment');
             return null;
+        }
+
+        const parser = new PDFParse({ data: pdfBuffer });
+        let pdfText = '';
+
+        try {
+            const pdfData = await parser.getText();
+            pdfText = pdfData.text;
+            console.log(`PDF parsed: ${pdfData.total || 1} page(s), ${pdfText.length} chars`);
+        } finally {
+            await parser.destroy();
+        }
+
+        const prices = this.parsePriceQuoteText(pdfText);
+        let customerNumber = '';
+        const customerMatch = pdfText.match(/Customer\s*(?:Number|#|No\.?)[\s:]*(\d+)/i);
+        if (customerMatch) {
+            customerNumber = customerMatch[1];
+        }
+
+        return {
+            quoteDate: this.extractQuoteDate(pdfText, email.receivedDateTime),
+            supplier: 'RKA Petroleum',
+            customerNumber,
+            prices,
+            rawText: pdfText.substring(0, 2000),
+        };
+    }
+
+    async getLatestFuelPriceQuotes(limit = 2): Promise<FuelPriceQuote[]> {
+        if (!process.env.MICROSOFT_CLIENT_ID) {
+            console.log('MICROSOFT_CLIENT_ID not set - skipping fuel price quote fetch');
+            return [];
         }
 
         try {
-            console.log('\n📧 ========== FETCHING RKA FUEL PRICE QUOTE ==========');
+            console.log(`\n========== FETCHING LAST ${limit} RKA FUEL PRICE QUOTE(S) ==========`);
 
-            // Step 1: Authenticate
             const accessToken = await this.getAccessToken();
+            const emails = await this.findLatestRkaEmails(accessToken, limit);
 
-            // Step 2: Find the latest RKA email
-            const email = await this.findLatestRkaEmail(accessToken);
-            if (!email) {
-                console.log('⚠️ No RKA price quote email found');
-                console.log('✅ ========== PRICE QUOTE FETCH COMPLETED (no data) ==========\n');
-                return null;
+            if (!emails.length) {
+                console.log('No RKA price quote emails found');
+                console.log('========== PRICE QUOTE FETCH COMPLETED (no data) ==========\n');
+                return [];
             }
 
-            console.log(`📧 Found RKA email: "${email.subject}" (${email.receivedDateTime})`);
-
-            // Step 3: Download PDF attachment
-            const pdfBuffer = await this.downloadPdfAttachment(accessToken, email.id);
-            if (!pdfBuffer) {
-                console.log('⚠️ Could not download PDF attachment');
-                console.log('✅ ========== PRICE QUOTE FETCH COMPLETED (no PDF) ==========\n');
-                return null;
+            const quotes: FuelPriceQuote[] = [];
+            for (const email of emails) {
+                const quote = await this.buildFuelPriceQuoteFromEmail(accessToken, email);
+                if (quote && quote.prices.length > 0) {
+                    quotes.push(quote);
+                }
             }
 
-            // Step 4: Extract text from PDF
-            const parser = new PDFParse({ data: pdfBuffer });
-            let pdfText = '';
-            let numPages = 0;
-            
-            try {
-                const pdfData = await parser.getText();
-                pdfText = pdfData.text;
-                numPages = pdfData.total || 1;
-                console.log(`📄 PDF parsed: ${numPages} page(s), ${pdfText.length} chars`);
-            } finally {
-                await parser.destroy();
-            }
-
-            // Step 5: Parse prices from extracted text
-            const prices = this.parsePriceQuoteText(pdfText);
-
-            // Step 6: Extract customer number from PDF
-            let customerNumber = '';
-            const custMatch = pdfText.match(/Customer\s*(?:Number|#|No\.?)[\s:]*(\d+)/i);
-            if (custMatch) customerNumber = custMatch[1];
-
-            const quote: FuelPriceQuote = {
-                quoteDate: this.extractQuoteDate(pdfText, email.receivedDateTime),
-                supplier: 'RKA Petroleum',
-                customerNumber,
-                prices,
-                rawText: pdfText.substring(0, 2000), // first 2000 chars for debugging
-            };
-
-            console.log(`✅ ========== PRICE QUOTE FETCH COMPLETED (${prices.length} prices) ==========\n`);
-            return quote;
+            console.log(`========== PRICE QUOTE FETCH COMPLETED (${quotes.length} quote(s)) ==========\n`);
+            return quotes;
         } catch (err: any) {
-            console.error('❌ Error fetching fuel price quote:', err.message);
+            console.error('Error fetching fuel price quotes:', err.message);
             if (err.message?.includes('interaction_required') || err.message?.includes('token')) {
-                console.log('💡 Tip: The Outlook authentication may have expired. Restart the server to re-authenticate.');
+                console.log('Tip: Outlook authentication may have expired. Restart the server to re-authenticate.');
             }
-            console.log('✅ ========== PRICE QUOTE FETCH COMPLETED (error) ==========\n');
-            return null;
+            console.log('========== PRICE QUOTE FETCH COMPLETED (error) ==========\n');
+            return [];
         }
+    }
+
+    async getLatestFuelPriceQuote(): Promise<FuelPriceQuote | null> {
+        const quotes = await this.getLatestFuelPriceQuotes(1);
+        return quotes[0] || null;
     }
 }
 
-// Export singleton
 export const outlookEmailService = new OutlookEmailService();

@@ -258,15 +258,15 @@ class FuelMonitoringService {
                     console.log(`📤 Sending notifications for ${deliveriesToNotify.length} delivery(ies) after March 8, 2026...`);
 
                     // Fetch latest fuel price quote from RKA email (non-blocking on failure)
-                    let priceQuote: FuelPriceQuote | null = null;
+                    let priceQuotes: FuelPriceQuote[] = [];
                     try {
-                        priceQuote = await outlookEmailService.getLatestFuelPriceQuote();
+                        priceQuotes = await outlookEmailService.getLatestFuelPriceQuotes(2);
                     } catch (err) {
                         console.error('⚠️ Could not fetch fuel price quote (will send notification without prices):', err);
                     }
 
                     // Send email (non-blocking) — includes price quote if available
-                    sendFuelDeliveryEmail(deliveriesToNotify, priceQuote)
+                    sendFuelDeliveryEmail(deliveriesToNotify, priceQuotes)
                         .then(async () => {
                             // Mark notifications as sent for each specific delivery
                             for (const delivery of deliveriesToNotify) {

@@ -804,6 +804,58 @@ export const sendFuelAlertEmail = async (lowFuelTanks: any[]): Promise<void> => 
 /**
  * Send fuel delivery alert email to store admins
  */
+const buildFuelDeliveryPriceQuoteHtml = (priceQuotes?: FuelPriceQuote[] | null): string => {
+  const recentQuotes = (priceQuotes || []).filter((quote) => quote.prices.length > 0);
+  if (recentQuotes.length === 0) {
+    return '';
+  }
+
+  const quoteSections = recentQuotes.map((priceQuote, quoteIndex) => {
+    const priceRows = priceQuote.prices.map((p, idx) => `
+      <tr style="background:${idx % 2 === 0 ? '#fff' : '#F5F5F5'}; border-bottom:1px solid #E3F2FD;">
+        <td style="padding:6px 12px; color:#333; font-size:12px; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">${p.product}</td>
+        <td style="padding:6px 10px; text-align:right; color:#1565C0; font-size:13px; font-weight:bold; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">$${p.costPerGallon.toFixed(6)}</td>
+        <td style="padding:6px 10px; text-align:right; color:#C62828; font-size:13px; font-weight:bold; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">$${p.costWithTaxes.toFixed(6)}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:${quoteIndex === 0 ? '8px' : '14px'}; border:1px solid #BBDEFB; border-radius:8px; overflow:hidden;">
+        <tr>
+          <td colspan="3" style="background:linear-gradient(135deg,#1565C0,#1976D2); padding:10px 14px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+              <td style="color:#fff; font-size:15px; font-weight:bold; font-family:Arial,sans-serif;">RKA Price Quote</td>
+              <td style="text-align:right; color:#BBDEFB; font-size:11px; font-family:Arial,sans-serif;">Quote Date: ${priceQuote.quoteDate}${priceQuote.customerNumber ? ' | Cust #' + priceQuote.customerNumber : ''}</td>
+            </tr></table>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="3" style="padding:0;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr style="background:#E3F2FD;">
+                <th style="padding:8px 12px; text-align:left; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">Product</th>
+                <th style="padding:8px 10px; text-align:right; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">Cost/Gal</th>
+                <th style="padding:8px 10px; text-align:right; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">W/ Taxes</th>
+              </tr>
+              ${priceRows}
+            </table>
+          </td>
+        </tr>
+      </table>
+    `;
+  }).join('');
+
+  return `
+    <!-- Price Quote Section -->
+    <tr><td style="padding:0 16px 20px;">
+      ${quoteSections}
+      <p style="margin:8px 0 0; font-size:11px; color:#999; font-family:Arial,sans-serif; text-align:center;">
+        Prices sourced from the latest ${recentQuotes.length} daily RKA Petroleum quote email${recentQuotes.length !== 1 ? 's' : ''} (${recentQuotes[0].supplier})
+      </p>
+    </td></tr>
+  `;
+};
+
 export const sendFuelDeliveryEmail = async (deliveries: {
   tankNumber: number;
   productLabel: string;
@@ -814,7 +866,7 @@ export const sendFuelDeliveryEmail = async (deliveries: {
   startTime: string;
   endDate: string;
   endTime: string;
-}[], priceQuote?: FuelPriceQuote | null): Promise<void> => {
+}[], priceQuotes?: FuelPriceQuote[] | null): Promise<void> => {
   try {
     const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
     if (storeEmails.length === 0) {
@@ -861,9 +913,12 @@ export const sendFuelDeliveryEmail = async (deliveries: {
       </table>
     `).join('');
 
-    // Build price quote section if available
-    let priceQuoteHtml = '';
-    if (priceQuote && priceQuote.prices.length > 0) {
+    // Build separate daily price quote sections if available
+    let priceQuoteHtml = buildFuelDeliveryPriceQuoteHtml(priceQuotes);
+    /*
+    const recentQuotes = (priceQuotes || []).filter((quote) => quote.prices.length > 0);
+    if (recentQuotes.length > 0) {
+      const quoteSections = recentQuotes.map((priceQuote, quoteIndex) => {
       const priceRows = priceQuote.prices.map((p, idx) => `
         <tr style="background:${idx % 2 === 0 ? '#fff' : '#F5F5F5'}; border-bottom:1px solid #E3F2FD;">
           <td style="padding:6px 12px; color:#333; font-size:12px; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">${p.product}</td>
@@ -903,6 +958,7 @@ export const sendFuelDeliveryEmail = async (deliveries: {
         </td></tr>
       `;
     }
+    */
 
     const { data, error } = await resend.emails.send({
       from: ALERT_EMAIL,
@@ -1115,5 +1171,3 @@ export default {
   sendFuelDeliveryEmail,
   sendGasBuddyPriceEmail,
 };
-
-
