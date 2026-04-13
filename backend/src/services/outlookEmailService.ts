@@ -397,6 +397,24 @@ class OutlookEmailService {
         return trimmed;
     }
 
+    private extractQuoteDateFromSubject(subject: string, fallbackIso?: string): string | null {
+        const subjectText = String(subject || '').trim();
+        const dashMatch = subjectText.match(/\b(\d{1,2})-(\d{1,2})(?:-(\d{2,4}))?\b/);
+        if (!dashMatch) {
+            return null;
+        }
+
+        let [, month, day, year] = dashMatch;
+        if (!year) {
+            year = fallbackIso?.split('T')[0]?.split('-')[0] || String(new Date().getFullYear());
+        }
+        if (year.length === 2) {
+            year = `20${year}`;
+        }
+
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
     private extractQuoteDate(text: string, fallbackIso?: string): string {
         const normalized = text.replace(/\s+/g, ' ');
 
@@ -443,7 +461,9 @@ class OutlookEmailService {
         }
 
         return {
-            quoteDate: this.extractQuoteDate(pdfText, email.receivedDateTime),
+            quoteDate:
+                this.extractQuoteDateFromSubject(String(email?.subject || ''), email.receivedDateTime) ||
+                this.extractQuoteDate(pdfText, email.receivedDateTime),
             supplier: 'RKA Petroleum',
             customerNumber,
             prices,
