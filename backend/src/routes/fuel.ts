@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { fuelMonitoringService } from '../services/fuelMonitoringService';
 import { canaryApiService } from '../services/canaryApiService';
 import { gasBuddyService } from '../services/gasBuddyService';
-import { sendGasBuddyPriceEmail } from '../services/resendEmailService';
+import { sendFuelDeliveryEmail, sendGasBuddyPriceEmail } from '../services/resendEmailService';
 import { sendGasBuddyPriceSms } from '../services/smsService';
 import { sendGasBuddyPriceNotification } from '../services/notificationService';
 import { outlookEmailService } from '../services/outlookEmailService';
@@ -10,6 +10,7 @@ import { adminAuth } from "../middleware/auth";
 import { FuelDelivery } from '../models/FuelDelivery';
 
 const router = express.Router();
+const DELIVERY_TEST_RECIPIENT = 'rajeshnambi2016@gmail.com';
 
 /**
  * POST /api/fuel/check
@@ -194,6 +195,88 @@ router.get('/quote-price', adminAuth, async (_req: Request, res: Response) => {
         return res.status(500).json({
             success: false,
             message: 'Failed to fetch fuel price quote',
+            error: error.message,
+            timestamp: new Date().toISOString(),
+        });
+    }
+});
+
+/**
+ * POST /api/fuel/deliveries/test-email
+ * Send the latest detected delivery email with fresh 2-day RKA quotes
+ * to Rajesh only for production verification.
+ */
+router.post('/deliveries/test-email', adminAuth, async (_req: Request, res: Response) => {
+    try {
+        const latestDelivery = await FuelDelivery.findOne().sort({ detectedAt: -1 });
+
+        if (!latestDelivery) {
+            return res.status(404).json({
+                success: false,
+                message: 'No delivery records found to send',
+                timestamp: new Date().toISOString(),
+            });
+        }
+
+        const latestDeliveries = await FuelDelivery.find({
+            startDate: latestDelivery.startDate,
+            startTime: latestDelivery.startTime,
+        }).sort({ tankNumber: 1, detectedAt: 1 });
+
+        if (latestDeliveries.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Latest delivery event could not be reconstructed',
+                timestamp: new Date().toISOString(),
+            });
+        }
+
+        const priceQuotes = await outlookEmailService.getLatestFuelPriceQuotes(2);
+        const parsedQuotes = priceQuotes.filter((quote) => quote.prices.length > 0);
+
+        if (parsedQuotes.length === 0) {
+            return res.status(409).json({
+                success: false,
+                message: 'No fresh RKA price quotes were fetched, so no test email was sent',
+                timestamp: new Date().toISOString(),
+            });
+        }
+
+        await sendFuelDeliveryEmail(
+            latestDeliveries.map((delivery) => ({
+                tankNumber: delivery.tankNumber,
+                productLabel: delivery.productLabel,
+                gallonsDelivered: delivery.gallonsDelivered,
+                startVolume: delivery.startVolume,
+                endVolume: delivery.endVolume,
+                startDate: delivery.startDate,
+                startTime: delivery.startTime,
+                endDate: delivery.endDate,
+                endTime: delivery.endTime,
+            })),
+            parsedQuotes,
+            [DELIVERY_TEST_RECIPIENT]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: `Test delivery email sent to ${DELIVERY_TEST_RECIPIENT}`,
+            recipient: DELIVERY_TEST_RECIPIENT,
+            deliveryCount: latestDeliveries.length,
+            deliveryWindow: {
+                startDate: latestDelivery.startDate,
+                startTime: latestDelivery.startTime,
+                endDate: latestDelivery.endDate,
+                endTime: latestDelivery.endTime,
+            },
+            quoteDates: parsedQuotes.map((quote) => quote.quoteDate),
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error: any) {
+        console.error('Failed to send test delivery email:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to send test delivery email',
             error: error.message,
             timestamp: new Date().toISOString(),
         });

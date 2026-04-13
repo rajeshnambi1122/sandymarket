@@ -866,11 +866,13 @@ export const sendFuelDeliveryEmail = async (deliveries: {
   startTime: string;
   endDate: string;
   endTime: string;
-}[], priceQuotes?: FuelPriceQuote[] | null): Promise<void> => {
+}[], priceQuotes?: FuelPriceQuote[] | null, recipientsOverride?: string[]): Promise<void> => {
   try {
-    const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
-    if (storeEmails.length === 0) {
-      throw new Error('No valid store email addresses found in STORE_EMAILS environment variable');
+    const recipients = recipientsOverride && recipientsOverride.length > 0
+      ? recipientsOverride
+      : parseAndValidateEmails(process.env.STORE_EMAILS || '');
+    if (recipients.length === 0) {
+      throw new Error('No valid recipient email addresses found for fuel delivery email');
     }
 
     const totalGallons = deliveries.reduce((sum, d) => sum + d.gallonsDelivered, 0);
@@ -962,7 +964,7 @@ export const sendFuelDeliveryEmail = async (deliveries: {
 
     const { data, error } = await resend.emails.send({
       from: ALERT_EMAIL,
-      to: storeEmails,
+      to: recipients,
       subject: `⛽ Fuel Delivery Detected : ${deliveries.length} tank(s), ${totalGallons.toLocaleString()} gal`,
       html: `<!DOCTYPE html>
 <html lang="en">

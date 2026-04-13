@@ -2,14 +2,60 @@ import * as msal from '@azure/msal-node';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import mongoose from 'mongoose';
 import { PDFParse } from 'pdf-parse';
 import dotenv from 'dotenv';
 import { FuelPriceQuote, FuelPriceEntry } from '../types/fuelTypes';
+import { MicrosoftTokenCache } from '../models/MicrosoftTokenCache';
 
 dotenv.config();
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 const TOKEN_CACHE_PATH = path.resolve(__dirname, '../../.msal-token-cache.json');
+const TOKEN_CACHE_KEY = 'outlook-msal';
+
+const readSerializedTokenCache = async (): Promise<string | null> => {
+    if (mongoose.connection.readyState === 1) {
+        try {
+            const cached = await MicrosoftTokenCache.findOne({ key: TOKEN_CACHE_KEY }).lean<{ value: string } | null>();
+            if (cached?.value) {
+                return cached.value;
+            }
+        } catch (err) {
+            console.warn('Could not read MSAL token cache from MongoDB:', (err as Error).message);
+        }
+    }
+
+    try {
+        if (fs.existsSync(TOKEN_CACHE_PATH)) {
+            return fs.readFileSync(TOKEN_CACHE_PATH, 'utf-8');
+        }
+    } catch (err) {
+        console.warn('Could not read MSAL token cache from file:', (err as Error).message);
+    }
+
+    return null;
+};
+
+const writeSerializedTokenCache = async (serializedCache: string): Promise<void> => {
+    if (mongoose.connection.readyState === 1) {
+        try {
+            await MicrosoftTokenCache.findOneAndUpdate(
+                { key: TOKEN_CACHE_KEY },
+                { value: serializedCache },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+        } catch (err) {
+            console.warn('Could not write MSAL token cache to MongoDB:', (err as Error).message);
+        }
+    }
+
+    try {
+        fs.writeFileSync(TOKEN_CACHE_PATH, serializedCache);
+    } catch (err) {
+        console.warn('Could not write MSAL token cache to file:', (err as Error).message);
+    }
+};
 
 const msalConfig: msal.Configuration = {
     auth: {
@@ -20,9 +66,9 @@ const msalConfig: msal.Configuration = {
         cachePlugin: {
             beforeCacheAccess: async (cacheContext: msal.TokenCacheContext) => {
                 try {
-                    if (fs.existsSync(TOKEN_CACHE_PATH)) {
-                        const data = fs.readFileSync(TOKEN_CACHE_PATH, 'utf-8');
-                        cacheContext.tokenCache.deserialize(data);
+                    const serializedCache = await readSerializedTokenCache();
+                    if (serializedCache) {
+                        cacheContext.tokenCache.deserialize(serializedCache);
                     }
                 } catch (err) {
                     console.warn('Could not read MSAL token cache:', (err as Error).message);
@@ -31,7 +77,7 @@ const msalConfig: msal.Configuration = {
             afterCacheAccess: async (cacheContext: msal.TokenCacheContext) => {
                 if (cacheContext.cacheHasChanged) {
                     try {
-                        fs.writeFileSync(TOKEN_CACHE_PATH, cacheContext.tokenCache.serialize());
+                        await writeSerializedTokenCache(cacheContext.tokenCache.serialize());
                     } catch (err) {
                         console.warn('Could not write MSAL token cache:', (err as Error).message);
                     }
@@ -190,12 +236,18 @@ class OutlookEmailService {
         }
     }
 
+    private isPreferred21pQuoteEmail(email: any): boolean {
+        const subject = String(email?.subject || '');
+        return /\b21\s*p\b/i.test(subject);
+    }
+
     private rankQuoteEmails(emails: any[]): any[] {
         const scoreEmail = (email: any): number => {
             const subject = String(email?.subject || '').toLowerCase();
             let score = 0;
 
             if (email?.hasAttachments) score += 10;
+            if (this.isPreferred21pQuoteEmail(email)) score += 12;
             if (subject.includes('for gbs p&s llc')) score += 8;
             if (subject.includes("sandy's market")) score += 5;
             if (subject.includes('price quote')) score += 4;
@@ -219,20 +271,33 @@ class OutlookEmailService {
     }
 
     private selectLatestEmailPerDay(emails: any[]): any[] {
-        const seenDates = new Set<string>();
-        const uniqueEmails: any[] = [];
+        const selectedByDate = new Map<string, any>();
 
         for (const email of emails) {
             const receivedDate = String(email?.receivedDateTime || '').split('T')[0];
-            if (!receivedDate || seenDates.has(receivedDate)) {
+            if (!receivedDate) {
                 continue;
             }
 
-            seenDates.add(receivedDate);
-            uniqueEmails.push(email);
+            const current = selectedByDate.get(receivedDate);
+            if (!current) {
+                selectedByDate.set(receivedDate, email);
+                continue;
+            }
+
+            const currentIs21p = this.isPreferred21pQuoteEmail(current);
+            const candidateIs21p = this.isPreferred21pQuoteEmail(email);
+
+            if (!currentIs21p && candidateIs21p) {
+                selectedByDate.set(receivedDate, email);
+            }
         }
 
-        return uniqueEmails;
+        return [...selectedByDate.values()].sort((a, b) => {
+            const timeA = new Date(a?.receivedDateTime || 0).getTime();
+            const timeB = new Date(b?.receivedDateTime || 0).getTime();
+            return timeB - timeA;
+        });
     }
 
     private parsePriceQuoteText(text: string): FuelPriceEntry[] {
