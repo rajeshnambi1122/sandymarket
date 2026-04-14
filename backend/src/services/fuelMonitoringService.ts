@@ -1,24 +1,22 @@
 import { canaryApiService } from './canaryApiService';
-import { TankInventory, FuelThresholds, LowFuelAlert, FuelPriceQuote } from '../types/fuelTypes';
-import { sendFuelAlertEmail, sendFuelDeliveryEmail } from './resendEmailService';
-import { sendFuelAlertNotification, sendFuelDeliveryNotification } from './notificationService';
-import { sendFuelAlertSms, sendFuelDeliverySms } from './smsService';
+import { TankInventory, FuelThresholds, FuelPriceQuote, TankStatusReportEntry } from '../types/fuelTypes';
+import { sendFuelStatusReportEmail, sendFuelDeliveryEmail } from './resendEmailService';
+import { sendFuelStatusReportNotification, sendFuelDeliveryNotification } from './notificationService';
+import { sendFuelStatusReportSms, sendFuelDeliverySms } from './smsService';
 import { outlookEmailService } from './outlookEmailService';
 import { FuelDelivery } from '../models/FuelDelivery';
 import dotenv from 'dotenv';
-
 
 dotenv.config();
 
 /**
  * Fuel Monitoring Service
- * Checks fuel levels and sends notifications when tanks are low
+ * Fetches fuel levels and sends scheduled tank status reports
  */
 class FuelMonitoringService {
     private thresholds: FuelThresholds;
 
     constructor() {
-        // Load thresholds from environment variables
         this.thresholds = {
             REGULAR: parseInt(process.env.FUEL_THRESHOLD_REGULAR || '1000'),
             PREMIUM: parseInt(process.env.FUEL_THRESHOLD_PREMIUM || '600'),
@@ -26,7 +24,7 @@ class FuelMonitoringService {
             'REC FUEL': parseInt(process.env.FUEL_THRESHOLD_REC_FUEL || '500'),
         };
 
-        console.log('⚙️ Fuel monitoring thresholds:', this.thresholds);
+        console.log('Fuel monitoring thresholds:', this.thresholds);
     }
 
     /**
@@ -52,84 +50,78 @@ class FuelMonitoringService {
         return (tank.volumeGallons / tank.fullVolumeGallons) * 100;
     }
 
+    private getReportPeriod(now = new Date()): 'Morning' | 'Evening' {
+        const detroitHour = parseInt(
+            new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Detroit',
+                hour: 'numeric',
+                hour12: false,
+            }).format(now),
+            10
+        );
 
-    /**
-     * Send low fuel alerts for tanks below threshold
-     */
-    private async sendLowFuelAlerts(lowFuelTanks: LowFuelAlert[]): Promise<void> {
-        if (lowFuelTanks.length === 0) {
-            console.log('✅ All tanks have sufficient fuel');
-            return;
-        }
+        return detroitHour < 12 ? 'Morning' : 'Evening';
+    }
 
-        console.log(`🚨 ${lowFuelTanks.length} tank(s) below threshold, sending alerts...`);
+    private buildTankStatusReport(inventories: TankInventory[]): TankStatusReportEntry[] {
+        return inventories.map((tank) => {
+            const threshold = this.getThreshold(tank.productLabel);
+            const percentageFull = this.calculatePercentageFull(tank);
+            const isLow = this.isBelowThreshold(tank);
 
-        try {
-            // Send email notification
-            await sendFuelAlertEmail(lowFuelTanks);
+            return {
+                tank,
+                threshold,
+                percentageFull,
+                isLow,
+            };
+        });
+    }
 
-            // Send push notification
-            await sendFuelAlertNotification(lowFuelTanks);
+    private async sendTankStatusReport(report: TankStatusReportEntry[]): Promise<void> {
+        const period = this.getReportPeriod();
+        const lowTankCount = report.filter((entry) => entry.isLow).length;
+        console.log(`Sending ${period.toLowerCase()} tank status report for ${report.length} tank(s); ${lowTankCount} low`);
 
-            // Send SMS (only 8am–8pm Detroit time)
-            await sendFuelAlertSms(lowFuelTanks);
-        } catch (error) {
-            console.error('❌ Error sending fuel alerts:', error);
-            throw error;
-        }
+        await sendFuelStatusReportEmail(report, period);
+        await sendFuelStatusReportNotification(report, period);
+        await sendFuelStatusReportSms(report, period);
     }
 
     /**
-     * Main function to check fuel levels and send notifications
+     * Main function to fetch fuel levels and send the scheduled report
      */
     async checkFuelLevels(): Promise<void> {
         try {
-            console.log('\n🔍 ========== FUEL LEVEL CHECK STARTED ==========');
-            console.log(`⏰ Check time: ${new Date().toLocaleString()}`);
+            console.log('\n========== TANK STATUS REPORT STARTED ==========');
+            console.log(`Run time: ${new Date().toLocaleString()}`);
 
-            // Fetch tank inventories from Canary API
             const inventories: TankInventory[] = await canaryApiService.getInventories();
 
             if (!inventories || inventories.length === 0) {
-                console.log('⚠️ No tank inventories found');
+                console.log('No tank inventories found');
                 return;
             }
 
-            console.log(`\n📊 Checking ${inventories.length} tank(s):`);
+            console.log(`\nChecking ${inventories.length} tank(s):`);
 
-            const lowFuelTanks: LowFuelAlert[] = [];
+            const report = this.buildTankStatusReport(inventories);
 
-            // Check each tank
-            for (const tank of inventories) {
-                const threshold = this.getThreshold(tank.productLabel);
-                const isLow = this.isBelowThreshold(tank);
-                const percentageFull = this.calculatePercentageFull(tank);
+            for (const entry of report) {
+                const { tank, threshold, isLow, percentageFull } = entry;
 
-                console.log(`\n🔹 Tank ${tank.tankNumber} - ${tank.productLabel}`);
+                console.log(`\nTank ${tank.tankNumber} - ${tank.productLabel}`);
                 console.log(`   Current: ${tank.volumeGallons.toFixed(1)} gallons`);
                 console.log(`   Capacity: ${tank.fullVolumeGallons} gallons (${percentageFull.toFixed(1)}% full)`);
                 console.log(`   Threshold: ${threshold} gallons`);
-                console.log(`   Status: ${isLow ? '🚨 LOW' : '✅ OK'} (API: ${tank.status})`);
-
-                // Always alert if tank is low
-                if (isLow) {
-                    console.log(`   ⚠️ LOW - Will send alert`);
-                    lowFuelTanks.push({
-                        tank,
-                        threshold,
-                        percentageFull,
-                    });
-                }
+                console.log(`   Status: ${isLow ? 'LOW' : 'OK'} (API: ${tank.status})`);
             }
 
-            // Send alerts if any tanks are low
-            if (lowFuelTanks.length > 0) {
-                await this.sendLowFuelAlerts(lowFuelTanks);
-            }
+            await this.sendTankStatusReport(report);
 
-            console.log('\n✅ ========== FUEL LEVEL CHECK COMPLETED ==========\n');
+            console.log('\n========== TANK STATUS REPORT COMPLETED ==========\n');
         } catch (error: any) {
-            console.error('\n❌ ========== FUEL LEVEL CHECK FAILED ==========');
+            console.error('\n========== TANK STATUS REPORT FAILED ==========');
             console.error('Error:', error.message);
             console.error('Stack:', error.stack);
             throw error;
@@ -141,17 +133,17 @@ class FuelMonitoringService {
      */
     async detectAndSaveNewDeliveries(): Promise<void> {
         try {
-            console.log('\n📦 ========== DELIVERY DETECTION STARTED ==========');
+            console.log('\nDELIVERY DETECTION STARTED');
             const siteId = parseInt(process.env.CANARY_SITE_ID || '5534');
             const report = await canaryApiService.getDeliveryReport(siteId);
-            
+
             if (report.tanks.length === 0) {
-                console.log('ℹ️ No delivery data available from API (this is normal if no recent deliveries)');
-                console.log('✅ ========== DELIVERY DETECTION COMPLETED ==========\n');
+                console.log('No delivery data available from API (this is normal if no recent deliveries)');
+                console.log('DELIVERY DETECTION COMPLETED\n');
                 return;
             }
-            
-            console.log(`📊 Received delivery data for ${report.tanks.length} tank(s)`);
+
+            console.log(`Received delivery data for ${report.tanks.length} tank(s)`);
 
             const newDeliveries: {
                 tankNumber: number;
@@ -168,7 +160,6 @@ class FuelMonitoringService {
             for (const tank of report.tanks) {
                 for (const delivery of tank.deliveries) {
                     try {
-                        // insertOne — will throw E11000 duplicate key error if already exists (that's fine)
                         await FuelDelivery.create({
                             tankNumber: tank.tankNumber,
                             productLabel: tank.productLabel,
@@ -191,7 +182,7 @@ class FuelMonitoringService {
                             notificationSent: false,
                         });
 
-                        console.log(`✅ NEW delivery saved: Tank ${tank.tankNumber} (${tank.productLabel}) — ${delivery.gallonsDelivered} gal on ${delivery.startDate}`);
+                        console.log(`NEW delivery saved: Tank ${tank.tankNumber} (${tank.productLabel}) - ${delivery.gallonsDelivered} gal on ${delivery.startDate}`);
                         newDeliveries.push({
                             tankNumber: tank.tankNumber,
                             productLabel: tank.productLabel,
@@ -204,41 +195,34 @@ class FuelMonitoringService {
                             endTime: delivery.endTime,
                         });
                     } catch (err: any) {
-                        if (err.code === 11000) {
-                            // Duplicate key — delivery already recorded, skip silently
-                        } else {
-                            console.error(`❌ Error saving delivery for Tank ${tank.tankNumber}:`, err.message);
+                        if (err.code !== 11000) {
+                            console.error(`Error saving delivery for Tank ${tank.tankNumber}:`, err.message);
                         }
                     }
                 }
             }
 
             if (newDeliveries.length > 0) {
-                console.log(`🚨 ${newDeliveries.length} new delivery(ies) detected`);
+                console.log(`${newDeliveries.length} new delivery(ies) detected`);
 
-                // IMPORTANT: Only send notifications for deliveries after March 8, 2026
-                // This prevents spam from historical deliveries on first production run
-                const cutoffDate = new Date('2026-03-08T23:59:59-05:00'); // March 8, 2026 end of day (Detroit time)
-                
-                // Filter deliveries: only notify for those after cutoff date
+                const cutoffDate = new Date('2026-03-08T23:59:59-05:00');
+
                 const deliveriesToNotify = newDeliveries.filter(d => {
-                    // Parse delivery date (format: MM/DD/YY)
-                    const [month, day, year] = d.startDate.split('/').map(x => parseInt(x));
-                    const fullYear = 2000 + year; // Convert YY to YYYY
+                    const [month, day, year] = d.startDate.split('/').map(x => parseInt(x, 10));
+                    const fullYear = 2000 + year;
                     const deliveryDate = new Date(fullYear, month - 1, day);
                     return deliveryDate > cutoffDate;
                 });
 
                 const deliveriesBeforeCutoff = newDeliveries.filter(d => {
-                    const [month, day, year] = d.startDate.split('/').map(x => parseInt(x));
+                    const [month, day, year] = d.startDate.split('/').map(x => parseInt(x, 10));
                     const fullYear = 2000 + year;
                     const deliveryDate = new Date(fullYear, month - 1, day);
                     return deliveryDate <= cutoffDate;
                 });
 
-                // Mark old deliveries as notified without sending alerts
                 if (deliveriesBeforeCutoff.length > 0) {
-                    console.log(`📅 ${deliveriesBeforeCutoff.length} delivery(ies) before March 8, 2026 - SKIPPING notifications (historical data)`);
+                    console.log(`${deliveriesBeforeCutoff.length} delivery(ies) before March 8, 2026 - skipping notifications`);
                     for (const delivery of deliveriesBeforeCutoff) {
                         await FuelDelivery.updateOne(
                             {
@@ -250,25 +234,21 @@ class FuelMonitoringService {
                             { notificationSent: true }
                         );
                     }
-                    console.log(`✅ Marked ${deliveriesBeforeCutoff.length} historical delivery(ies) as notified (no alerts sent)`);
+                    console.log(`Marked ${deliveriesBeforeCutoff.length} historical delivery(ies) as notified`);
                 }
 
-                // Send notifications for deliveries after cutoff
                 if (deliveriesToNotify.length > 0) {
-                    console.log(`📤 Sending notifications for ${deliveriesToNotify.length} delivery(ies) after March 8, 2026...`);
+                    console.log(`Sending notifications for ${deliveriesToNotify.length} delivery(ies) after March 8, 2026...`);
 
-                    // Fetch latest fuel price quote from RKA email (non-blocking on failure)
                     let priceQuotes: FuelPriceQuote[] = [];
                     try {
                         priceQuotes = await outlookEmailService.getLatestFuelPriceQuotes(2);
                     } catch (err) {
-                        console.error('⚠️ Could not fetch fuel price quote (will send notification without prices):', err);
+                        console.error('Could not fetch fuel price quote (will send notification without prices):', err);
                     }
 
-                    // Send email (non-blocking) — includes price quote if available
                     sendFuelDeliveryEmail(deliveriesToNotify, priceQuotes)
                         .then(async () => {
-                            // Mark notifications as sent for each specific delivery
                             for (const delivery of deliveriesToNotify) {
                                 await FuelDelivery.updateOne(
                                     {
@@ -280,28 +260,25 @@ class FuelMonitoringService {
                                     { notificationSent: true }
                                 );
                             }
-                            console.log(`✅ Marked ${deliveriesToNotify.length} delivery(ies) as notified`);
+                            console.log(`Marked ${deliveriesToNotify.length} delivery(ies) as notified`);
                         })
                         .catch(err => console.error('Failed to send delivery email:', err));
 
-                    // Send SMS (non-blocking)
                     sendFuelDeliverySms(deliveriesToNotify)
                         .catch(err => console.error('Failed to send delivery SMS:', err));
 
-                    // Send push notification (non-blocking)
                     sendFuelDeliveryNotification(deliveriesToNotify)
                         .catch(err => console.error('Failed to send delivery push:', err));
                 } else {
-                    console.log(`ℹ️ All ${newDeliveries.length} new delivery(ies) are before March 8, 2026 - no notifications sent`);
+                    console.log(`All ${newDeliveries.length} new delivery(ies) are before March 8, 2026 - no notifications sent`);
                 }
             } else {
-                console.log('✅ No new deliveries detected this run');
+                console.log('No new deliveries detected this run');
             }
 
-            console.log('✅ ========== DELIVERY DETECTION COMPLETED ==========\n');
+            console.log('DELIVERY DETECTION COMPLETED\n');
         } catch (error: any) {
-            console.error('❌ Delivery detection error:', error.message);
-            // Don't re-throw — let the cron job continue even if delivery check fails
+            console.error('Delivery detection error:', error.message);
         }
     }
 
@@ -313,6 +290,4 @@ class FuelMonitoringService {
     }
 }
 
-// Export singleton instance
 export const fuelMonitoringService = new FuelMonitoringService();
-

@@ -56,6 +56,13 @@ export interface LowFuelAlert {
     percentageFull: number;
 }
 
+export interface TankStatusReportEntry {
+    tank: TankInventory;
+    threshold: number;
+    percentageFull: number;
+    isLow: boolean;
+}
+
 export interface DeliveryEntry {
     startDate: string;       // e.g. "02/27/26"
     startTime: string;       // e.g. "7:55 AM"
@@ -97,7 +104,7 @@ export interface FuelPriceEntry {
 }
 
 export interface FuelPriceQuote {
-    quoteDate: string;          // email date
+    quoteDate: string;          // quote date extracted from subject/PDF
     supplier: string;           // "RKA Petroleum"
     customerNumber: string;     // e.g. "0003912"
     prices: FuelPriceEntry[];

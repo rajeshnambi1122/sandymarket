@@ -1,6 +1,7 @@
 import { User } from '../models/User';
 import { firebaseAdmin } from '../config/firebase';
 import { PriceComparison } from './gasBuddyService';
+import { TankStatusReportEntry } from '../types/fuelTypes';
 
 // @ts-ignore
 import fetch from 'node-fetch';
@@ -198,6 +199,65 @@ export const sendFuelAlertNotification = async (lowFuelTanks: any[]) => {
 
   if (successCount > 0) {
     console.log(`✅ Fuel alert push sent to ${successCount}/${admin1Users.length} admin1 device(s)`);
+  }
+};
+
+export const sendFuelStatusReportNotification = async (
+  report: TankStatusReportEntry[],
+  period: 'Morning' | 'Evening' = 'Morning'
+): Promise<void> => {
+  const admin1Users = await User.find({
+    role: 'admin1',
+    fcmToken: { $exists: true, $ne: null }
+  });
+
+  if (admin1Users.length === 0) {
+    console.log('No admin1 users with FCM tokens found for fuel status report');
+    return;
+  }
+
+  const lowCount = report.filter((entry) => entry.isLow).length;
+  const summary = report
+    .map((entry) => `${entry.tank.productLabel} T${entry.tank.tankNumber}: ${entry.tank.volumeGallons.toFixed(0)} gal`)
+    .join(' | ');
+
+  const title = `⛽ ${period} Tank Status Report`;
+  const body = lowCount > 0
+    ? `${report.length} tanks checked, ${lowCount} low. ${summary}`
+    : `${report.length} tanks checked, all OK. ${summary}`;
+
+  const data: Record<string, string> = {
+    type: 'fuel_status_report',
+    screen: 'fuel',
+    reportPeriod: period,
+    tankCount: report.length.toString(),
+    lowTankCount: lowCount.toString(),
+    timestamp: new Date().toISOString(),
+  };
+
+  let successCount = 0;
+  for (const user of admin1Users) {
+    const message = {
+      token: user.fcmToken as string,
+      notification: { title, body },
+      data: { ...data, click_action: 'FLUTTER_NOTIFICATION_CLICK' },
+      android: {
+        priority: 'high' as const,
+        notification: { channelId: 'default', priority: 'high' as const, sound: 'default' },
+      },
+      apns: { payload: { aps: { sound: 'default', badge: 1 } } },
+    };
+
+    try {
+      await firebaseAdmin.messaging().send(message);
+      successCount++;
+    } catch (err: any) {
+      console.error(`Failed to send fuel status report to ${user.name}:`, err.message);
+    }
+  }
+
+  if (successCount > 0) {
+    console.log(`Fuel status report push sent to ${successCount}/${admin1Users.length} admin1 device(s)`);
   }
 };
 

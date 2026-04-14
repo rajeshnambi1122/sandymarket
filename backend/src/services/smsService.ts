@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LowFuelAlert } from '../types/fuelTypes';
+import { LowFuelAlert, TankStatusReportEntry } from '../types/fuelTypes';
 import { SendSmsParams, OrderItemForSms, CouponForSms } from '../types/order';
 import { PriceComparison } from './gasBuddyService';
 
@@ -312,6 +312,36 @@ ${tankLines}`;
 /**
  * Send fuel delivery SMS notification to FUEL_ALERT_PHONE
  */
+export const sendFuelStatusReportSms = async (
+  report: TankStatusReportEntry[],
+  period: 'Morning' | 'Evening' = 'Morning'
+): Promise<void> => {
+  try {
+    const fuelAlertPhone = process.env.FUEL_ALERT_PHONE;
+    if (!fuelAlertPhone) {
+      console.warn('FUEL_ALERT_PHONE not set in .env - SMS skipped');
+      return;
+    }
+
+    const recipients = fuelAlertPhone.split(',').map(p => p.trim()).filter(Boolean);
+    const lowCount = report.filter((entry) => entry.isLow).length;
+    const tankLines = report.map((entry) =>
+      `${entry.tank.productLabel} T${entry.tank.tankNumber}: ${entry.tank.volumeGallons.toFixed(0)} gal (${entry.percentageFull.toFixed(0)}%)${entry.isLow ? ' LOW' : ''}`
+    ).join('\n');
+
+    const message = `TANK STATUS REPORT - ${period.toUpperCase()}
+
+${report.length} tank(s) checked${lowCount > 0 ? `, ${lowCount} low` : ', all OK'}
+
+${tankLines}`;
+
+    await sendSms({ recipients, message });
+    console.log(`Fuel status report SMS sent to: ${recipients.join(', ')}`);
+  } catch (error: any) {
+    console.error('Failed to send fuel status report SMS:', error.message);
+  }
+};
+
 export const sendFuelDeliverySms = async (deliveries: {
   tankNumber: number;
   productLabel: string;

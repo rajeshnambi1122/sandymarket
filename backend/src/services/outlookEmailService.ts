@@ -497,8 +497,14 @@ class OutlookEmailService {
                 }
             }
 
-            console.log(`========== PRICE QUOTE FETCH COMPLETED (${quotes.length} quote(s)) ==========\n`);
-            return quotes;
+            // Keep only the first quote for each unique quoteDate so duplicate
+            // emails for the same daily RKA quote do not render twice.
+            const uniqueQuotes = quotes.filter((quote, index, allQuotes) =>
+                allQuotes.findIndex((candidate) => candidate.quoteDate === quote.quoteDate) === index
+            );
+
+            console.log(`========== PRICE QUOTE FETCH COMPLETED (${uniqueQuotes.length} unique quote(s)) ==========\n`);
+            return uniqueQuotes.slice(0, limit);
         } catch (err: any) {
             console.error('Error fetching fuel price quotes:', err.message);
             if (err.message?.includes('interaction_required') || err.message?.includes('token')) {

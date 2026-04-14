@@ -798,6 +798,136 @@ export const sendFuelAlertEmail = async (lowFuelTanks: any[]): Promise<void> => 
   }
 };
 
+export const sendFuelStatusReportEmail = async (
+  report: any[],
+  period: 'Morning' | 'Evening' = 'Morning'
+): Promise<void> => {
+  try {
+    const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
+
+    if (storeEmails.length === 0) {
+      throw new Error('No valid store email addresses found in STORE_EMAILS environment variable');
+    }
+
+    const detroitTime = new Date().toLocaleString('en-US', {
+      timeZone: 'America/Detroit',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    const lowCount = report.filter((entry) => entry.isLow).length;
+    const tanksHtml = report.map((entry) => `
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px; border:1px solid ${entry.isLow ? '#ffcdd2' : '#c8e6c9'}; border-radius:8px; overflow:hidden; background:${entry.isLow ? '#fff8f8' : '#f8fff8'};">
+        <tr>
+          <td style="background:${entry.isLow ? '#c62828' : '#2e7d32'}; padding:12px 16px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="width:36px;">
+                  <table cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="width:36px; height:36px; background:#fff; border-radius:50%; text-align:center; vertical-align:middle; font-size:16px; font-weight:bold; color:${entry.isLow ? '#c62828' : '#2e7d32'};">
+                        ${entry.tank.tankNumber}
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <td style="padding-left:12px; color:#fff; font-size:18px; font-weight:bold; vertical-align:middle;">
+                  ${entry.tank.productLabel}
+                </td>
+                <td style="text-align:right; color:${entry.isLow ? '#ffcdd2' : '#c8e6c9'}; font-size:13px; vertical-align:middle;">
+                  ${entry.isLow ? 'LOW' : 'OK'}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 16px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding:12px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:Arial,sans-serif;">Current Level</td>
+                <td style="padding:12px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:18px; font-weight:bold; font-family:Arial,sans-serif;">${entry.tank.volumeGallons.toFixed(1)} gal</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:Arial,sans-serif;">Tank Capacity</td>
+                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">${entry.tank.fullVolumeGallons} gal</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:Arial,sans-serif;">Threshold</td>
+                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">${entry.threshold} gal</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0 14px; color:#666; font-size:14px; font-family:Arial,sans-serif;">% Full</td>
+                <td style="padding:10px 0 14px; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">${entry.percentageFull.toFixed(1)}%</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    `).join('');
+
+    const { data, error } = await resend.emails.send({
+      from: ALERT_EMAIL,
+      to: storeEmails,
+      subject: `Tank Status Report - ${period} - Sandy's Market`,
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>${period} Tank Status Report</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f0f0f0; font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f0f0; padding:20px 0;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#1565c0,#1976d2); padding:28px 24px; text-align:center;">
+              <div style="font-size:32px; margin-bottom:8px;">Tank Report</div>
+              <div style="color:#fff; font-size:22px; font-weight:bold; margin-bottom:4px;">${period} Tank Status Report</div>
+              <div style="color:#bbdefb; font-size:14px;">${report[0]?.tank?.site?.nickname || "Sandy's Market"} | ${detroitTime}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:${lowCount > 0 ? '#ff9800' : '#2e7d32'}; padding:12px 24px; text-align:center; color:#fff; font-weight:bold; font-size:14px;">
+              ${lowCount > 0 ? `${lowCount} tank(s) below threshold` : 'All tanks above threshold'}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 16px;">
+              <p style="margin:0 0 16px; font-size:15px; color:#333; font-family:Arial,sans-serif;">
+                Daily ${period.toLowerCase()} status snapshot for ${report.length} tank(s).
+              </p>
+              ${tanksHtml}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+    });
+
+    if (error) {
+      console.error('Failed to send fuel status report email:', error);
+      throw error;
+    }
+
+    console.log('Fuel status report email sent successfully:', data?.id);
+  } catch (error) {
+    console.error('Error sending fuel status report email:', error);
+    throw error;
+  }
+};
+
 
 
 
@@ -1170,6 +1300,7 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison, timeOf
 export default {
   sendOrderConfirmationEmail,
   sendFuelAlertEmail,
+  sendFuelStatusReportEmail,
   sendFuelDeliveryEmail,
   sendGasBuddyPriceEmail,
 };
