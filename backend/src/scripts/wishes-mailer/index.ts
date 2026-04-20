@@ -42,7 +42,10 @@ const sendChristmasEmail = async () => {
             <!DOCTYPE html>
             <html>
             <head>
-              <meta charset="utf-8">
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+            <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <title>Merry Christmas!</title>
               <style>
@@ -52,7 +55,7 @@ const sendChristmasEmail = async () => {
                   box-sizing: border-box;
                 }
                 body {
-                  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                  font-family: 'Outfit', 'Helvetica Neue', Helvetica, Arial, sans-serif;
                   line-height: 1.6;
                   color: #333;
                   margin: 0;

@@ -12,6 +12,14 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Store email configuration
 const ORDER_EMAIL = "Sandy's Market <orders@sandysmarket.net>";
 const ALERT_EMAIL = "Sandy's Market <alerts@sandysmarket.net>";
+const EMAIL_ORANGE = '#F97316';
+const EMAIL_ORANGE_DARK = '#ea580c';
+const EMAIL_ORANGE_SOFT = '#fff7ed';
+const EMAIL_ORANGE_BORDER = '#fed7aa';
+const EMAIL_GREEN = '#16a34a';
+const EMAIL_GREEN_SOFT = '#f0fdf4';
+const EMAIL_GREEN_BORDER = '#bbf7d0';
+const EMAIL_TEXT = '#111827';
 
 /**
  * Validate and parse email addresses for Resend API
@@ -27,6 +35,15 @@ const parseAndValidateEmails = (emailString: string): string[] => {
   // Validate email format for Resend
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emails.filter(email => emailRegex.test(email));
+};
+
+const getGasBuddyReportEmails = (): string[] => {
+  const gasBuddyEmails = parseAndValidateEmails(process.env.GAS_BUDDY_REPORT_EMAILS || '');
+  if (gasBuddyEmails.length > 0) {
+    return gasBuddyEmails;
+  }
+
+  return parseAndValidateEmails(process.env.STORE_EMAILS || '');
 };
 
 /**
@@ -52,82 +69,92 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
         <!DOCTYPE html>
         <html>
           <head>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
             <meta name="color-scheme" content="light">
             <meta name="supported-color-schemes" content="light">
             <style>
               :root { color-scheme: light; }
               body { 
-                font-family: Arial, sans-serif; 
+                font-family: 'Outfit', Arial, sans-serif; 
                 line-height: 1.6; 
-                color: #333 !important; 
-                background-color: #ffffff !important;
+                color: ${EMAIL_TEXT} !important; 
+                background-color: ${EMAIL_ORANGE_SOFT} !important;
                 margin: 0;
                 padding: 0;
               }
               .container { 
                 max-width: 600px; 
                 margin: 0 auto; 
-                padding: 20px;
-                background-color: #ffffff !important;
+                padding: 24px 16px;
+                background-color: ${EMAIL_ORANGE_SOFT} !important;
               }
               .header { 
-                background: linear-gradient(135deg, #2E7D32, #4CAF50) !important;
+                background: linear-gradient(135deg, ${EMAIL_ORANGE}, ${EMAIL_ORANGE_DARK}) !important;
                 color: white !important; 
-                padding: 30px 20px; 
+                padding: 34px 24px; 
                 text-align: center; 
-                border-radius: 5px 5px 0 0; 
+                border-radius: 18px 18px 0 0; 
               }
               .action-banner {
-                background-color: #ff9800 !important;
-                color: white !important;
-                padding: 15px;
+                background-color: #ffedd5 !important;
+                color: #9a3412 !important;
+                padding: 14px 18px;
                 text-align: center;
-                font-weight: bold;
+                font-weight: 800;
                 margin: 0;
                 border-radius: 0;
+                border-left: 1px solid ${EMAIL_ORANGE_BORDER};
+                border-right: 1px solid ${EMAIL_ORANGE_BORDER};
               }
               .content { 
                 background-color: #ffffff !important; 
-                padding: 20px; 
-                border: 1px solid #ddd;
+                padding: 22px; 
+                border: 1px solid ${EMAIL_ORANGE_BORDER};
                 border-top: none;
-                color: #333 !important;
+                color: ${EMAIL_TEXT} !important;
+                border-radius: 0 0 18px 18px;
               }
               .order-details { 
-                background-color: #f9f9f9 !important; 
+                background-color: #fff7ed !important; 
                 padding: 20px; 
                 margin: 20px 0; 
-                border-radius: 8px;
-                border-left: 4px solid #2E7D32;
-                color: #333 !important;
+                border-radius: 16px;
+                border: 1px solid ${EMAIL_ORANGE_BORDER};
+                border-left: 5px solid ${EMAIL_ORANGE};
+                color: ${EMAIL_TEXT} !important;
               }
               .order-table {
                 width: 100%;
                 border-collapse: collapse;
                 margin: 20px 0;
                 background-color: #ffffff !important;
-                border-radius: 8px;
+                border-radius: 16px;
                 overflow: hidden;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 8px 22px rgba(249, 115, 22, 0.10);
+                border: 1px solid ${EMAIL_ORANGE_BORDER};
               }
               .order-table th {
-                background-color: #f0f0f0 !important;
+                background-color: #ffedd5 !important;
                 padding: 15px;
                 text-align: left;
-                border-bottom: 2px solid #ddd;
-                font-weight: bold;
+                border-bottom: 1px solid ${EMAIL_ORANGE_BORDER};
+                font-weight: 800;
+                color: #9a3412;
               }
               .order-table td {
                 padding: 15px;
-                border-bottom: 1px solid #ddd;
+                border-bottom: 1px solid #ffedd5;
                 vertical-align: top;
               }
               .toppings-info {
                 margin-top: 5px;
                 padding: 8px;
-                background-color: #e8f5e9 !important;
-                border-left: 3px solid #4caf50;
-                border-radius: 3px;
+                background-color: ${EMAIL_GREEN_SOFT} !important;
+                border: 1px solid ${EMAIL_GREEN_BORDER};
+                border-left: 3px solid ${EMAIL_GREEN};
+                border-radius: 12px;
                 font-size: 14px;
               }
               .warning-info {
@@ -151,13 +178,13 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
                 margin: 20px 0;
                 border-radius: 8px;
                 text-align: right;
-                border: 2px solid #2E7D32;
+                border: 1px solid ${EMAIL_ORANGE_BORDER};
               }
               .support-section {
                 text-align: center;
                 margin-top: 20px;
                 padding: 15px;
-                background-color: #f5f5f5 !important;
+                background-color: #fff7ed !important;
                 border-radius: 5px;
                 border: 1px solid #ddd;
               }
@@ -210,19 +237,19 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
               
               <div class="content">
                 <div class="order-details">
-                  <h2 style="margin-top: 0; color: #2E7D32;">📋 Customer Information</h2>
+                  <h2 style="margin-top: 0; color: ${EMAIL_ORANGE_DARK};">📋 Customer Information</h2>
                   <p><strong>Customer:</strong> ${orderDetails.customerName}</p>
                   <p><strong>Phone:</strong> <a href="tel:${orderDetails.phone}">${orderDetails.phone}</a></p>
                   <p><strong>Email:</strong> <a href="mailto:${orderDetails.customerEmail}">${orderDetails.customerEmail}</a></p>
                   <p><strong>Status:</strong> <span style="color: #ff9800; font-weight: bold;">⏳ PENDING</span></p>
                   <p><strong>Order Time:</strong> ${new Date().toLocaleString()}</p>
-                  <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #2E7D32;">
+                  <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid ${EMAIL_ORANGE_BORDER};">
                     <p style="margin-bottom: 10px;"><strong>Delivery Method:</strong> 
-                      <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: bold; background-color: ${orderDetails.deliveryType === 'door-delivery' ? '#2196F3' : '#4CAF50'}; color: white;">
+                      <span style="display: inline-block; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 800; background-color: ${orderDetails.deliveryType === 'door-delivery' ? '#dbeafe' : EMAIL_GREEN_SOFT}; color: ${orderDetails.deliveryType === 'door-delivery' ? '#1d4ed8' : '#166534'}; border: 1px solid ${orderDetails.deliveryType === 'door-delivery' ? '#bfdbfe' : EMAIL_GREEN_BORDER};">
                         ${orderDetails.deliveryType === 'door-delivery' ? '🚚 DOOR DELIVERY' : '📍 PICKUP'}
                       </span>
                     </p>
-                    <p style="margin: 0; font-weight: bold; color: ${orderDetails.deliveryType === 'door-delivery' ? '#1976d2' : '#2E7D32'};"><strong>${orderDetails.deliveryType === 'door-delivery' ? '🚚 Delivery' : '📍 Pickup'} Address:</strong> ${orderDetails.address || 'Pickup at store'}</p>
+                    <p style="margin: 0; font-weight: bold; color: ${orderDetails.deliveryType === 'door-delivery' ? '#1d4ed8' : '#166534'};"><strong>${orderDetails.deliveryType === 'door-delivery' ? '🚚 Delivery' : '📍 Pickup'} Address:</strong> ${orderDetails.address || 'Pickup at store'}</p>
                   </div>
                 </div>
 
@@ -240,7 +267,7 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
                 </div>
                 ` : ''}
 
-                <h2 style="color: #2E7D32;">🛒 Order Items</h2>
+                <h2 style="color: ${EMAIL_ORANGE_DARK};">🛒 Order Items</h2>
                 <table class="order-table">
                   <thead>
                     <tr>
@@ -279,11 +306,11 @@ const sendStoreNotification = async (orderDetails: OrderDetails): Promise<void> 
                     Subtotal: $${orderDetails.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
                   </p>
                   ${(orderDetails.coupon && orderDetails.coupon.isApplied) ? `
-                  <p style="margin: 5px 0; font-size: 16px; color: #2E7D32;">
+                  <p style="margin: 5px 0; font-size: 16px; color: ${EMAIL_GREEN};">
                     Discount (${orderDetails.coupon.code}${orderDetails.coupon.discountPercentage ? ` - ${orderDetails.coupon.discountPercentage}%` : ''}): -$${(orderDetails.coupon.discountAmount || 0).toFixed(2)}
                   </p>
                   ` : ''}
-                  <h3 style="margin: 10px 0 0 0; font-size: 24px; color: #2E7D32; border-top: 1px solid #ccc; padding-top: 10px;">
+                  <h3 style="margin: 10px 0 0 0; font-size: 24px; color: ${EMAIL_ORANGE_DARK}; border-top: 1px solid ${EMAIL_ORANGE_BORDER}; padding-top: 10px;">
                     Total: $${orderDetails.totalAmount.toFixed(2)}
                   </h3>
                 </div>
@@ -349,66 +376,74 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
         <!DOCTYPE html>
         <html>
           <head>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
             <style>
               body { 
-                font-family: Arial, sans-serif; 
+                font-family: 'Outfit', Arial, sans-serif; 
                 line-height: 1.6; 
-                color: #333;
+                color: ${EMAIL_TEXT};
                 margin: 0;
                 padding: 0;
-                background-color: #f5f5f5;
+                background-color: ${EMAIL_ORANGE_SOFT};
               }
               .container { 
                 max-width: 600px; 
                 margin: 0 auto; 
                 background-color: #ffffff;
-                border-radius: 8px;
+                border-radius: 18px;
                 overflow: hidden;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 14px 34px rgba(249, 115, 22, 0.14);
+                border: 1px solid ${EMAIL_ORANGE_BORDER};
               }
               .header { 
-                background: linear-gradient(135deg, #2E7D32, #4CAF50);
+                background: linear-gradient(135deg, ${EMAIL_ORANGE}, ${EMAIL_ORANGE_DARK});
                 color: white; 
-                padding: 30px 20px; 
+                padding: 34px 24px; 
                 text-align: center;
               }
               .content { 
                 padding: 30px 20px;
               }
               .order-summary { 
-                background-color: #f9f9f9; 
+                background-color: #fff7ed; 
                 padding: 20px; 
                 margin: 20px 0; 
-                border-radius: 8px;
-                border-left: 4px solid #2E7D32;
+                border-radius: 16px;
+                border: 1px solid ${EMAIL_ORANGE_BORDER};
+                border-left: 5px solid ${EMAIL_ORANGE};
               }
               .items-table { 
                 width: 100%; 
                 border-collapse: collapse; 
                 margin: 20px 0;
                 background-color: #ffffff;
-                border-radius: 8px;
+                border-radius: 16px;
                 overflow: hidden;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 8px 22px rgba(249, 115, 22, 0.10);
+                border: 1px solid ${EMAIL_ORANGE_BORDER};
               }
               .items-table th { 
-                background-color: #f0f0f0;
+                background-color: #ffedd5;
                 padding: 15px; 
                 text-align: left; 
-                border-bottom: 2px solid #ddd;
-                font-weight: bold;
+                border-bottom: 1px solid ${EMAIL_ORANGE_BORDER};
+                color: #9a3412;
+                font-weight: 800;
               }
               .items-table td { 
                 padding: 15px; 
-                border-bottom: 1px solid #ddd;
+                border-bottom: 1px solid #ffedd5;
                 vertical-align: top;
               }
               .toppings-display {
                 margin-top: 8px;
                 padding: 10px;
-                background-color: #e8f5e9;
-                border-left: 3px solid #4caf50;
-                border-radius: 4px;
+                background-color: ${EMAIL_GREEN_SOFT};
+                border: 1px solid ${EMAIL_GREEN_BORDER};
+                border-left: 3px solid ${EMAIL_GREEN};
+                border-radius: 12px;
                 font-size: 14px;
               }
               .warning-display {
@@ -432,10 +467,10 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                 margin: 20px 0;
                 border-radius: 8px;
                 text-align: right;
-                border: 2px solid #2E7D32;
+                border: 1px solid ${EMAIL_ORANGE_BORDER};
               }
               .cta-button { 
-                background-color: #2E7D32; 
+                background-color: ${EMAIL_ORANGE_DARK}; 
                 color: white; 
                 padding: 15px 30px; 
                 text-decoration: none; 
@@ -449,7 +484,7 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                 text-align: center; 
                 margin-top: 30px; 
                 padding: 20px;
-                background-color: #f5f5f5;
+                background-color: #fff7ed;
                 color: #666;
                 border-top: 1px solid #ddd;
               }
@@ -522,13 +557,13 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                 <p>We've received your order and we're excited to prepare it for you!</p>
                 
                 <div class="order-summary">
-                  <h2 style="margin-top: 0; color: #2E7D32;">📋 Order Summary</h2>
+                  <h2 style="margin-top: 0; color: ${EMAIL_ORANGE_DARK};">📋 Order Summary</h2>
                   <p><strong>Order ID:</strong> ${orderDetails.id}</p>
                   <p><strong>Status:</strong> <span class="status-badge">⏳ Pending</span></p>
                   <p><strong>Order Time:</strong> ${new Date().toLocaleString()}</p>
                   <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
                     <p style="margin-bottom: 10px;"><strong>Delivery Method:</strong> 
-                      <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: bold; background-color: ${orderDetails.deliveryType === 'door-delivery' ? '#2196F3' : '#4CAF50'}; color: white;">
+                      <span style="display: inline-block; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 800; background-color: ${orderDetails.deliveryType === 'door-delivery' ? '#dbeafe' : EMAIL_GREEN_SOFT}; color: ${orderDetails.deliveryType === 'door-delivery' ? '#1d4ed8' : '#166534'}; border: 1px solid ${orderDetails.deliveryType === 'door-delivery' ? '#bfdbfe' : EMAIL_GREEN_BORDER};">
                         ${orderDetails.deliveryType === 'door-delivery' ? '🚚 Door Delivery' : '📍 Pickup'}
                       </span>
                     </p>
@@ -550,7 +585,7 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                 </div>
                 ` : ''}
 
-                <h3 style="color: #2E7D32;">🛒 Your Order Items</h3>
+                <h3 style="color: ${EMAIL_ORANGE_DARK};">🛒 Your Order Items</h3>
                 <table class="items-table">
                   <thead>
                     <tr>
@@ -587,11 +622,11 @@ export const sendOrderConfirmationEmail = async (orderDetails: OrderDetails): Pr
                     Subtotal: $${orderDetails.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
                   </p>
                   ${(orderDetails.coupon && orderDetails.coupon.isApplied) ? `
-                  <p style="margin: 5px 0; font-size: 16px; color: #2E7D32;">
+                  <p style="margin: 5px 0; font-size: 16px; color: ${EMAIL_GREEN};">
                     Discount (${orderDetails.coupon.code}${orderDetails.coupon.discountPercentage ? ` - ${orderDetails.coupon.discountPercentage}%` : ''}): -$${(orderDetails.coupon.discountAmount || 0).toFixed(2)}
                   </p>
                   ` : ''}
-                  <h3 style="margin: 10px 0 0 0; font-size: 24px; color: #2E7D32; border-top: 1px solid #ccc; padding-top: 10px;">
+                  <h3 style="margin: 10px 0 0 0; font-size: 24px; color: ${EMAIL_ORANGE_DARK}; border-top: 1px solid ${EMAIL_ORANGE_BORDER}; padding-top: 10px;">
                     Total: $${orderDetails.totalAmount.toFixed(2)}
                   </h3>
                 </div>
@@ -652,7 +687,7 @@ export const sendFuelAlertEmail = async (lowFuelTanks: any[]): Promise<void> => 
     }
 
     const tanksHtml = lowFuelTanks.map(alert => `
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px; border:1px solid #ffcdd2; border-radius:8px; overflow:hidden; background:#fff8f8;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px; border:1px solid ${EMAIL_ORANGE_BORDER}; border-radius:16px; overflow:hidden; background:#fff7ed;">
         <!-- Tank Header -->
         <tr>
           <td style="background:#c62828; padding:12px 16px;">
@@ -682,34 +717,34 @@ export const sendFuelAlertEmail = async (lowFuelTanks: any[]): Promise<void> => 
           <td style="padding:0 16px;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td style="padding:12px 0; border-bottom:1px solid #ffcdd2; color:#666; font-size:14px; font-family:Arial,sans-serif;">
+                <td style="padding:12px 0; border-bottom:1px solid #ffcdd2; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">
                   Current Level
                 </td>
-                <td style="padding:12px 0; border-bottom:1px solid #ffcdd2; text-align:right; color:#c62828; font-size:18px; font-weight:bold; font-family:Arial,sans-serif;">
+                <td style="padding:12px 0; border-bottom:1px solid #ffcdd2; text-align:right; color:#c62828; font-size:18px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">
                   ${alert.tank.volumeGallons.toFixed(1)} gal
                 </td>
               </tr>
               <tr>
-                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; color:#666; font-size:14px; font-family:Arial,sans-serif;">
+                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">
                   Alert Threshold
                 </td>
-                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">
+                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">
                   ${alert.threshold} gal
                 </td>
               </tr>
               <tr>
-                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; color:#666; font-size:14px; font-family:Arial,sans-serif;">
+                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">
                   Tank Capacity
                 </td>
-                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">
+                <td style="padding:10px 0; border-bottom:1px solid #ffcdd2; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">
                   ${alert.tank.fullVolumeGallons} gal
                 </td>
               </tr>
               <tr>
-                <td style="padding:10px 0 14px; color:#666; font-size:14px; font-family:Arial,sans-serif;">
+                <td style="padding:10px 0 14px; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">
                   % Full
                 </td>
-                <td style="padding:10px 0 14px; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">
+                <td style="padding:10px 0 14px; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">
                   ${alert.percentageFull.toFixed(1)}%
                 </td>
               </tr>
@@ -737,39 +772,42 @@ export const sendFuelAlertEmail = async (lowFuelTanks: any[]): Promise<void> => 
       html: `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+            <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
   <title>Fuel Level Alert</title>
 </head>
-<body style="margin:0; padding:0; background-color:#f0f0f0; font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f0f0; padding:20px 0;">
+  <body style="margin:0; padding:0; background-color:${EMAIL_ORANGE_SOFT}; font-family:'Outfit',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${EMAIL_ORANGE_SOFT}; padding:24px 12px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; background:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 14px 34px rgba(249,115,22,0.14); border:1px solid ${EMAIL_ORANGE_BORDER};">
 
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#c62828,#e53935); padding:28px 24px; text-align:center;">
+            <td style="background:linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK}); padding:34px 24px; text-align:center;">
               <div style="font-size:32px; margin-bottom:8px;">⛽</div>
               <div style="color:#fff; font-size:22px; font-weight:bold; margin-bottom:4px;">Fuel Level Alert!</div>
-              <div style="color:#ffcdd2; font-size:14px;">${lowFuelTanks[0]?.tank?.site?.nickname || "Sandy's Market"}</div>
+              <div style="color:#ffedd5; font-size:14px;">${lowFuelTanks[0]?.tank?.site?.nickname || "Sandy's Market"}</div>
             </td>
           </tr>
 
           <!-- Orange Banner -->
           <tr>
-            <td style="background:#ff9800; padding:12px 24px; text-align:center; color:#fff; font-weight:bold; font-size:14px;">
+            <td style="background:#ffedd5; padding:12px 24px; text-align:center; color:#9a3412; font-weight:800; font-size:14px; border-bottom:1px solid ${EMAIL_ORANGE_BORDER};">
               ⚠️ Low Fuel Levels Detected
             </td>
           </tr>
 
           <!-- Body -->
           <tr>
-            <td style="padding:20px 16px;">
+            <td style="padding:22px 18px;">
 
               <!-- Summary -->
-              <p style="margin:0 0 16px; font-size:15px; font-weight:bold; color:#c62828; font-family:Arial,sans-serif;">
+              <p style="margin:0 0 16px; font-size:15px; font-weight:800; color:#c2410c; font-family:'Outfit',Arial,sans-serif;">
                 🚨 ${lowFuelTanks.length} tank(s) below threshold
               </p>
 
@@ -822,15 +860,15 @@ export const sendFuelStatusReportEmail = async (
 
     const lowCount = report.filter((entry) => entry.isLow).length;
     const tanksHtml = report.map((entry) => `
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px; border:1px solid ${entry.isLow ? '#ffcdd2' : '#c8e6c9'}; border-radius:8px; overflow:hidden; background:${entry.isLow ? '#fff8f8' : '#f8fff8'};">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px; border:1px solid ${entry.isLow ? EMAIL_ORANGE_BORDER : EMAIL_GREEN_BORDER}; border-radius:16px; overflow:hidden; background:${entry.isLow ? EMAIL_ORANGE_SOFT : EMAIL_GREEN_SOFT};">
         <tr>
-          <td style="background:${entry.isLow ? '#c62828' : '#2e7d32'}; padding:12px 16px;">
+          <td style="background:${entry.isLow ? `linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK})` : `linear-gradient(135deg,${EMAIL_GREEN},#15803d)`}; padding:12px 16px;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td style="width:36px;">
                   <table cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td style="width:36px; height:36px; background:#fff; border-radius:50%; text-align:center; vertical-align:middle; font-size:16px; font-weight:bold; color:${entry.isLow ? '#c62828' : '#2e7d32'};">
+                      <td style="width:36px; height:36px; background:#fff; border-radius:50%; text-align:center; vertical-align:middle; font-size:16px; font-weight:800; color:${entry.isLow ? EMAIL_ORANGE_DARK : EMAIL_GREEN};">
                         ${entry.tank.tankNumber}
                       </td>
                     </tr>
@@ -839,7 +877,7 @@ export const sendFuelStatusReportEmail = async (
                 <td style="padding-left:12px; color:#fff; font-size:18px; font-weight:bold; vertical-align:middle;">
                   ${entry.tank.productLabel}
                 </td>
-                <td style="text-align:right; color:${entry.isLow ? '#ffcdd2' : '#c8e6c9'}; font-size:13px; vertical-align:middle;">
+                <td style="text-align:right; color:${entry.isLow ? '#ffedd5' : '#dcfce7'}; font-size:13px; vertical-align:middle; font-weight:800;">
                   ${entry.isLow ? 'LOW' : 'OK'}
                 </td>
               </tr>
@@ -850,20 +888,20 @@ export const sendFuelStatusReportEmail = async (
           <td style="padding:0 16px;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td style="padding:12px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:Arial,sans-serif;">Current Level</td>
-                <td style="padding:12px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:18px; font-weight:bold; font-family:Arial,sans-serif;">${entry.tank.volumeGallons.toFixed(1)} gal</td>
+                <td style="padding:12px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">Current Level</td>
+                <td style="padding:12px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:18px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${entry.tank.volumeGallons.toFixed(1)} gal</td>
               </tr>
               <tr>
-                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:Arial,sans-serif;">Tank Capacity</td>
-                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">${entry.tank.fullVolumeGallons} gal</td>
+                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">Tank Capacity</td>
+                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${entry.tank.fullVolumeGallons} gal</td>
               </tr>
               <tr>
-                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:Arial,sans-serif;">Threshold</td>
-                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">${entry.threshold} gal</td>
+                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">Threshold</td>
+                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${entry.threshold} gal</td>
               </tr>
               <tr>
-                <td style="padding:10px 0 14px; color:#666; font-size:14px; font-family:Arial,sans-serif;">% Full</td>
-                <td style="padding:10px 0 14px; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">${entry.percentageFull.toFixed(1)}%</td>
+                <td style="padding:10px 0 14px; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">% Full</td>
+                <td style="padding:10px 0 14px; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${entry.percentageFull.toFixed(1)}%</td>
               </tr>
             </table>
           </td>
@@ -878,31 +916,34 @@ export const sendFuelStatusReportEmail = async (
       html: `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+            <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
   <title>${period} Tank Status Report</title>
 </head>
-<body style="margin:0; padding:0; background-color:#f0f0f0; font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f0f0; padding:20px 0;">
+  <body style="margin:0; padding:0; background-color:${EMAIL_ORANGE_SOFT}; font-family:'Outfit',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${EMAIL_ORANGE_SOFT}; padding:24px 12px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; background:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 14px 34px rgba(249,115,22,0.14); border:1px solid ${EMAIL_ORANGE_BORDER};">
           <tr>
-            <td style="background:linear-gradient(135deg,#1565c0,#1976d2); padding:28px 24px; text-align:center;">
-              <div style="font-size:32px; margin-bottom:8px;">Tank Report</div>
+            <td style="background:linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK}); padding:34px 24px; text-align:center;">
+              <div style="display:inline-block; margin-bottom:12px; padding:8px 14px; border-radius:999px; background:rgba(255,255,255,0.18); color:#fff7ed; font-size:12px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">Tank Report</div>
               <div style="color:#fff; font-size:22px; font-weight:bold; margin-bottom:4px;">${period} Tank Status Report</div>
-              <div style="color:#bbdefb; font-size:14px;">${report[0]?.tank?.site?.nickname || "Sandy's Market"} | ${detroitTime}</div>
+              <div style="color:#ffedd5; font-size:14px;">${report[0]?.tank?.site?.nickname || "Sandy's Market"} | ${detroitTime}</div>
             </td>
           </tr>
           <tr>
-            <td style="background:${lowCount > 0 ? '#ff9800' : '#2e7d32'}; padding:12px 24px; text-align:center; color:#fff; font-weight:bold; font-size:14px;">
+            <td style="background:${lowCount > 0 ? '#ffedd5' : EMAIL_GREEN_SOFT}; padding:12px 24px; text-align:center; color:${lowCount > 0 ? '#9a3412' : '#166534'}; font-weight:800; font-size:14px; border-bottom:1px solid ${lowCount > 0 ? EMAIL_ORANGE_BORDER : EMAIL_GREEN_BORDER};">
               ${lowCount > 0 ? `${lowCount} tank(s) below threshold` : 'All tanks above threshold'}
             </td>
           </tr>
           <tr>
             <td style="padding:20px 16px;">
-              <p style="margin:0 0 16px; font-size:15px; color:#333; font-family:Arial,sans-serif;">
+              <p style="margin:0 0 16px; font-size:15px; color:#333; font-family:'Outfit',Arial,sans-serif;">
                 Daily ${period.toLowerCase()} status snapshot for ${report.length} tank(s).
               </p>
               ${tanksHtml}
@@ -942,30 +983,30 @@ const buildFuelDeliveryPriceQuoteHtml = (priceQuotes?: FuelPriceQuote[] | null):
 
   const quoteSections = recentQuotes.map((priceQuote, quoteIndex) => {
     const priceRows = priceQuote.prices.map((p, idx) => `
-      <tr style="background:${idx % 2 === 0 ? '#fff' : '#F5F5F5'}; border-bottom:1px solid #E3F2FD;">
-        <td style="padding:6px 12px; color:#333; font-size:12px; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">${p.product}</td>
-        <td style="padding:6px 10px; text-align:right; color:#1565C0; font-size:13px; font-weight:bold; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">$${p.costPerGallon.toFixed(6)}</td>
-        <td style="padding:6px 10px; text-align:right; color:#C62828; font-size:13px; font-weight:bold; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">$${p.costWithTaxes.toFixed(6)}</td>
+      <tr style="background:${idx % 2 === 0 ? '#fff' : '#fff7ed'}; border-bottom:1px solid #ffedd5;">
+        <td style="padding:6px 12px; color:#333; font-size:12px; font-family:'Outfit',Arial,sans-serif; border-bottom:1px solid #ffedd5;">${p.product}</td>
+        <td style="padding:6px 10px; text-align:right; color:${EMAIL_ORANGE_DARK}; font-size:13px; font-weight:bold; font-family:'Outfit',Arial,sans-serif; border-bottom:1px solid #ffedd5;">$${p.costPerGallon.toFixed(6)}</td>
+        <td style="padding:6px 10px; text-align:right; color:#C62828; font-size:13px; font-weight:bold; font-family:'Outfit',Arial,sans-serif; border-bottom:1px solid #ffedd5;">$${p.costWithTaxes.toFixed(6)}</td>
       </tr>
     `).join('');
 
     return `
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:${quoteIndex === 0 ? '8px' : '14px'}; border:1px solid #BBDEFB; border-radius:8px; overflow:hidden;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:${quoteIndex === 0 ? '8px' : '14px'}; border:1px solid ${EMAIL_ORANGE_BORDER}; border-radius:16px; overflow:hidden; box-shadow:0 8px 22px rgba(249,115,22,0.08);">
         <tr>
-          <td colspan="3" style="background:linear-gradient(135deg,#1565C0,#1976D2); padding:10px 14px;">
+          <td colspan="3" style="background:linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK}); padding:12px 14px;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-              <td style="color:#fff; font-size:15px; font-weight:bold; font-family:Arial,sans-serif;">RKA Price Quote</td>
-              <td style="text-align:right; color:#BBDEFB; font-size:11px; font-family:Arial,sans-serif;">Quote Date: ${priceQuote.quoteDate}${priceQuote.customerNumber ? ' | Cust #' + priceQuote.customerNumber : ''}</td>
+              <td style="color:#fff; font-size:15px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">RKA Price Quote</td>
+              <td style="text-align:right; color:#ffedd5; font-size:11px; font-family:'Outfit',Arial,sans-serif;">Quote Date: ${priceQuote.quoteDate}${priceQuote.customerNumber ? ' | Cust #' + priceQuote.customerNumber : ''}</td>
             </tr></table>
           </td>
         </tr>
         <tr>
           <td colspan="3" style="padding:0;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
-              <tr style="background:#E3F2FD;">
-                <th style="padding:8px 12px; text-align:left; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">Product</th>
-                <th style="padding:8px 10px; text-align:right; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">Cost/Gal</th>
-                <th style="padding:8px 10px; text-align:right; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">W/ Taxes</th>
+              <tr style="background:#ffedd5;">
+                <th style="padding:8px 12px; text-align:left; color:#9a3412; font-size:11px; font-weight:800; font-family:'Outfit',Arial,sans-serif; text-transform:uppercase;">Product</th>
+                <th style="padding:8px 10px; text-align:right; color:#9a3412; font-size:11px; font-weight:800; font-family:'Outfit',Arial,sans-serif; text-transform:uppercase;">Cost/Gal</th>
+                <th style="padding:8px 10px; text-align:right; color:#9a3412; font-size:11px; font-weight:800; font-family:'Outfit',Arial,sans-serif; text-transform:uppercase;">W/ Taxes</th>
               </tr>
               ${priceRows}
             </table>
@@ -979,7 +1020,7 @@ const buildFuelDeliveryPriceQuoteHtml = (priceQuotes?: FuelPriceQuote[] | null):
     <!-- Price Quote Section -->
     <tr><td style="padding:0 16px 20px;">
       ${quoteSections}
-      <p style="margin:8px 0 0; font-size:11px; color:#999; font-family:Arial,sans-serif; text-align:center;">
+      <p style="margin:8px 0 0; font-size:11px; color:#999; font-family:'Outfit',Arial,sans-serif; text-align:center;">
         Prices sourced from the latest ${recentQuotes.length} daily RKA Petroleum quote email${recentQuotes.length !== 1 ? 's' : ''} (${recentQuotes[0].supplier})
       </p>
     </td></tr>
@@ -1008,37 +1049,37 @@ export const sendFuelDeliveryEmail = async (deliveries: {
     const totalGallons = deliveries.reduce((sum, d) => sum + d.gallonsDelivered, 0);
 
     const deliveryRows = deliveries.map(d => `
-      <table class="delivery-card" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px; border:1px solid #c8e6c9; border-radius:6px; overflow:hidden; background:#f9fff9;">
+      <table class="delivery-card" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px; border:1px solid ${EMAIL_ORANGE_BORDER}; border-radius:16px; overflow:hidden; background:#fff7ed; box-shadow:0 8px 22px rgba(249,115,22,0.08);">
         <tr>
-          <td class="tank-header" style="background:linear-gradient(135deg,#2E7D32,#43A047); padding:8px 12px;">
+          <td class="tank-header" style="background:linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK}); padding:10px 12px;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-              <td style="width:28px; height:28px; background:#fff; border-radius:50%; text-align:center; vertical-align:middle; font-size:14px; font-weight:bold; color:#2E7D32;">${d.tankNumber}</td>
+              <td style="width:28px; height:28px; background:#fff; border-radius:50%; text-align:center; vertical-align:middle; font-size:14px; font-weight:800; color:${EMAIL_ORANGE_DARK};">${d.tankNumber}</td>
               <td class="tank-name" style="padding-left:10px; color:#fff; font-size:15px; font-weight:bold; vertical-align:middle;">${d.productLabel}</td>
-              <td style="text-align:right; color:#c8e6c9; font-size:12px; vertical-align:middle;">Tank #${d.tankNumber}</td>
+              <td style="text-align:right; color:#ffedd5; font-size:12px; vertical-align:middle;">Tank #${d.tankNumber}</td>
             </tr></table>
           </td>
         </tr>
         <tr><td style="padding:0 12px;">
           <table width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
-              <td style="padding:6px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:12px; font-family:Arial,sans-serif;">Volume Before</td>
-              <td class="value" style="padding:6px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#666; font-size:13px; font-weight:600; font-family:Arial,sans-serif;">${d.startVolume.toLocaleString()} gal</td>
+              <td style="padding:6px 0; border-bottom:1px solid #fed7aa; color:#555; font-size:12px; font-family:'Outfit',Arial,sans-serif;">Volume Before</td>
+              <td class="value" style="padding:6px 0; border-bottom:1px solid #fed7aa; text-align:right; color:#666; font-size:13px; font-weight:600; font-family:'Outfit',Arial,sans-serif;">${d.startVolume.toLocaleString()} gal</td>
             </tr>
             <tr>
-              <td style="padding:6px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:12px; font-family:Arial,sans-serif;">Gallons Delivered</td>
-              <td class="value" style="padding:6px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#2E7D32; font-size:16px; font-weight:bold; font-family:Arial,sans-serif;">+${d.gallonsDelivered.toLocaleString()} gal</td>
+              <td style="padding:6px 0; border-bottom:1px solid #fed7aa; color:#555; font-size:12px; font-family:'Outfit',Arial,sans-serif;">Gallons Delivered</td>
+              <td class="value" style="padding:6px 0; border-bottom:1px solid #fed7aa; text-align:right; color:${EMAIL_GREEN}; font-size:16px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">+${d.gallonsDelivered.toLocaleString()} gal</td>
             </tr>
             <tr>
-              <td style="padding:6px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:12px; font-family:Arial,sans-serif;">Volume After</td>
-              <td class="value" style="padding:6px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#1565C0; font-size:14px; font-weight:bold; font-family:Arial,sans-serif;">${d.endVolume.toLocaleString()} gal</td>
+              <td style="padding:6px 0; border-bottom:1px solid #fed7aa; color:#555; font-size:12px; font-family:'Outfit',Arial,sans-serif;">Volume After</td>
+              <td class="value" style="padding:6px 0; border-bottom:1px solid #fed7aa; text-align:right; color:${EMAIL_ORANGE_DARK}; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${d.endVolume.toLocaleString()} gal</td>
             </tr>
             <tr>
-              <td style="padding:6px 0; border-bottom:1px solid #c8e6c9; color:#555; font-size:12px; font-family:Arial,sans-serif;">Delivery Start</td>
-              <td class="value" style="padding:6px 0; border-bottom:1px solid #c8e6c9; text-align:right; color:#333; font-size:12px; font-family:Arial,sans-serif;">${d.startDate} ${d.startTime}</td>
+              <td style="padding:6px 0; border-bottom:1px solid #fed7aa; color:#555; font-size:12px; font-family:'Outfit',Arial,sans-serif;">Delivery Start</td>
+              <td class="value" style="padding:6px 0; border-bottom:1px solid #fed7aa; text-align:right; color:#333; font-size:12px; font-family:'Outfit',Arial,sans-serif;">${d.startDate} ${d.startTime}</td>
             </tr>
             <tr>
-              <td style="padding:6px 0 8px; color:#555; font-size:12px; font-family:Arial,sans-serif;">Delivery End</td>
-              <td class="value" style="padding:6px 0 8px; text-align:right; color:#333; font-size:12px; font-family:Arial,sans-serif;">${d.endDate} ${d.endTime}</td>
+              <td style="padding:6px 0 8px; color:#555; font-size:12px; font-family:'Outfit',Arial,sans-serif;">Delivery End</td>
+              <td class="value" style="padding:6px 0 8px; text-align:right; color:#333; font-size:12px; font-family:'Outfit',Arial,sans-serif;">${d.endDate} ${d.endTime}</td>
             </tr>
           </table>
         </td></tr>
@@ -1052,39 +1093,39 @@ export const sendFuelDeliveryEmail = async (deliveries: {
     if (recentQuotes.length > 0) {
       const quoteSections = recentQuotes.map((priceQuote, quoteIndex) => {
       const priceRows = priceQuote.prices.map((p, idx) => `
-        <tr style="background:${idx % 2 === 0 ? '#fff' : '#F5F5F5'}; border-bottom:1px solid #E3F2FD;">
-          <td style="padding:6px 12px; color:#333; font-size:12px; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">${p.product}</td>
-          <td style="padding:6px 10px; text-align:right; color:#1565C0; font-size:13px; font-weight:bold; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">$${p.costPerGallon.toFixed(6)}</td>
-          <td style="padding:6px 10px; text-align:right; color:#C62828; font-size:13px; font-weight:bold; font-family:Arial,sans-serif; border-bottom:1px solid #E3F2FD;">$${p.costWithTaxes.toFixed(6)}</td>
+        <tr style="background:${idx % 2 === 0 ? '#fff' : '#fff7ed'}; border-bottom:1px solid #ffedd5;">
+          <td style="padding:6px 12px; color:#333; font-size:12px; font-family:'Outfit',Arial,sans-serif; border-bottom:1px solid #ffedd5;">${p.product}</td>
+          <td style="padding:6px 10px; text-align:right; color:${EMAIL_ORANGE_DARK}; font-size:13px; font-weight:bold; font-family:'Outfit',Arial,sans-serif; border-bottom:1px solid #ffedd5;">$${p.costPerGallon.toFixed(6)}</td>
+          <td style="padding:6px 10px; text-align:right; color:#C62828; font-size:13px; font-weight:bold; font-family:'Outfit',Arial,sans-serif; border-bottom:1px solid #ffedd5;">$${p.costWithTaxes.toFixed(6)}</td>
         </tr>
       `).join('');
 
       priceQuoteHtml = `
         <!-- Price Quote Section -->
         <tr><td style="padding:0 16px 20px;">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px; border:1px solid #BBDEFB; border-radius:8px; overflow:hidden;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px; border:1px solid ${EMAIL_ORANGE_BORDER}; border-radius:16px; overflow:hidden;">
             <tr>
-              <td colspan="3" style="background:linear-gradient(135deg,#1565C0,#1976D2); padding:10px 14px;">
+              <td colspan="3" style="background:linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK}); padding:10px 14px;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-                  <td style="color:#fff; font-size:15px; font-weight:bold; font-family:Arial,sans-serif;">📋 RKA Price Quote</td>
-                  <td style="text-align:right; color:#BBDEFB; font-size:11px; font-family:Arial,sans-serif;">Quote Date: ${priceQuote.quoteDate}</td>
+                  <td style="color:#fff; font-size:15px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">📋 RKA Price Quote</td>
+                  <td style="text-align:right; color:#ffedd5; font-size:11px; font-family:'Outfit',Arial,sans-serif;">Quote Date: ${priceQuote.quoteDate}</td>
                 </tr></table>
               </td>
             </tr>
             <tr>
               <td colspan="3" style="padding:0;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                  <tr style="background:#E3F2FD;">
-                    <th style="padding:8px 12px; text-align:left; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">Product</th>
-                    <th style="padding:8px 10px; text-align:right; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">Cost/Gal</th>
-                    <th style="padding:8px 10px; text-align:right; color:#1565C0; font-size:11px; font-weight:bold; font-family:Arial,sans-serif; text-transform:uppercase;">W/ Taxes</th>
+                  <tr style="background:#ffedd5;">
+                    <th style="padding:8px 12px; text-align:left; color:#1565C0; font-size:11px; font-weight:bold; font-family:'Outfit',Arial,sans-serif; text-transform:uppercase;">Product</th>
+                    <th style="padding:8px 10px; text-align:right; color:#1565C0; font-size:11px; font-weight:bold; font-family:'Outfit',Arial,sans-serif; text-transform:uppercase;">Cost/Gal</th>
+                    <th style="padding:8px 10px; text-align:right; color:#1565C0; font-size:11px; font-weight:bold; font-family:'Outfit',Arial,sans-serif; text-transform:uppercase;">W/ Taxes</th>
                   </tr>
                   ${priceRows}
                 </table>
               </td>
             </tr>
           </table>
-          <p style="margin:8px 0 0; font-size:11px; color:#999; font-family:Arial,sans-serif; text-align:center;">
+          <p style="margin:8px 0 0; font-size:11px; color:#999; font-family:'Outfit',Arial,sans-serif; text-align:center;">
             Prices sourced from latest RKA Petroleum quote email (${priceQuote.supplier})
           </p>
         </td></tr>
@@ -1099,27 +1140,30 @@ export const sendFuelDeliveryEmail = async (deliveries: {
       html: `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+            <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fuel Delivery Detected</title>
 </head>
-<body style="margin:0; padding:0; background-color:#f0f0f0; font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f0f0; padding:20px 0;">
+  <body style="margin:0; padding:0; background-color:${EMAIL_ORANGE_SOFT}; font-family:'Outfit',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${EMAIL_ORANGE_SOFT}; padding:24px 12px;">
     <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 14px 34px rgba(249,115,22,0.14); border:1px solid ${EMAIL_ORANGE_BORDER};">
         <!-- Header -->
-        <tr><td style="background:linear-gradient(135deg,#2E7D32,#43A047); padding:28px 24px; text-align:center;">
+        <tr><td style="background:linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK}); padding:34px 24px; text-align:center;">
           <div style="font-size:36px; margin-bottom:8px;">⛽</div>
           <div style="color:#fff; font-size:22px; font-weight:bold; margin-bottom:4px;">Fuel Delivery Detected!</div>
-          <div style="color:#c8e6c9; font-size:14px;">Sandy's Market : ATG Auto-Detection</div>
+          <div style="color:#ffedd5; font-size:14px;">Sandy's Market : ATG Auto-Detection</div>
         </td></tr>
         <!-- Summary Banner -->
-        <tr><td class="banner" style="background:#43A047; padding:12px 24px; text-align:center; color:#fff; font-weight:bold; font-size:14px;">
+        <tr><td class="banner" style="background:${EMAIL_GREEN_SOFT}; padding:12px 24px; text-align:center; color:#166534; font-weight:800; font-size:14px; border-bottom:1px solid ${EMAIL_GREEN_BORDER};">
           ✅ ${deliveries.length} delivery event(s) — ${totalGallons.toLocaleString()} total gallons
         </td></tr>
         <!-- Delivery Details -->
         <tr><td class="content" style="padding:20px 16px;">
-          <p style="margin:0 0 16px; font-size:15px; font-weight:bold; color:#2E7D32; font-family:Arial,sans-serif;">
+          <p style="margin:0 0 16px; font-size:15px; font-weight:800; color:${EMAIL_ORANGE_DARK}; font-family:'Outfit',Arial,sans-serif;">
             New fuel deliveries have been automatically detected:
           </p>
           ${deliveryRows}
@@ -1127,7 +1171,7 @@ export const sendFuelDeliveryEmail = async (deliveries: {
         ${priceQuoteHtml}
         <!-- Footer -->
         <tr><td style="padding:12px 16px 16px; border-top:1px solid #eee;">
-          <p style="margin:0; font-size:13px; color:#888; font-family:Arial,sans-serif; text-align:center;">
+          <p style="margin:0; font-size:13px; color:#888; font-family:'Outfit',Arial,sans-serif; text-align:center;">
             This notification was automatically generated by the Sandy's Market fuel monitoring system.
           </p>
         </td></tr>
@@ -1157,9 +1201,9 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison, timeOf
   try {
     console.log('📧 Sending Gas Buddy price comparison email...');
 
-    const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
-    if (storeEmails.length === 0) {
-      throw new Error('No valid store email addresses found in STORE_EMAILS environment variable');
+    const reportEmails = getGasBuddyReportEmails();
+    if (reportEmails.length === 0) {
+      throw new Error('No valid email addresses found in GAS_BUDDY_REPORT_EMAILS or STORE_EMAILS environment variables');
     }
 
     const formatPriceWithTime = (price: number | null, updated: string | null) => {
@@ -1190,12 +1234,15 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison, timeOf
 
     const { data, error } = await resend.emails.send({
       from: ALERT_EMAIL,
-      to: storeEmails,
+      to: reportEmails,
       subject: `⛽Gas Buddy ${timeOfDay} Price Update: ${new Date().toLocaleDateString('en-US')}`,
       html: `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+            <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gas Buddy Price Update</title>
   <style>
@@ -1213,25 +1260,25 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison, timeOf
     }
   </style>
 </head>
-<body style="margin:0; padding:0; background-color:#f5f5f5; font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f5f5; padding:20px 0;">
+<body style="margin:0; padding:0; background-color:${EMAIL_ORANGE_SOFT}; font-family:'Outfit',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${EMAIL_ORANGE_SOFT}; padding:24px 12px;">
     <tr><td align="center">
-      <table class="container" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+      <table class="container" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 14px 34px rgba(249,115,22,0.14); border:1px solid ${EMAIL_ORANGE_BORDER};">
         
         <!-- Header -->
-        <tr><td class="header" style="background:linear-gradient(135deg,#1976D2,#2196F3); padding:32px 24px; text-align:center;">
+        <tr><td class="header" style="background:linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK}); padding:34px 24px; text-align:center;">
           <div class="header-icon" style="font-size:48px; margin-bottom:12px;">⛽</div>
           <div class="header-title" style="color:#fff; font-size:26px; font-weight:bold; margin-bottom:6px;">Gas Buddy Price Update</div>
-          <div style="color:#BBDEFB; font-size:14px;">📅 ${detroitTime}</div>
+          <div style="color:#ffedd5; font-size:14px;">📅 ${detroitTime}</div>
         </td></tr>
 
         <!-- Price Comparison Table -->
         <tr><td class="content" style="padding:24px;">
-          <div style="font-size:18px; font-weight:bold; color:#1976D2; margin-bottom:16px; text-align:center;">📊 Price Comparison</div>
+          <div style="font-size:18px; font-weight:800; color:${EMAIL_ORANGE_DARK}; margin-bottom:16px; text-align:center;">📊 Price Comparison</div>
           
-          <table class="comparison-table" width="100%" cellpadding="12" cellspacing="0" style="border-collapse:collapse; border:2px solid #E3F2FD; border-radius:8px; overflow:hidden;">
+          <table class="comparison-table" width="100%" cellpadding="12" cellspacing="0" style="border-collapse:collapse; border:1px solid ${EMAIL_ORANGE_BORDER}; border-radius:16px; overflow:hidden; box-shadow:0 8px 22px rgba(249,115,22,0.08);">
             <thead>
-              <tr style="background:linear-gradient(135deg,#1976D2,#2196F3);">
+              <tr style="background:linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK});">
                 <th style="text-align:left; padding:14px 12px; color:#fff; font-weight:bold; font-size:14px;">Fuel Type</th>
                 <th class="price-col" style="text-align:center; padding:14px 12px; color:#fff; font-weight:bold; font-size:14px;">Sandy's</th>
                 <th class="price-col" style="text-align:center; padding:14px 12px; color:#fff; font-weight:bold; font-size:14px;">Big R</th>
@@ -1239,27 +1286,27 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison, timeOf
               </tr>
             </thead>
             <tbody>
-              <tr style="background:#fff; border-bottom:1px solid #E3F2FD;">
+              <tr style="background:#fff; border-bottom:1px solid #ffedd5;">
                 <td class="fuel-type" style="padding:14px 12px; font-weight:600; color:#555;">⭐ Regular</td>
-                <td class="price-col" style="text-align:center; padding:14px 12px; color:#2E7D32;">${formatPriceWithTime(comparison.sandy.regular, comparison.sandy.regularUpdated)}</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:${EMAIL_GREEN};">${formatPriceWithTime(comparison.sandy.regular, comparison.sandy.regularUpdated)}</td>
                 <td class="price-col" style="text-align:center; padding:14px 12px; color:#C62828;">${formatPriceWithTime(comparison.bigR.regular, comparison.bigR.regularUpdated)}</td>
                 <td style="text-align:center; padding:14px 12px; font-size:15px;">${getPriceDifference(comparison.sandy.regular, comparison.bigR.regular)}</td>
               </tr>
-              <tr style="background:#FAFAFA; border-bottom:1px solid #E3F2FD;">
+              <tr style="background:#fff; border-bottom:1px solid #ffedd5;">
                 <td class="fuel-type" style="padding:14px 12px; font-weight:600; color:#555;">🔶 Midgrade</td>
-                <td class="price-col" style="text-align:center; padding:14px 12px; color:#2E7D32;">${formatPriceWithTime(comparison.sandy.midgrade, comparison.sandy.midgradeUpdated)}</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:${EMAIL_GREEN};">${formatPriceWithTime(comparison.sandy.midgrade, comparison.sandy.midgradeUpdated)}</td>
                 <td class="price-col" style="text-align:center; padding:14px 12px; color:#C62828;">${formatPriceWithTime(comparison.bigR.midgrade, comparison.bigR.midgradeUpdated)}</td>
                 <td style="text-align:center; padding:14px 12px; font-size:15px;">${getPriceDifference(comparison.sandy.midgrade, comparison.bigR.midgrade)}</td>
               </tr>
-              <tr style="background:#fff; border-bottom:1px solid #E3F2FD;">
+              <tr style="background:#fff; border-bottom:1px solid #ffedd5;">
                 <td class="fuel-type" style="padding:14px 12px; font-weight:600; color:#555;">💎 Premium</td>
-                <td class="price-col" style="text-align:center; padding:14px 12px; color:#2E7D32;">${formatPriceWithTime(comparison.sandy.premium, comparison.sandy.premiumUpdated)}</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:${EMAIL_GREEN};">${formatPriceWithTime(comparison.sandy.premium, comparison.sandy.premiumUpdated)}</td>
                 <td class="price-col" style="text-align:center; padding:14px 12px; color:#C62828;">${formatPriceWithTime(comparison.bigR.premium, comparison.bigR.premiumUpdated)}</td>
                 <td style="text-align:center; padding:14px 12px; font-size:15px;">${getPriceDifference(comparison.sandy.premium, comparison.bigR.premium)}</td>
               </tr>
-              <tr style="background:#FAFAFA;">
+              <tr style="background:#fff;">
                 <td class="fuel-type" style="padding:14px 12px; font-weight:600; color:#555;">🚛 Diesel</td>
-                <td class="price-col" style="text-align:center; padding:14px 12px; color:#2E7D32;">${formatPriceWithTime(comparison.sandy.diesel, comparison.sandy.dieselUpdated)}</td>
+                <td class="price-col" style="text-align:center; padding:14px 12px; color:${EMAIL_GREEN};">${formatPriceWithTime(comparison.sandy.diesel, comparison.sandy.dieselUpdated)}</td>
                 <td class="price-col" style="text-align:center; padding:14px 12px; color:#C62828;">${formatPriceWithTime(comparison.bigR.diesel, comparison.bigR.dieselUpdated)}</td>
                 <td style="text-align:center; padding:14px 12px; font-size:15px;">${getPriceDifference(comparison.sandy.diesel, comparison.bigR.diesel)}</td>
               </tr>
@@ -1273,7 +1320,7 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison, timeOf
         </td></tr>
 
         <!-- Footer -->
-        <tr><td style="background:#f5f5f5; padding:16px 24px; text-align:center;">
+        <tr><td style="background:#fff7ed; padding:16px 24px; text-align:center; border-top:1px solid ${EMAIL_ORANGE_BORDER};">
           <p style="margin:0; font-size:12px; color:#888;">
             💡 This price update is automatically fetched from GasBuddy twice daily (8:15 AM & 3:00 PM).<br/>
           </p>

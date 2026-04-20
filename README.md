@@ -167,6 +167,18 @@ Compare against thresholds
 
 ---
 
+## Gas Buddy Report Emails
+
+Gas Buddy morning/evening price report emails use `GAS_BUDDY_REPORT_EMAILS` when set, and fall back to `STORE_EMAILS` if it is empty.
+
+Use comma-separated addresses for multiple recipients:
+
+```env
+GAS_BUDDY_REPORT_EMAILS="owner@example.com,manager@example.com"
+```
+
+---
+
 ## 📱 Mobile App (FCM Deep Linking)
 
 The backend sends the following FCM data payload with every fuel alert push notification, enabling the mobile app to navigate directly to the Fuel screen:
