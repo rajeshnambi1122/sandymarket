@@ -10,7 +10,7 @@ import { adminAuth } from "../middleware/auth";
 import { FuelDelivery } from '../models/FuelDelivery';
 
 const router = express.Router();
-const DELIVERY_TEST_RECIPIENT = 'rajeshnambi2016@gmail.com';
+const TEST_RECIPIENT = 'rajeshnambi2016@gmail.com';
 
 /**
  * POST /api/fuel/check
@@ -51,6 +51,7 @@ router.get('/status', adminAuth, async (_req: Request, res: Response) => {
                 fullVolumeGallons: tank.fullVolumeGallons,
                 percentageFull: percentageFull.toFixed(1),
                 threshold,
+                ullagePercentGallons: tank.ullage90PercentGallons,
                 isLow: tank.volumeGallons < threshold,
                 status: tank.status,
                 inventoryDate: tank.inventoryDate,
@@ -255,13 +256,13 @@ router.post('/deliveries/test-email', adminAuth, async (_req: Request, res: Resp
                 endTime: delivery.endTime,
             })),
             parsedQuotes,
-            [DELIVERY_TEST_RECIPIENT]
+            [TEST_RECIPIENT]
         );
 
         return res.status(200).json({
             success: true,
-            message: `Test delivery email sent to ${DELIVERY_TEST_RECIPIENT}`,
-            recipient: DELIVERY_TEST_RECIPIENT,
+            message: `Test delivery email sent to ${TEST_RECIPIENT}`,
+            recipient: TEST_RECIPIENT,
             deliveryCount: latestDeliveries.length,
             deliveryWindow: {
                 startDate: latestDelivery.startDate,

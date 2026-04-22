@@ -900,6 +900,10 @@ export const sendFuelStatusReportEmail = async (
                 <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${entry.threshold} gal</td>
               </tr>
               <tr>
+                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">Ullage 90%</td>
+                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${(entry.tank.ullage90PercentGallons || 0).toFixed(1)} gal</td>
+              </tr>
+              <tr>
                 <td style="padding:10px 0 14px; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">% Full</td>
                 <td style="padding:10px 0 14px; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${entry.percentageFull.toFixed(1)}%</td>
               </tr>

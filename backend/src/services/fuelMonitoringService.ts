@@ -68,12 +68,14 @@ class FuelMonitoringService {
             const threshold = this.getThreshold(tank.productLabel);
             const percentageFull = this.calculatePercentageFull(tank);
             const isLow = this.isBelowThreshold(tank);
+            const ullagePercentGallons = tank.ullage90PercentGallons;
 
             return {
                 tank,
                 threshold,
                 percentageFull,
                 isLow,
+                ullagePercentGallons,
             };
         });
     }
@@ -108,13 +110,14 @@ class FuelMonitoringService {
             const report = this.buildTankStatusReport(inventories);
 
             for (const entry of report) {
-                const { tank, threshold, isLow, percentageFull } = entry;
+                const { tank, threshold, isLow, percentageFull, ullagePercentGallons } = entry;
 
                 console.log(`\nTank ${tank.tankNumber} - ${tank.productLabel}`);
                 console.log(`   Current: ${tank.volumeGallons.toFixed(1)} gallons`);
                 console.log(`   Capacity: ${tank.fullVolumeGallons} gallons (${percentageFull.toFixed(1)}% full)`);
                 console.log(`   Threshold: ${threshold} gallons`);
                 console.log(`   Status: ${isLow ? 'LOW' : 'OK'} (API: ${tank.status})`);
+                console.log(`   Ullage 90%: ${ullagePercentGallons.toFixed(1)} gallons`);
             }
 
             await this.sendTankStatusReport(report);

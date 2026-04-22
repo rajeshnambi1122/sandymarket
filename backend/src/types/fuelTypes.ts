@@ -60,6 +60,7 @@ export interface TankStatusReportEntry {
     tank: TankInventory;
     threshold: number;
     percentageFull: number;
+    ullagePercentGallons: number;
     isLow: boolean;
 }
 
