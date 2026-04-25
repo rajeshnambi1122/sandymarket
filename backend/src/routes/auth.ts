@@ -1,9 +1,11 @@
 import express, { Response } from "express";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User";
 import { auth, AuthRequest } from "../middleware/auth";
 import mongoose from "mongoose";
+import { sendPasswordResetEmail } from "../services/resendEmailService";
 
 const router = express.Router();
 
@@ -207,6 +209,128 @@ router.post("/login", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Login failed",
+      error: error.message || "Unknown error"
+    });
+  }
+});
+
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required"
+      });
+    }
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (user) {
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+      user.passwordResetToken = hashedToken;
+      user.passwordResetExpires = expiresAt;
+      await user.save();
+
+      const frontendBaseUrl =
+        process.env.FRONTEND_URL ||
+        process.env.CLIENT_URL ||
+        process.env.WEBSITE_URL ||
+        "https://sandysmarket.net";
+
+      const resetUrl = `${frontendBaseUrl.replace(/\/$/, "")}/reset-password/${rawToken}`;
+      await sendPasswordResetEmail(user.email, user.name, resetUrl);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "If an account with that email exists, a password reset link has been sent."
+    });
+  } catch (error: any) {
+    console.error("Forgot password error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to process forgot password request",
+      error: error.message || "Unknown error"
+    });
+  }
+});
+
+router.get("/reset-password/:token/validate", async (req, res) => {
+  try {
+    const token = req.params.token;
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: new Date() }
+    });
+
+    return res.status(user ? 200 : 400).json({
+      success: Boolean(user),
+      message: user ? "Reset token is valid" : "Reset link is invalid or expired"
+    });
+  } catch (error: any) {
+    console.error("Reset token validation error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to validate reset token",
+      error: error.message || "Unknown error"
+    });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Token and new password are required"
+      });
+    }
+
+    if (String(password).length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters long"
+      });
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(String(token)).digest("hex");
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset link is invalid or expired"
+      });
+    }
+
+    user.password = await bcrypt.hash(String(password), 10);
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successful"
+    });
+  } catch (error: any) {
+    console.error("Reset password error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to reset password",
       error: error.message || "Unknown error"
     });
   }

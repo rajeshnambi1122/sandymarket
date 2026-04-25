@@ -46,6 +46,70 @@ const getGasBuddyReportEmails = (): string[] => {
   return parseAndValidateEmails(process.env.STORE_EMAILS || '');
 };
 
+export const sendPasswordResetEmail = async (email: string, name: string, resetUrl: string): Promise<void> => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: ALERT_EMAIL,
+      to: [email],
+      subject: "Reset Your Sandy's Market Password",
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Password Reset</title>
+</head>
+<body style="margin:0; padding:0; background:${EMAIL_ORANGE_SOFT}; font-family:'Outfit', Arial, sans-serif; color:${EMAIL_TEXT};">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${EMAIL_ORANGE_SOFT}; padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; background:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 14px 34px rgba(249,115,22,0.14); border:1px solid ${EMAIL_ORANGE_BORDER};">
+          <tr>
+            <td style="background:linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK}); padding:34px 24px; text-align:center;">
+              <div style="display:inline-block; margin-bottom:12px; padding:8px 14px; border-radius:999px; background:rgba(255,255,255,0.18); color:#fff7ed; font-size:12px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">Account Security</div>
+              <div style="color:#fff; font-size:26px; font-weight:800; margin-bottom:6px;">Reset your password</div>
+              <div style="color:#ffedd5; font-size:14px;">Sandy's Market website access</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 22px;">
+              <div style="background:#fff7ed; border:1px solid ${EMAIL_ORANGE_BORDER}; border-radius:16px; padding:20px; margin-bottom:18px;">
+                <p style="margin:0 0 12px; font-size:16px; font-weight:700; color:${EMAIL_ORANGE_DARK};">Hello ${name || 'there'},</p>
+                <p style="margin:0 0 12px; font-size:14px; line-height:1.7; color:${EMAIL_TEXT};">We received a request to reset the password for your Sandy's Market account.</p>
+                <p style="margin:0; font-size:14px; line-height:1.7; color:${EMAIL_TEXT};">Use the button below to choose a new password. This link expires in 1 hour.</p>
+              </div>
+              <div style="text-align:center; margin:22px 0;">
+                <a href="${resetUrl}" style="display:inline-block; background:linear-gradient(135deg,${EMAIL_ORANGE},${EMAIL_ORANGE_DARK}); color:#ffffff; text-decoration:none; padding:14px 24px; border-radius:12px; font-weight:800; font-size:15px;">Reset Password</a>
+              </div>
+              <p style="margin:0 0 12px; font-size:13px; color:#6b7280; line-height:1.7;">If the button does not work, open this link manually:</p>
+              <p style="margin:0 0 18px; font-size:13px; line-height:1.7; word-break:break-all;"><a href="${resetUrl}" style="color:${EMAIL_ORANGE_DARK};">${resetUrl}</a></p>
+              <p style="margin:0; font-size:13px; color:#6b7280; line-height:1.7;">If you did not request this, you can ignore this email. Your current password will remain unchanged.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    });
+
+    if (error) {
+      console.error('Failed to send password reset email:', error);
+      throw error;
+    }
+
+    console.log('Password reset email sent successfully:', data?.id);
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    throw error;
+  }
+};
+
 /**
  * Send notification to store staff about new orders
  */

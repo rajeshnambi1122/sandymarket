@@ -9,6 +9,8 @@ export interface IUser extends Document {
   address: string;
   role: "user" | "admin" | "admin1";
   fcmToken?: string;
+  passwordResetToken?: string | null;
+  passwordResetExpires?: Date | null;
   createdAt: Date;
 }
 
@@ -41,6 +43,14 @@ const userSchema = new mongoose.Schema({
   },
   fcmToken: {
     type: String,
+    default: null,
+  },
+  passwordResetToken: {
+    type: String,
+    default: null,
+  },
+  passwordResetExpires: {
+    type: Date,
     default: null,
   },
   createdAt: {

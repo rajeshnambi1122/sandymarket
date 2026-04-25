@@ -14,6 +14,8 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const OrderPage = lazy(() => import("./pages/OrderPage"));
 const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
 
@@ -65,6 +67,22 @@ const App = () => (
           element={
             <Suspense fallback={<PageLoader />}>
               <Register />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <ForgotPassword />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/reset-password/:token"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <ResetPassword />
             </Suspense>
           }
         />
