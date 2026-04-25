@@ -5,7 +5,7 @@ import { API_URL } from "@/config/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { dismissToast, useToast } from "@/components/ui/use-toast";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ResetPassword() {
@@ -21,6 +21,10 @@ export default function ResetPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingToken, setIsCheckingToken] = useState(true);
   const [isTokenValid, setIsTokenValid] = useState(false);
+
+  useEffect(() => {
+    dismissToast();
+  }, []);
 
   useEffect(() => {
     const validateToken = async () => {

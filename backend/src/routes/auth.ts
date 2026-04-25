@@ -243,7 +243,7 @@ router.post("/forgot-password", async (req, res) => {
         process.env.WEBSITE_URL ||
         "https://sandysmarket.net";
 
-      const resetUrl = `${frontendBaseUrl.replace(/\/$/, "")}/reset-password/${rawToken}`;
+      const resetUrl = `${frontendBaseUrl.replace(/\/$/, "")}/?reset-password-token=${encodeURIComponent(rawToken)}`;
       await sendPasswordResetEmail(user.email, user.name, resetUrl);
     }
 

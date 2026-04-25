@@ -1,11 +1,11 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Mail, ArrowLeft, KeyRound } from "lucide-react";
 import { API_URL } from "@/config/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { dismissToast, useToast } from "@/components/ui/use-toast";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ForgotPassword() {
@@ -14,6 +14,11 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  useEffect(() => {
+    // Clear stale auth toasts when arriving from another auth screen.
+    dismissToast();
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

@@ -1,8 +1,8 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Header from "./components/Header";
@@ -28,11 +28,34 @@ const PageLoader = () => (
   </div>
 );
 
+const PasswordResetRedirect = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname !== "/") {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const token = params.get("reset-password-token");
+
+    if (!token) {
+      return;
+    }
+
+    navigate(`/reset-password/${encodeURIComponent(token)}`, { replace: true });
+  }, [location.pathname, location.search, navigate]);
+
+  return null;
+};
+
 const App = () => (
   <TooltipProvider>
     <Toaster />
     <Sonner />
     <BrowserRouter>
+      <PasswordResetRedirect />
       <Header />
       <Routes>
         <Route path="/" element={<Index />} />
