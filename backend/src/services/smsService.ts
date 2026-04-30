@@ -416,10 +416,10 @@ export const sendGasBuddyPriceSms = async (comparison: PriceComparison, timeOfDa
     // Format difference
     const diff = (s: number | null, b: number | null) => {
       if (!s || !b) return '  -  ';
-      const d = s - b;
-      if (Math.abs(d) < 0.01) return 'Same';
-      if (d > 0) return `+$${d.toFixed(2)}`;
-      return `-$${Math.abs(d).toFixed(2)}`;
+      const diffInCents = Math.round(s * 100) - Math.round(b * 100);
+      if (diffInCents === 0) return 'Same';
+      if (diffInCents > 0) return `+$${(diffInCents / 100).toFixed(2)}`;
+      return `-$${(Math.abs(diffInCents) / 100).toFixed(2)}`;
     };
 
     const message = `⛽ GAS BUDDY ${timeOfDay.toUpperCase()} PRICE UPDATE

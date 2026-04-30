@@ -1283,10 +1283,10 @@ export const sendGasBuddyPriceEmail = async (comparison: PriceComparison, timeOf
 
     const getPriceDifference = (sandyPrice: number | null, bigRPrice: number | null): string => {
       if (!sandyPrice || !bigRPrice) return '<span style="color:#999;">-</span>';
-      const diff = sandyPrice - bigRPrice;
-      if (Math.abs(diff) < 0.01) return '<span style="color:#666;">Same</span>';
-      if (diff > 0) return `<span style="color:#d32f2f; font-weight:bold;">+$${diff.toFixed(2)}</span>`;
-      return `<span style="color:#388e3c; font-weight:bold;">-$${Math.abs(diff).toFixed(2)}</span>`;
+      const diffInCents = Math.round(sandyPrice * 100) - Math.round(bigRPrice * 100);
+      if (diffInCents === 0) return '<span style="color:#666;">Same</span>';
+      if (diffInCents > 0) return `<span style="color:#d32f2f; font-weight:bold;">+$${(diffInCents / 100).toFixed(2)}</span>`;
+      return `<span style="color:#388e3c; font-weight:bold;">-$${(Math.abs(diffInCents) / 100).toFixed(2)}</span>`;
     };
 
     const detroitTime = new Date().toLocaleString('en-US', {

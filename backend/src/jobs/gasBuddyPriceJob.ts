@@ -1,32 +1,27 @@
 import cron from 'node-cron';
 import { gasBuddyService } from '../services/gasBuddyService';
 import { sendGasBuddyPriceEmail } from '../services/resendEmailService';
-import { sendGasBuddyPriceSms } from '../services/smsService';
 import { sendGasBuddyPriceNotification } from '../services/notificationService';
 
 /**
  * Start the Gas Buddy price comparison cron job
  * Sends price comparison alerts twice daily at 8:15 AM and 3:00 PM Detroit time
- * Includes Email, SMS, and Push Notification to admin1 and FUEL_ALERT_PHONE
+ * Includes email and push notification delivery only
  */
 export const startGasBuddyPriceJob = (): void => {
-    // Schedule for 8:15 AM Detroit time (America/Detroit timezone)
-    // Cron format: minute hour * * *
     const morningCronExpression = '15 8 * * *';
     const afternoonCronExpression = '0 15 * * *';
 
-    console.log('⚙️ Gas Buddy price job will run twice daily at 8:15 AM and 3:00 PM Detroit time');
+    console.log('Gas Buddy price job will run twice daily at 8:15 AM and 3:00 PM Detroit time');
 
-    // Job execution function (used for both morning and afternoon runs)
     const executeJob = async (timeOfDay: 'Morning' | 'Afternoon') => {
-        console.log('\n💰 ========== GAS BUDDY PRICE JOB STARTED ==========');
-        console.log(`⏰ Job triggered at: ${new Date().toLocaleString('en-US', { timeZone: 'America/Detroit' })}`);
+        console.log('\n========== GAS BUDDY PRICE JOB STARTED ==========');
+        console.log(`Job triggered at: ${new Date().toLocaleString('en-US', { timeZone: 'America/Detroit' })}`);
 
         try {
-            // Fetch current prices from both stations
             const comparison = await gasBuddyService.comparePrices();
 
-            console.log('\n📊 Price Comparison Results:');
+            console.log('\nPrice Comparison Results:');
             console.log(`   Sandy's Market:`);
             console.log(`     - Regular: ${comparison.sandy.regular ? '$' + comparison.sandy.regular.toFixed(2) : 'N/A'}`);
             console.log(`     - Premium: ${comparison.sandy.premium ? '$' + comparison.sandy.premium.toFixed(2) : 'N/A'}`);
@@ -36,46 +31,39 @@ export const startGasBuddyPriceJob = (): void => {
             console.log(`     - Premium: ${comparison.bigR.premium ? '$' + comparison.bigR.premium.toFixed(2) : 'N/A'}`);
             console.log(`     - Diesel: ${comparison.bigR.diesel ? '$' + comparison.bigR.diesel.toFixed(2) : 'N/A'}`);
 
-            // Send notifications in parallel (non-blocking)
-            console.log('\n📤 Sending notifications...');
+            console.log('\nSending notifications...');
 
             const notifications = [
                 sendGasBuddyPriceEmail(comparison, timeOfDay)
-                    .then(() => console.log('✅ Email sent successfully'))
-                    .catch(err => console.error('❌ Email failed:', err.message)),
-
-                sendGasBuddyPriceSms(comparison, timeOfDay)
-                    .then(() => console.log('✅ SMS sent successfully'))
-                    .catch(err => console.error('❌ SMS failed:', err.message)),
+                    .then(() => console.log('Email sent successfully'))
+                    .catch(err => console.error('Email failed:', err.message)),
 
                 sendGasBuddyPriceNotification(comparison, timeOfDay)
-                    .then(() => console.log('✅ Push notification sent successfully'))
-                    .catch(err => console.error('❌ Push notification failed:', err.message)),
+                    .then(() => console.log('Push notification sent successfully'))
+                    .catch(err => console.error('Push notification failed:', err.message)),
             ];
 
             await Promise.allSettled(notifications);
 
-            console.log('✅ ========== GAS BUDDY PRICE JOB COMPLETED ==========\n');
+            console.log('========== GAS BUDDY PRICE JOB COMPLETED ==========\n');
         } catch (error: any) {
-            console.error('❌ Gas Buddy price job error:', error.message);
+            console.error('Gas Buddy price job error:', error.message);
             console.error('Stack:', error.stack);
         }
     };
 
-    // Schedule morning job (8:15 AM)
     cron.schedule(morningCronExpression, () => executeJob('Morning'), {
         timezone: 'America/Detroit'
     });
 
-    // Schedule afternoon job (3:00 PM)
     cron.schedule(afternoonCronExpression, () => executeJob('Afternoon'), {
         timezone: 'America/Detroit'
     });
 
-    console.log('✅ Gas Buddy price job started successfully');
-    console.log(`📅 Morning cron: ${morningCronExpression} (8:15 AM Detroit time)`);
-    console.log(`📅 Afternoon cron: ${afternoonCronExpression} (3:00 PM Detroit time)`);
-    console.log(`🌍 Timezone: America/Detroit (Eastern Time)`);
+    console.log('Gas Buddy price job started successfully');
+    console.log(`Morning cron: ${morningCronExpression} (8:15 AM Detroit time)`);
+    console.log(`Afternoon cron: ${afternoonCronExpression} (3:00 PM Detroit time)`);
+    console.log('Timezone: America/Detroit (Eastern Time)');
 };
 
 /**
@@ -83,5 +71,5 @@ export const startGasBuddyPriceJob = (): void => {
  */
 export const stopGasBuddyPriceJob = (): void => {
     cron.getTasks().forEach((task: any) => task.stop());
-    console.log('🛑 Gas Buddy price job stopped');
+    console.log('Gas Buddy price job stopped');
 };
