@@ -5,6 +5,8 @@ import { sendFuelStatusReportNotification, sendFuelDeliveryNotification } from '
 import { sendFuelStatusReportSms, sendFuelDeliverySms } from './smsService';
 import { outlookEmailService } from './outlookEmailService';
 import { FuelDelivery } from '../models/FuelDelivery';
+import { FuelInventorySnapshot } from '../models/FuelInventorySnapshot';
+import { FuelDailySales } from '../models/FuelDailySales';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -63,8 +65,121 @@ class FuelMonitoringService {
         return detroitHour < 12 ? 'Morning' : 'Evening';
     }
 
-    private buildTankStatusReport(inventories: TankInventory[]): TankStatusReportEntry[] {
-        return inventories.map((tank) => {
+    private getDetroitDateKey(now = new Date()): string {
+        return new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Detroit',
+            month: '2-digit',
+            day: '2-digit',
+            year: '2-digit',
+        }).format(now);
+    }
+
+    private async saveInventorySnapshot(
+        inventories: TankInventory[],
+        period: 'Morning' | 'Evening',
+        dateKey: string
+    ): Promise<void> {
+        await Promise.all(
+            inventories.map((tank) =>
+                FuelInventorySnapshot.updateOne(
+                    { dateKey, period, tankNumber: tank.tankNumber },
+                    {
+                        dateKey,
+                        period,
+                        tankNumber: tank.tankNumber,
+                        productLabel: tank.productLabel,
+                        volumeGallons: tank.volumeGallons,
+                        inventoryDate: tank.inventoryDate,
+                        updatedAt: new Date(),
+                    },
+                    { upsert: true }
+                )
+            )
+        );
+    }
+
+    private async cleanupStaleSnapshots(currentDateKey: string): Promise<void> {
+        const result = await FuelInventorySnapshot.deleteMany({
+            dateKey: { $ne: currentDateKey },
+        });
+
+        if (result.deletedCount && result.deletedCount > 0) {
+            console.log(`Deleted ${result.deletedCount} stale fuel snapshot(s)`);
+        }
+    }
+
+    private async clearCurrentDaySnapshots(dateKey: string): Promise<void> {
+        const result = await FuelInventorySnapshot.deleteMany({ dateKey });
+
+        if (result.deletedCount && result.deletedCount > 0) {
+            console.log(`Cleared ${result.deletedCount} fuel snapshot(s) for ${dateKey}`);
+        }
+    }
+
+    private async getDailySalesByProduct(
+        inventories: TankInventory[],
+        period: 'Morning' | 'Evening',
+        dateKey: string
+    ): Promise<Record<string, number>> {
+        const salesByProduct: Record<string, number> = {};
+        const uniqueProducts = [...new Set(inventories.map((tank) => tank.productLabel))];
+
+        for (const product of uniqueProducts) {
+            salesByProduct[product] = 0;
+        }
+
+        if (period !== 'Evening') {
+            return salesByProduct;
+        }
+
+        const morningSnapshots = await FuelInventorySnapshot.find({
+            dateKey,
+            period: 'Morning',
+        }).lean();
+
+        if (morningSnapshots.length === 0) {
+            console.warn(`No morning snapshots found for ${dateKey}; evening sales will show as 0`);
+            return salesByProduct;
+        }
+
+        const morningByTank = new Map<number, number>();
+        for (const snapshot of morningSnapshots) {
+            morningByTank.set(snapshot.tankNumber, snapshot.volumeGallons);
+        }
+
+        const tankNumbers = inventories.map((tank) => tank.tankNumber);
+        const deliveries = await FuelDelivery.find({
+            startDate: dateKey,
+            tankNumber: { $in: tankNumbers },
+        }).lean();
+
+        const deliveredByTank: Record<number, number> = {};
+        for (const delivery of deliveries) {
+            deliveredByTank[delivery.tankNumber] = (deliveredByTank[delivery.tankNumber] || 0) + delivery.gallonsDelivered;
+        }
+
+        for (const tank of inventories) {
+            const openingVolume = morningByTank.get(tank.tankNumber);
+            if (openingVolume === undefined) {
+                continue;
+            }
+
+            const gallonsDeliveredToday = deliveredByTank[tank.tankNumber] || 0;
+            const estimatedSold = Math.max(0, openingVolume + gallonsDeliveredToday - tank.volumeGallons);
+            salesByProduct[tank.productLabel] = (salesByProduct[tank.productLabel] || 0) + estimatedSold;
+        }
+
+        return salesByProduct;
+    }
+
+    private async buildTankStatusReport(
+        inventories: TankInventory[],
+        period: 'Morning' | 'Evening',
+        dateKey: string
+    ): Promise<{ report: TankStatusReportEntry[]; eveningSalesByProduct: Record<string, number> | null }> {
+        const dailySalesByProduct = await this.getDailySalesByProduct(inventories, period, dateKey);
+
+        const report = inventories.map((tank) => {
             const threshold = this.getThreshold(tank.productLabel);
             const percentageFull = this.calculatePercentageFull(tank);
             const isLow = this.isBelowThreshold(tank);
@@ -76,12 +191,39 @@ class FuelMonitoringService {
                 percentageFull,
                 isLow,
                 ullagePercentGallons,
+                todaysSalesGallons: period === 'Evening' ? dailySalesByProduct[tank.productLabel] || 0 : null,
             };
         });
+
+        return {
+            report,
+            eveningSalesByProduct: period === 'Evening' ? dailySalesByProduct : null,
+        };
     }
 
-    private async sendTankStatusReport(report: TankStatusReportEntry[]): Promise<void> {
-        const period = this.getReportPeriod();
+    private async saveFuelDailySales(dateKey: string, salesByProduct: Record<string, number>): Promise<void> {
+        const lines = Object.entries(salesByProduct).map(([productLabel, gallonsSold]) => ({
+            productLabel,
+            gallonsSold,
+        }));
+
+        await FuelDailySales.findOneAndUpdate(
+            { dateKey },
+            {
+                dateKey,
+                lines,
+                recordedAt: new Date(),
+            },
+            { upsert: true, new: true }
+        );
+
+        console.log(`Saved fuel daily sales for ${dateKey} (${lines.length} product type(s))`);
+    }
+
+    private async sendTankStatusReport(
+        report: TankStatusReportEntry[],
+        period: 'Morning' | 'Evening'
+    ): Promise<void> {
         const lowTankCount = report.filter((entry) => entry.isLow).length;
         console.log(`Sending ${period.toLowerCase()} tank status report for ${report.length} tank(s); ${lowTankCount} low`);
 
@@ -107,10 +249,19 @@ class FuelMonitoringService {
 
             console.log(`\nChecking ${inventories.length} tank(s):`);
 
-            const report = this.buildTankStatusReport(inventories);
+            const period = this.getReportPeriod();
+            const dateKey = this.getDetroitDateKey();
+
+            await this.cleanupStaleSnapshots(dateKey);
+            await this.saveInventorySnapshot(inventories, period, dateKey);
+            const { report, eveningSalesByProduct } = await this.buildTankStatusReport(inventories, period, dateKey);
+
+            if (eveningSalesByProduct) {
+                await this.saveFuelDailySales(dateKey, eveningSalesByProduct);
+            }
 
             for (const entry of report) {
-                const { tank, threshold, isLow, percentageFull, ullagePercentGallons } = entry;
+                const { tank, threshold, isLow, percentageFull, ullagePercentGallons, todaysSalesGallons } = entry;
 
                 console.log(`\nTank ${tank.tankNumber} - ${tank.productLabel}`);
                 console.log(`   Current: ${tank.volumeGallons.toFixed(1)} gallons`);
@@ -118,9 +269,16 @@ class FuelMonitoringService {
                 console.log(`   Threshold: ${threshold} gallons`);
                 console.log(`   Status: ${isLow ? 'LOW' : 'OK'} (API: ${tank.status})`);
                 console.log(`   Ullage 90%: ${ullagePercentGallons.toFixed(1)} gallons`);
+                if (todaysSalesGallons !== null) {
+                    console.log(`   Today's sales (${tank.productLabel}): ${todaysSalesGallons.toFixed(1)} gallons`);
+                }
             }
 
-            await this.sendTankStatusReport(report);
+            await this.sendTankStatusReport(report, period);
+
+            if (period === 'Evening') {
+                await this.clearCurrentDaySnapshots(dateKey);
+            }
 
             console.log('\n========== TANK STATUS REPORT COMPLETED ==========\n');
         } catch (error: any) {

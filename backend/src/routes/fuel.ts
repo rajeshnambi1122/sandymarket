@@ -2,33 +2,11 @@ import express, { Request, Response } from 'express';
 import { fuelMonitoringService } from '../services/fuelMonitoringService';
 import { canaryApiService } from '../services/canaryApiService';
 import { gasBuddyService } from '../services/gasBuddyService';
-import { sendFuelDeliveryEmail, sendGasBuddyPriceEmail } from '../services/resendEmailService';
-import { sendGasBuddyPriceNotification } from '../services/notificationService';
 import { outlookEmailService } from '../services/outlookEmailService';
 import { adminAuth } from "../middleware/auth";
 import { FuelDelivery } from '../models/FuelDelivery';
 
 const router = express.Router();
-const TEST_RECIPIENT = 'rajeshnambi2016@gmail.com';
-
-/**
- * POST /api/fuel/check
- * Manually trigger a fuel level check
- */
-router.post('/check', adminAuth, async (_req: Request, res: Response) => {
-    try {
-        console.log('🔍 Manual fuel check triggered via API');
-        await fuelMonitoringService.checkFuelLevels();
-        res.status(200).json({
-            success: true,
-            message: 'Fuel level check completed successfully',
-            timestamp: new Date().toISOString(),
-        });
-    } catch (error: any) {
-        console.error('Error during manual fuel check:', error);
-        res.status(500).json({ success: false, message: 'Failed to check fuel levels', error: error.message });
-    }
-});
 
 /**
  * GET /api/fuel/status
@@ -106,26 +84,6 @@ router.get('/deliveries', adminAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/fuel/deliveries/check
- * Manually trigger delivery detection right now
- * Useful for testing or on-demand checks
- */
-router.post('/deliveries/check', adminAuth, async (_req: Request, res: Response) => {
-    try {
-        console.log('📦 Manual delivery detection triggered via API');
-        await fuelMonitoringService.detectAndSaveNewDeliveries();
-        res.status(200).json({
-            success: true,
-            message: 'Delivery detection complete. Check logs for new deliveries.',
-            timestamp: new Date().toISOString(),
-        });
-    } catch (error: any) {
-        console.error('❌ Manual delivery detection error:', error);
-        res.status(500).json({ success: false, message: 'Failed to detect deliveries', error: error.message });
-    }
-});
-
-/**
  * GET /api/fuel/sandyprice
  * Fetch current gas prices from Sandy location
  * Scrapes data from GasBuddy
@@ -197,131 +155,6 @@ router.get('/quote-price', adminAuth, async (_req: Request, res: Response) => {
             message: 'Failed to fetch fuel price quote',
             error: error.message,
             timestamp: new Date().toISOString(),
-        });
-    }
-});
-
-/**
- * POST /api/fuel/deliveries/test-email
- * Send the latest detected delivery email with fresh 2-day RKA quotes
- * to Rajesh only for production verification.
- */
-router.post('/deliveries/test-email', adminAuth, async (_req: Request, res: Response) => {
-    try {
-        const latestDelivery = await FuelDelivery.findOne().sort({ detectedAt: -1 });
-
-        if (!latestDelivery) {
-            return res.status(404).json({
-                success: false,
-                message: 'No delivery records found to send',
-                timestamp: new Date().toISOString(),
-            });
-        }
-
-        const latestDeliveries = await FuelDelivery.find({
-            startDate: latestDelivery.startDate,
-            startTime: latestDelivery.startTime,
-        }).sort({ tankNumber: 1, detectedAt: 1 });
-
-        if (latestDeliveries.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Latest delivery event could not be reconstructed',
-                timestamp: new Date().toISOString(),
-            });
-        }
-
-        const priceQuotes = await outlookEmailService.getLatestFuelPriceQuotes(2);
-        const parsedQuotes = priceQuotes.filter((quote) => quote.prices.length > 0);
-
-        if (parsedQuotes.length === 0) {
-            return res.status(409).json({
-                success: false,
-                message: 'No fresh RKA price quotes were fetched, so no test email was sent',
-                timestamp: new Date().toISOString(),
-            });
-        }
-
-        await sendFuelDeliveryEmail(
-            latestDeliveries.map((delivery) => ({
-                tankNumber: delivery.tankNumber,
-                productLabel: delivery.productLabel,
-                gallonsDelivered: delivery.gallonsDelivered,
-                startVolume: delivery.startVolume,
-                endVolume: delivery.endVolume,
-                startDate: delivery.startDate,
-                startTime: delivery.startTime,
-                endDate: delivery.endDate,
-                endTime: delivery.endTime,
-            })),
-            parsedQuotes,
-            [TEST_RECIPIENT]
-        );
-
-        return res.status(200).json({
-            success: true,
-            message: `Test delivery email sent to ${TEST_RECIPIENT}`,
-            recipient: TEST_RECIPIENT,
-            deliveryCount: latestDeliveries.length,
-            deliveryWindow: {
-                startDate: latestDelivery.startDate,
-                startTime: latestDelivery.startTime,
-                endDate: latestDelivery.endDate,
-                endTime: latestDelivery.endTime,
-            },
-            quoteDates: parsedQuotes.map((quote) => quote.quoteDate),
-            timestamp: new Date().toISOString(),
-        });
-    } catch (error: any) {
-        console.error('Failed to send test delivery email:', error.message);
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to send test delivery email',
-            error: error.message,
-            timestamp: new Date().toISOString(),
-        });
-    }
-});
-
-/**
- * POST /api/fuel/gasbuddy-report
- * Manually trigger Gas Buddy daily price report
- * Sends email and push notification for the Gas Buddy report
- */
-router.post('/gasbuddy-report', async (_req: Request, res: Response) => {
-    try {
-        console.log('\n========== MANUAL GAS BUDDY REPORT TRIGGERED ==========');
-
-        const comparison = await gasBuddyService.comparePrices();
-
-        console.log('Sending notifications...');
-
-        const notifications = [
-            sendGasBuddyPriceEmail(comparison)
-                .then(() => console.log('Email sent successfully'))
-                .catch(err => console.error('Email failed:', err.message)),
-
-            sendGasBuddyPriceNotification(comparison)
-                .then(() => console.log('Push notification sent successfully'))
-                .catch(err => console.error('Push notification failed:', err.message)),
-        ];
-
-        await Promise.allSettled(notifications);
-
-        console.log('========== MANUAL GAS BUDDY REPORT COMPLETED ==========\n');
-
-        res.status(200).json({
-            success: true,
-            message: 'Gas Buddy price report sent successfully',
-            data: comparison,
-            timestamp: new Date().toISOString(),
-        });
-    } catch (error: any) {
-        console.error('Failed to send Gas Buddy report:', error.message);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to send Gas Buddy price report',
-            error: error.message,
         });
     }
 });

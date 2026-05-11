@@ -220,11 +220,22 @@ export const sendFuelStatusReportNotification = async (
   const summary = report
     .map((entry) => `${entry.tank.productLabel} T${entry.tank.tankNumber}: ${entry.tank.volumeGallons.toFixed(0)} gal`)
     .join(' | ');
+  const salesByFuelType: Record<string, number> = {};
+  if (period === 'Evening') {
+    for (const entry of report) {
+      if (entry.todaysSalesGallons !== null && salesByFuelType[entry.tank.productLabel] === undefined) {
+        salesByFuelType[entry.tank.productLabel] = entry.todaysSalesGallons;
+      }
+    }
+  }
+  const salesSummary = period === 'Evening' && Object.keys(salesByFuelType).length > 0
+    ? ` Today's sales: ${Object.entries(salesByFuelType).map(([fuel, sold]) => `${fuel} ${sold.toFixed(0)}g`).join(', ')}.`
+    : '';
 
   const title = `⛽ ${period} Tank Status Report`;
   const body = lowCount > 0
-    ? `${report.length} tanks checked, ${lowCount} low. ${summary}`
-    : `${report.length} tanks checked, all OK. ${summary}`;
+    ? `${report.length} tanks checked, ${lowCount} low.${salesSummary} ${summary}`
+    : `${report.length} tanks checked, all OK.${salesSummary} ${summary}`;
 
   const data: Record<string, string> = {
     type: 'fuel_status_report',
@@ -344,7 +355,7 @@ export const sendGasBuddyPriceNotification = async (comparison: PriceComparison,
   const formatPrice = (price: number | null) => price ? `$${price.toFixed(2)}` : 'N/A';
 
   const title = `⛽ Gas Buddy ${timeOfDay} Price Update`;
-  const body = `Sandy's: Reg ${formatPrice(comparison.sandy.regular)}, Mid ${formatPrice(comparison.sandy.midgrade)}, Prem ${formatPrice(comparison.sandy.premium)}, Diesel ${formatPrice(comparison.sandy.diesel)} | Big R: Reg ${formatPrice(comparison.bigR.regular)}, Mid ${formatPrice(comparison.bigR.midgrade)}, Prem ${formatPrice(comparison.bigR.premium)}, Diesel ${formatPrice(comparison.bigR.diesel)}`;
+  const body = `Sandy's: Reg ${formatPrice(comparison.sandy.regular)}, Mid ${formatPrice(comparison.sandy.midgrade)}, Prem ${formatPrice(comparison.sandy.premium)}, Diesel ${formatPrice(comparison.sandy.diesel)} | \n | Big R: Reg ${formatPrice(comparison.bigR.regular)}, Mid ${formatPrice(comparison.bigR.midgrade)}, Prem ${formatPrice(comparison.bigR.premium)}, Diesel ${formatPrice(comparison.bigR.diesel)}`;
 
   const data: Record<string, string> = {
     type: 'gas_buddy_price',

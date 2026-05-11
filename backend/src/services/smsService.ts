@@ -328,10 +328,22 @@ export const sendFuelStatusReportSms = async (
     const tankLines = report.map((entry) =>
       `${entry.tank.productLabel} T${entry.tank.tankNumber}: ${entry.tank.volumeGallons.toFixed(0)} gal (${entry.percentageFull.toFixed(0)}%)${entry.isLow ? ' LOW' : ''}`
     ).join('\n');
+    const salesByFuelType: Record<string, number> = {};
+    if (period === 'Evening') {
+      for (const entry of report) {
+        if (entry.todaysSalesGallons !== null && salesByFuelType[entry.tank.productLabel] === undefined) {
+          salesByFuelType[entry.tank.productLabel] = entry.todaysSalesGallons;
+        }
+      }
+    }
+    const dailySalesLine = period === 'Evening' && Object.keys(salesByFuelType).length > 0
+      ? `\nToday's sales: ${Object.entries(salesByFuelType).map(([fuel, sold]) => `${fuel} ${sold.toFixed(0)} gal`).join(' | ')}`
+      : '';
 
     const message = `TANK STATUS REPORT - ${period.toUpperCase()}
 
 ${report.length} tank(s) checked${lowCount > 0 ? `, ${lowCount} low` : ', all OK'}
+${dailySalesLine}
 
 ${tankLines}`;
 

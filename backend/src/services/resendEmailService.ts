@@ -902,13 +902,21 @@ export const sendFuelAlertEmail = async (lowFuelTanks: any[]): Promise<void> => 
 
 export const sendFuelStatusReportEmail = async (
   report: any[],
-  period: 'Morning' | 'Evening' = 'Morning'
+  period: 'Morning' | 'Evening' = 'Morning',
+  recipientsOverride?: string[] | null
 ): Promise<void> => {
   try {
-    const storeEmails = parseAndValidateEmails(process.env.STORE_EMAILS || '');
+    const storeEmails =
+      recipientsOverride && recipientsOverride.length > 0
+        ? parseAndValidateEmails(recipientsOverride.join(','))
+        : parseAndValidateEmails(process.env.STORE_EMAILS || '');
 
     if (storeEmails.length === 0) {
-      throw new Error('No valid store email addresses found in STORE_EMAILS environment variable');
+      throw new Error(
+        recipientsOverride?.length
+          ? 'No valid recipient email addresses for sample tank report'
+          : 'No valid store email addresses found in STORE_EMAILS environment variable'
+      );
     }
 
     const detroitTime = new Date().toLocaleString('en-US', {
@@ -923,6 +931,50 @@ export const sendFuelStatusReportEmail = async (
     });
 
     const lowCount = report.filter((entry) => entry.isLow).length;
+
+    const salesByFuelType: Record<string, number> = {};
+    if (period === 'Evening') {
+      for (const entry of report) {
+        if (entry.todaysSalesGallons !== null && salesByFuelType[entry.tank.productLabel] === undefined) {
+          salesByFuelType[entry.tank.productLabel] = entry.todaysSalesGallons;
+        }
+      }
+    }
+
+    const eveningSalesTableHtml =
+      period === 'Evening' && Object.keys(salesByFuelType).length > 0
+        ? `
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px; border:1px solid ${EMAIL_GREEN_BORDER}; border-radius:16px; overflow:hidden; background:${EMAIL_GREEN_SOFT}; box-shadow:0 8px 22px rgba(22,101,52,0.08);">
+        <tr>
+          <td style="background:linear-gradient(135deg,${EMAIL_GREEN},#15803d); padding:12px 16px;">
+            <div style="color:#fff; font-size:16px; font-weight:800; font-family:'Outfit',Arial,sans-serif;">Today's Sales</div>
+            <div style="color:#dcfce7; font-size:12px; font-family:'Outfit',Arial,sans-serif; margin-top:4px;">Gallons sold today</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr style="background:#ecfdf5;">
+                <th style="padding:10px 14px; text-align:left; color:#166534; font-size:12px; font-weight:800; font-family:'Outfit',Arial,sans-serif; text-transform:uppercase; border-bottom:1px solid ${EMAIL_GREEN_BORDER};">Fuel type</th>
+                <th style="padding:10px 14px; text-align:right; color:#166534; font-size:12px; font-weight:800; font-family:'Outfit',Arial,sans-serif; text-transform:uppercase; border-bottom:1px solid ${EMAIL_GREEN_BORDER};">Gallons sold</th>
+              </tr>
+              ${Object.entries(salesByFuelType)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(
+                  ([label, gal], idx) => `
+              <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f0fdf4'};">
+                <td style="padding:10px 14px; color:#333; font-size:14px; font-weight:600; font-family:'Outfit',Arial,sans-serif; border-bottom:1px solid #bbf7d0;">${label}</td>
+                <td style="padding:10px 14px; text-align:right; color:#0f766e; font-size:15px; font-weight:800; font-family:'Outfit',Arial,sans-serif; border-bottom:1px solid #bbf7d0;">${gal.toFixed(1)} gal</td>
+              </tr>`
+                )
+                .join('')}
+            </table>
+          </td>
+        </tr>
+      </table>
+      `
+        : '';
+
     const tanksHtml = report.map((entry) => `
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px; border:1px solid ${entry.isLow ? EMAIL_ORANGE_BORDER : EMAIL_GREEN_BORDER}; border-radius:16px; overflow:hidden; background:${entry.isLow ? EMAIL_ORANGE_SOFT : EMAIL_GREEN_SOFT};">
         <tr>
@@ -956,14 +1008,6 @@ export const sendFuelStatusReportEmail = async (
                 <td style="padding:12px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:18px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${entry.tank.volumeGallons.toFixed(1)} gal</td>
               </tr>
               <tr>
-                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">Tank Capacity</td>
-                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${entry.tank.fullVolumeGallons} gal</td>
-              </tr>
-              <tr>
-                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">Threshold</td>
-                <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${entry.threshold} gal</td>
-              </tr>
-              <tr>
                 <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; color:#666; font-size:14px; font-family:'Outfit',Arial,sans-serif;">Ullage 90%</td>
                 <td style="padding:10px 0; border-bottom:1px solid #e0e0e0; text-align:right; color:#333; font-size:14px; font-weight:bold; font-family:'Outfit',Arial,sans-serif;">${(entry.tank.ullage90PercentGallons || 0).toFixed(1)} gal</td>
               </tr>
@@ -977,10 +1021,15 @@ export const sendFuelStatusReportEmail = async (
       </table>
     `).join('');
 
+    const isSampleRecipient = !!(recipientsOverride && recipientsOverride.length > 0);
+    const subject = isSampleRecipient
+      ? `⛽ [Sample] ${period} Tank Status Report - Sandy's Market`
+      : `⛽Tank Status Report - ${period} - Sandy's Market`;
+
     const { data, error } = await resend.emails.send({
       from: ALERT_EMAIL,
       to: storeEmails,
-      subject: `Tank Status Report - ${period} - Sandy's Market`,
+      subject,
       html: `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1014,6 +1063,7 @@ export const sendFuelStatusReportEmail = async (
               <p style="margin:0 0 16px; font-size:15px; color:#333; font-family:'Outfit',Arial,sans-serif;">
                 Daily ${period.toLowerCase()} status snapshot for ${report.length} tank(s).
               </p>
+              ${eveningSalesTableHtml}
               ${tanksHtml}
             </td>
           </tr>

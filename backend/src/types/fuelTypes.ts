@@ -62,6 +62,7 @@ export interface TankStatusReportEntry {
     percentageFull: number;
     ullagePercentGallons: number;
     isLow: boolean;
+    todaysSalesGallons: number | null;
 }
 
 export interface DeliveryEntry {
