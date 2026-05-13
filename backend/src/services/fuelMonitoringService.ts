@@ -52,7 +52,7 @@ class FuelMonitoringService {
         return (tank.volumeGallons / tank.fullVolumeGallons) * 100;
     }
 
-    private getReportPeriod(now = new Date()): 'Morning' | 'Evening' {
+    private getReportPeriod(now = new Date()): 'Morning' | 'Night' {
         const detroitHour = parseInt(
             new Intl.DateTimeFormat('en-US', {
                 timeZone: 'America/Detroit',
@@ -62,7 +62,7 @@ class FuelMonitoringService {
             10
         );
 
-        return detroitHour < 12 ? 'Morning' : 'Evening';
+        return detroitHour < 12 ? 'Morning' : 'Night';
     }
 
     private getDetroitDateKey(now = new Date()): string {
@@ -76,7 +76,7 @@ class FuelMonitoringService {
 
     private async saveInventorySnapshot(
         inventories: TankInventory[],
-        period: 'Morning' | 'Evening',
+        period: 'Morning' | 'Night',
         dateKey: string
     ): Promise<void> {
         await Promise.all(
@@ -116,9 +116,48 @@ class FuelMonitoringService {
         }
     }
 
+    private detroitWallNumber(date: Date): number {
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Detroit',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+        }).formatToParts(date);
+
+        const map: Record<string, number> = {};
+        for (const part of parts) {
+            if (part.type !== 'literal') {
+                map[part.type] = parseInt(part.value, 10);
+            }
+        }
+        // Intl sometimes emits hour=24 for midnight
+        const hour = map.hour === 24 ? 0 : map.hour;
+        return map.year * 1e8 + map.month * 1e6 + map.day * 1e4 + hour * 100 + map.minute;
+    }
+
+    private parseDeliveryWallNumber(startDate: string, startTime: string): number | null {
+        const dateParts = startDate.split('/').map((s) => parseInt(s, 10));
+        if (dateParts.length !== 3 || dateParts.some((n) => Number.isNaN(n))) return null;
+        const [mm, dd, yy] = dateParts;
+
+        const timeMatch = startTime.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (!timeMatch) return null;
+        let hour = parseInt(timeMatch[1], 10);
+        const minute = parseInt(timeMatch[2], 10);
+        const meridiem = timeMatch[3].toUpperCase();
+        if (meridiem === 'PM' && hour !== 12) hour += 12;
+        if (meridiem === 'AM' && hour === 12) hour = 0;
+
+        const fullYear = 2000 + yy;
+        return fullYear * 1e8 + mm * 1e6 + dd * 1e4 + hour * 100 + minute;
+    }
+
     private async getDailySalesByProduct(
         inventories: TankInventory[],
-        period: 'Morning' | 'Evening',
+        period: 'Morning' | 'Night',
         dateKey: string
     ): Promise<Record<string, number>> {
         const salesByProduct: Record<string, number> = {};
@@ -128,7 +167,7 @@ class FuelMonitoringService {
             salesByProduct[product] = 0;
         }
 
-        if (period !== 'Evening') {
+        if (period !== 'Night') {
             return salesByProduct;
         }
 
@@ -138,13 +177,18 @@ class FuelMonitoringService {
         }).lean();
 
         if (morningSnapshots.length === 0) {
-            console.warn(`No morning snapshots found for ${dateKey}; evening sales will show as 0`);
+            console.warn(`No morning snapshots found for ${dateKey}; night sales will show as 0`);
             return salesByProduct;
         }
 
         const morningByTank = new Map<number, number>();
+        const morningCutoffByTank = new Map<number, number>();
         for (const snapshot of morningSnapshots) {
             morningByTank.set(snapshot.tankNumber, snapshot.volumeGallons);
+            const createdAt = (snapshot as any).createdAt instanceof Date
+                ? (snapshot as any).createdAt
+                : new Date((snapshot as any).createdAt);
+            morningCutoffByTank.set(snapshot.tankNumber, this.detroitWallNumber(createdAt));
         }
 
         const tankNumbers = inventories.map((tank) => tank.tankNumber);
@@ -154,8 +198,25 @@ class FuelMonitoringService {
         }).lean();
 
         const deliveredByTank: Record<number, number> = {};
+        let skippedBeforeMorning = 0;
         for (const delivery of deliveries) {
+            const cutoff = morningCutoffByTank.get(delivery.tankNumber);
+            const deliveryWall = this.parseDeliveryWallNumber(delivery.startDate, delivery.startTime);
+
+            if (cutoff !== undefined && deliveryWall !== null && deliveryWall < cutoff) {
+                skippedBeforeMorning += 1;
+                console.log(
+                    `Skipping delivery for tank ${delivery.tankNumber} at ${delivery.startDate} ${delivery.startTime} ` +
+                    `(${delivery.gallonsDelivered} gal): occurred before morning snapshot, already reflected in opening volume`
+                );
+                continue;
+            }
+
             deliveredByTank[delivery.tankNumber] = (deliveredByTank[delivery.tankNumber] || 0) + delivery.gallonsDelivered;
+        }
+
+        if (skippedBeforeMorning > 0) {
+            console.log(`Excluded ${skippedBeforeMorning} pre-morning delivery row(s) from today's sales math`);
         }
 
         for (const tank of inventories) {
@@ -174,9 +235,9 @@ class FuelMonitoringService {
 
     private async buildTankStatusReport(
         inventories: TankInventory[],
-        period: 'Morning' | 'Evening',
+        period: 'Morning' | 'Night',
         dateKey: string
-    ): Promise<{ report: TankStatusReportEntry[]; eveningSalesByProduct: Record<string, number> | null }> {
+    ): Promise<{ report: TankStatusReportEntry[]; nightSalesByProduct: Record<string, number> | null }> {
         const dailySalesByProduct = await this.getDailySalesByProduct(inventories, period, dateKey);
 
         const report = inventories.map((tank) => {
@@ -191,13 +252,13 @@ class FuelMonitoringService {
                 percentageFull,
                 isLow,
                 ullagePercentGallons,
-                todaysSalesGallons: period === 'Evening' ? dailySalesByProduct[tank.productLabel] || 0 : null,
+                todaysSalesGallons: period === 'Night' ? dailySalesByProduct[tank.productLabel] || 0 : null,
             };
         });
 
         return {
             report,
-            eveningSalesByProduct: period === 'Evening' ? dailySalesByProduct : null,
+            nightSalesByProduct: period === 'Night' ? dailySalesByProduct : null,
         };
     }
 
@@ -222,7 +283,7 @@ class FuelMonitoringService {
 
     private async sendTankStatusReport(
         report: TankStatusReportEntry[],
-        period: 'Morning' | 'Evening'
+        period: 'Morning' | 'Night'
     ): Promise<void> {
         const lowTankCount = report.filter((entry) => entry.isLow).length;
         console.log(`Sending ${period.toLowerCase()} tank status report for ${report.length} tank(s); ${lowTankCount} low`);
@@ -254,10 +315,10 @@ class FuelMonitoringService {
 
             await this.cleanupStaleSnapshots(dateKey);
             await this.saveInventorySnapshot(inventories, period, dateKey);
-            const { report, eveningSalesByProduct } = await this.buildTankStatusReport(inventories, period, dateKey);
+            const { report, nightSalesByProduct } = await this.buildTankStatusReport(inventories, period, dateKey);
 
-            if (eveningSalesByProduct) {
-                await this.saveFuelDailySales(dateKey, eveningSalesByProduct);
+            if (nightSalesByProduct) {
+                await this.saveFuelDailySales(dateKey, nightSalesByProduct);
             }
 
             for (const entry of report) {
@@ -276,7 +337,7 @@ class FuelMonitoringService {
 
             await this.sendTankStatusReport(report, period);
 
-            if (period === 'Evening') {
+            if (period === 'Night') {
                 await this.clearCurrentDaySnapshots(dateKey);
             }
 

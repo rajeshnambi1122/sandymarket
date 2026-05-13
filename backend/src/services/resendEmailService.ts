@@ -902,7 +902,7 @@ export const sendFuelAlertEmail = async (lowFuelTanks: any[]): Promise<void> => 
 
 export const sendFuelStatusReportEmail = async (
   report: any[],
-  period: 'Morning' | 'Evening' = 'Morning',
+  period: 'Morning' | 'Night' = 'Morning',
   recipientsOverride?: string[] | null
 ): Promise<void> => {
   try {
@@ -933,7 +933,7 @@ export const sendFuelStatusReportEmail = async (
     const lowCount = report.filter((entry) => entry.isLow).length;
 
     const salesByFuelType: Record<string, number> = {};
-    if (period === 'Evening') {
+    if (period === 'Night') {
       for (const entry of report) {
         if (entry.todaysSalesGallons !== null && salesByFuelType[entry.tank.productLabel] === undefined) {
           salesByFuelType[entry.tank.productLabel] = entry.todaysSalesGallons;
@@ -941,8 +941,8 @@ export const sendFuelStatusReportEmail = async (
       }
     }
 
-    const eveningSalesTableHtml =
-      period === 'Evening' && Object.keys(salesByFuelType).length > 0
+    const nightSalesTableHtml =
+      period === 'Night' && Object.keys(salesByFuelType).length > 0
         ? `
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px; border:1px solid ${EMAIL_GREEN_BORDER}; border-radius:16px; overflow:hidden; background:${EMAIL_GREEN_SOFT}; box-shadow:0 8px 22px rgba(22,101,52,0.08);">
         <tr>
@@ -958,8 +958,18 @@ export const sendFuelStatusReportEmail = async (
                 <th style="padding:10px 14px; text-align:left; color:#166534; font-size:12px; font-weight:800; font-family:'Outfit',Arial,sans-serif; text-transform:uppercase; border-bottom:1px solid ${EMAIL_GREEN_BORDER};">Fuel type</th>
                 <th style="padding:10px 14px; text-align:right; color:#166534; font-size:12px; font-weight:800; font-family:'Outfit',Arial,sans-serif; text-transform:uppercase; border-bottom:1px solid ${EMAIL_GREEN_BORDER};">Gallons sold</th>
               </tr>
-              ${Object.entries(salesByFuelType)
-                .sort(([a], [b]) => a.localeCompare(b))
+              ${(() => {
+                const FUEL_ORDER = ['REGULAR', 'PREMIUM', 'DIESEL', 'REC FUEL'];
+                const rank = (label: string) => {
+                  const idx = FUEL_ORDER.indexOf(label.trim().toUpperCase());
+                  return idx === -1 ? FUEL_ORDER.length : idx;
+                };
+                return Object.entries(salesByFuelType).sort(([a], [b]) => {
+                  const ra = rank(a);
+                  const rb = rank(b);
+                  return ra !== rb ? ra - rb : a.localeCompare(b);
+                });
+              })()
                 .map(
                   ([label, gal], idx) => `
               <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f0fdf4'};">
@@ -1063,7 +1073,7 @@ export const sendFuelStatusReportEmail = async (
               <p style="margin:0 0 16px; font-size:15px; color:#333; font-family:'Outfit',Arial,sans-serif;">
                 Daily ${period.toLowerCase()} status snapshot for ${report.length} tank(s).
               </p>
-              ${eveningSalesTableHtml}
+              ${nightSalesTableHtml}
               ${tanksHtml}
             </td>
           </tr>

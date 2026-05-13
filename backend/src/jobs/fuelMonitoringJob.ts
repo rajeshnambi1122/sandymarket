@@ -6,11 +6,11 @@ dotenv.config();
 
 /**
  * Start the fuel monitoring cron job
- * Sends tank status reports at 7:00 AM and 7:00 PM Detroit time
+ * Sends tank status reports at 6:00 AM and 10:00 PM Detroit time
  */
 export const startFuelMonitoring = (): void => {
-    const cronExpression = '0 7,19 * * *';
-    console.log('Fuel tank status reports will run daily at 7:00 AM and 7:00 PM Detroit time');
+    const cronExpression = '0 6,22 * * *';
+    console.log('Fuel tank status reports will run daily at 6:00 AM and 10:00 PM Detroit time');
 
     // Schedule the cron job
     cron.schedule(cronExpression, async () => {

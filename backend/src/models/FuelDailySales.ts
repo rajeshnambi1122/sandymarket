@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 /**
  * One document per Detroit calendar day: gallons sold that day by product label.
- * Written after the evening tank report is computed.
+ * Written after the night tank report is computed.
  */
 const fuelDailySalesLineSchema = new mongoose.Schema(
     {

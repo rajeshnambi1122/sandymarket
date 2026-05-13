@@ -314,7 +314,7 @@ ${tankLines}`;
  */
 export const sendFuelStatusReportSms = async (
   report: TankStatusReportEntry[],
-  period: 'Morning' | 'Evening' = 'Morning'
+  period: 'Morning' | 'Night' = 'Morning'
 ): Promise<void> => {
   try {
     const fuelAlertPhone = process.env.FUEL_ALERT_PHONE;
@@ -329,14 +329,14 @@ export const sendFuelStatusReportSms = async (
       `${entry.tank.productLabel} T${entry.tank.tankNumber}: ${entry.tank.volumeGallons.toFixed(0)} gal (${entry.percentageFull.toFixed(0)}%)${entry.isLow ? ' LOW' : ''}`
     ).join('\n');
     const salesByFuelType: Record<string, number> = {};
-    if (period === 'Evening') {
+    if (period === 'Night') {
       for (const entry of report) {
         if (entry.todaysSalesGallons !== null && salesByFuelType[entry.tank.productLabel] === undefined) {
           salesByFuelType[entry.tank.productLabel] = entry.todaysSalesGallons;
         }
       }
     }
-    const dailySalesLine = period === 'Evening' && Object.keys(salesByFuelType).length > 0
+    const dailySalesLine = period === 'Night' && Object.keys(salesByFuelType).length > 0
       ? `\nToday's sales: ${Object.entries(salesByFuelType).map(([fuel, sold]) => `${fuel} ${sold.toFixed(0)} gal`).join(' | ')}`
       : '';
 

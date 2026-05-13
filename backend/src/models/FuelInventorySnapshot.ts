@@ -2,11 +2,11 @@ import mongoose from 'mongoose';
 
 /**
  * Stores per-tank snapshot volumes used for daily sales math.
- * We persist both morning and evening snapshots keyed by Detroit date.
+ * We persist both morning and night snapshots keyed by Detroit date.
  */
 const fuelInventorySnapshotSchema = new mongoose.Schema({
     dateKey: { type: String, required: true }, // MM/DD/YY in Detroit time
-    period: { type: String, enum: ['Morning', 'Evening'], required: true },
+    period: { type: String, enum: ['Morning', 'Night'], required: true },
     tankNumber: { type: Number, required: true },
     productLabel: { type: String, required: true },
     volumeGallons: { type: Number, required: true },

@@ -204,7 +204,7 @@ export const sendFuelAlertNotification = async (lowFuelTanks: any[]) => {
 
 export const sendFuelStatusReportNotification = async (
   report: TankStatusReportEntry[],
-  period: 'Morning' | 'Evening' = 'Morning'
+  period: 'Morning' | 'Night' = 'Morning'
 ): Promise<void> => {
   const admin1Users = await User.find({
     role: 'admin1',
@@ -221,14 +221,14 @@ export const sendFuelStatusReportNotification = async (
     .map((entry) => `${entry.tank.productLabel} T${entry.tank.tankNumber}: ${entry.tank.volumeGallons.toFixed(0)} gal`)
     .join(' | ');
   const salesByFuelType: Record<string, number> = {};
-  if (period === 'Evening') {
+  if (period === 'Night') {
     for (const entry of report) {
       if (entry.todaysSalesGallons !== null && salesByFuelType[entry.tank.productLabel] === undefined) {
         salesByFuelType[entry.tank.productLabel] = entry.todaysSalesGallons;
       }
     }
   }
-  const salesSummary = period === 'Evening' && Object.keys(salesByFuelType).length > 0
+  const salesSummary = period === 'Night' && Object.keys(salesByFuelType).length > 0
     ? ` Today's sales: ${Object.entries(salesByFuelType).map(([fuel, sold]) => `${fuel} ${sold.toFixed(0)}g`).join(', ')}.`
     : '';
 

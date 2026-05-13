@@ -798,7 +798,6 @@ const MenuSection = React.memo(({
   );
 });
 
-// Make toppings visible in cart with debug information
 const CartSummary = React.memo(({
   cart,
   cartTotal,
